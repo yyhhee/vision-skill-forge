@@ -1,0 +1,40 @@
+{
+  "date": "2026-08-12",
+  "instruction": "检测图像中的在蹲下的人，姿态为双膝弯曲，排除正坐着的人",
+  "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+  "root_causes": [
+    "LLM 生成了 assoc_squat，但该正条件分支没有连接到最终 filter；实际结果只执行了 not_sitting。",
+    "宽泛的 person sitting 与 squatting 候选框完全重合，直接集合差会误删正确蹲姿。",
+    "原校验器允许单输入 logic.all/logic.any，也不检查启用节点是否能到达声明输出。"
+  ],
+  "generic_solution": {
+    "intent_stage": "含显式排除约束时，LLM 只输出一个正可见短语和一个带区分证据的负可见短语。",
+    "executor_graph": [
+      "positive rex.ground",
+      "excluded rex.ground",
+      "spatial.associate overlap",
+      "logic.not",
+      "filter.apply",
+      "output.draw"
+    ],
+    "validation_guards": [
+      "logic.all/logic.any 至少包含两个条件引用",
+      "所有启用节点必须能追溯到至少一个声明输出"
+    ],
+    "editable": true
+  },
+  "real_compile": {
+    "strategy": "llm_intent:entity_contrast",
+    "positive_phrase": "person squatting with bent knees",
+    "exclude_phrase": "person sitting with support under buttocks"
+  },
+  "real_result": {
+    "status": "passed",
+    "positive_candidates": 2,
+    "excluded_candidates": 1,
+    "final_objects": 1,
+    "visual_check": "仅保留中央双膝弯曲蹲姿人员，右侧臀部有支撑的坐姿人员被排除。",
+    "run_dir": "data/runs/20260812_111200_534479ef",
+    "annotated": "data/runs/20260812_111200_534479ef/annotated.jpg"
+  }
+}

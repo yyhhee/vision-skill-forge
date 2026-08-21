@@ -1,0 +1,537 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "no_helmet",
+  "version": 1,
+  "display_name": "施工未戴安全帽",
+  "original_instruction": "检测施工人员中没有佩戴安全帽的人。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "image",
+      "video"
+    ],
+    "accept": [
+      "image",
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "entity_query",
+    "target": {
+      "concept": "construction_worker",
+      "source_span": "施工人员",
+      "phrases": [
+        "construction worker",
+        "worker at construction site"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "wearable",
+        "value": "safety_helmet",
+        "source": "检测施工人员中没有佩戴安全帽的人",
+        "source_span": "没有佩戴安全帽",
+        "polarity": "absent",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [
+          "safety helmet",
+          "hard hat"
+        ],
+        "temporal": false
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "6bbc9fe1fada894067add778739d5225251ffcc6b7baf98d623b1a425a121e36"
+  },
+  "variants": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "workers_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "施工人员",
+                "phrases": [
+                  "construction worker",
+                  "worker at construction site"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "workers",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$workers_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_crops",
+          "op": "object.crop@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$workers"
+          },
+          "params": {
+            "padding_fraction": 0.05,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              0.45
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_crop_resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$equipment_crops"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 640,
+            "interpolation": "bicubic"
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$equipment_crop_resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "安全帽",
+                "phrases": [
+                  "safety helmet",
+                  "hard hat"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$equipment_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "has_equipment",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$workers",
+            "objects": "$equipment"
+          },
+          "params": {
+            "relation": "source_entity",
+            "threshold": 0.0,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "same_source_only": false
+          },
+          "enabled": true
+        },
+        {
+          "id": "missing_equipment",
+          "op": "logic.not@1.0",
+          "inputs": {
+            "condition": "$has_equipment"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "violations",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$workers",
+            "condition": "$missing_equipment"
+          },
+          "params": {
+            "output_label": "未戴安全帽人员"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$violations"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$violations"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "workers_raw",
+          "workers",
+          "equipment_crops",
+          "equipment_crop_resized",
+          "equipment_raw",
+          "equipment",
+          "has_equipment",
+          "missing_equipment",
+          "violations"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    },
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "workers_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "施工人员",
+                "phrases": [
+                  "construction worker",
+                  "worker at construction site"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "workers",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$workers_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "subject_tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$workers"
+          },
+          "params": {
+            "iou_threshold": 0.2,
+            "max_missing_frames": 1,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "tracked_subjects",
+          "op": "objects.from_tracks@1.0",
+          "inputs": {
+            "tracks": "$subject_tracks"
+          },
+          "params": {
+            "selection": "all"
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_crops",
+          "op": "object.crop@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$tracked_subjects"
+          },
+          "params": {
+            "padding_fraction": 0.05,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              0.45
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_crop_resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$equipment_crops"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 640,
+            "interpolation": "bicubic"
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$equipment_crop_resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "安全帽",
+                "phrases": [
+                  "safety helmet",
+                  "hard hat"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$equipment_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "has_equipment",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$workers",
+            "objects": "$equipment"
+          },
+          "params": {
+            "relation": "source_entity",
+            "threshold": 0.0,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "same_source_only": false
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_evidence_hold",
+          "op": "temporal.hold@1.0",
+          "inputs": {
+            "condition": "$has_equipment"
+          },
+          "params": {
+            "seconds": 1.5,
+            "value": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "missing_equipment",
+          "op": "logic.not@1.0",
+          "inputs": {
+            "condition": "$equipment_evidence_hold"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "violations",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$workers",
+            "condition": "$missing_equipment"
+          },
+          "params": {
+            "output_label": "未戴安全帽人员"
+          },
+          "enabled": true
+        },
+        {
+          "id": "result_tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$violations"
+          },
+          "params": {
+            "iou_threshold": 0.2,
+            "max_missing_frames": 1,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "confirmed_tracks",
+          "op": "track.confirm@1.0",
+          "inputs": {
+            "tracks": "$result_tracks"
+          },
+          "params": {
+            "min_hits": 2,
+            "min_span_seconds": 0.5
+          },
+          "enabled": true
+        },
+        {
+          "id": "confirmed_objects",
+          "op": "objects.from_tracks@1.0",
+          "inputs": {
+            "tracks": "$confirmed_tracks"
+          },
+          "params": {
+            "selection": "all"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$confirmed_tracks"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true,
+            "show_trajectory": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$confirmed_objects",
+        "tracks": "$confirmed_tracks"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "workers_raw",
+          "workers",
+          "subject_tracks",
+          "tracked_subjects",
+          "equipment_crops",
+          "equipment_crop_resized",
+          "equipment_raw",
+          "equipment",
+          "has_equipment",
+          "equipment_evidence_hold",
+          "missing_equipment",
+          "violations"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

@@ -1,0 +1,578 @@
+{
+  "schema_version": "2.0",
+  "review_date": "2026-08-13",
+  "scope": "current_v2_real_deepseek_thinking_and_real_rex_historical_failures",
+  "case_count": 1,
+  "automatic_passed": 0,
+  "automatic_failed": 1,
+  "runtime_failed": 0,
+  "manual_review_pending": 1,
+  "cases": [
+    {
+      "case_id": "white_car_count",
+      "instruction": "识别白色车数量。",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\acceptance_media\\generated\\shared_normal_highway.png",
+      "expected_count": null,
+      "expected_minimum": 1,
+      "expected_maximum": null,
+      "expected_measurement": 4,
+      "note": "白色车目标框与右上角计数应一致",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "quantity semantics are not covered"
+      ],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"white car\",\n    \"source_span\": \"白色车\",\n    \"phrases\": [\"car\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"白色\",\n      \"phrases\": [\"white\"]\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}",
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"white car\",\n    \"source_span\": \"白色车\",\n    \"phrases\": [\"car\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"白色\",\n      \"phrases\": [\"white\"]\n    },\n    {\n      \"kind\": \"quantity\",\n      \"value\": {\"measure\": \"count\"},\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"数量\",\n      \"phrases\": [\"count\"]\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_failed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "white car",
+          "source_span": "白色车",
+          "phrases": [
+            "car"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "white",
+            "source": "识别白色车数量。",
+            "source_span": "白色",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "white"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "quantity",
+            "value": {
+              "measure": "count"
+            },
+            "source": "识别白色车数量。",
+            "source_span": "数量",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "count"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "fdc7fb79349531a5aa855acf754e96c6462bfab704d636647a869d7ded11a0ad"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_white_car_count",
+        "version": 1,
+        "display_name": "white_car_count",
+        "original_instruction": "识别白色车数量。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "white car",
+            "source_span": "白色车",
+            "phrases": [
+              "car"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "white",
+              "source": "识别白色车数量。",
+              "source_span": "白色",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "white"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "quantity",
+              "value": {
+                "measure": "count"
+              },
+              "source": "识别白色车数量。",
+              "source_span": "数量",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "count"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "fdc7fb79349531a5aa855acf754e96c6462bfab704d636647a869d7ded11a0ad"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "long_side",
+                  "long_side": 1280
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "white_car_count",
+                      "phrases": [
+                        "car"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$candidates"
+                },
+                "params": {
+                  "color": "white",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.2,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color_entity",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "白色",
+                      "phrases": [
+                        "white white car"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color_entity_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_color_entity"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color_entity_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_color_entity_dedup"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_color",
+                    "$constraint_1_color_entity_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraint_1_color_all"
+                },
+                "params": {
+                  "output_label": "white_car_count"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_count",
+                "op": "measure.count@1.0",
+                "inputs": {
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered",
+              "measurements": "$constraint_2_count"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_color",
+                "constraint_1_color_entity",
+                "constraint_1_color_entity_dedup",
+                "constraint_1_color_entity_matches",
+                "constraint_1_color_all"
+              ],
+              "atom_2": [
+                "constraint_2_count"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 3,
+      "actual_measurement": 3,
+      "actual_rex_phrases": [
+        "car",
+        "white white car"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "white",
+          "source_span": "白色",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "white"
+          ],
+          "bound_nodes": [
+            "constraint_1_color",
+            "constraint_1_color_entity",
+            "constraint_1_color_entity_dedup",
+            "constraint_1_color_entity_matches",
+            "constraint_1_color_all"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "white",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.2,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 15
+              },
+              "output_summary": {
+                "result": 15
+              },
+              "elapsed_ms": 92.87249999761116,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color_entity",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "白色",
+                    "phrases": [
+                      "white white car"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 3
+              },
+              "elapsed_ms": 900.8111000002827,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color_entity_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 3
+              },
+              "output_summary": {
+                "result": 3
+              },
+              "elapsed_ms": 0.011500000255182385,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color_entity_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 15,
+                "objects": 3
+              },
+              "output_summary": {
+                "result": 15
+              },
+              "elapsed_ms": 0.46749999455641955,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color_all",
+              "operator": "logic.all@1.0",
+              "rule": "按相同 key 对多个条件执行逻辑与。",
+              "effective_params": {},
+              "input_summary": {
+                "conditions": 2
+              },
+              "output_summary": {
+                "result": 15
+              },
+              "elapsed_ms": 0.05339999916031957,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "quantity",
+          "value": {
+            "measure": "count"
+          },
+          "source_span": "数量",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "count"
+          ],
+          "bound_nodes": [
+            "constraint_2_count"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_count",
+              "operator": "measure.count@1.0",
+              "rule": "返回当前有效实体数量。",
+              "effective_params": {},
+              "input_summary": {
+                "objects": 3
+              },
+              "output_summary": {
+                "result": 1
+              },
+              "elapsed_ms": 0.008999995770864189,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.0890890890890891,
+            0.21021021021021022,
+            0.16116116116116116,
+            0.2782782782782783
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_2",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.2042042042042042,
+            0.3893893893893894,
+            0.3063063063063063,
+            0.4864864864864865
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_5",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.5085085085085085,
+            0.28128128128128127,
+            0.5785785785785785,
+            0.3663663663663664
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": false,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_203544_41067cd6",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_203544_41067cd6\\annotated.jpg"
+    }
+  ]
+}

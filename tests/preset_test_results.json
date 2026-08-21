@@ -1,0 +1,795 @@
+{
+  "schema_version": "1.0",
+  "updated_date": "2026-08-20",
+  "latest_fall_result_visibility_fix": {
+    "date": "2026-08-20",
+    "status": "passed_code_ui_and_real_rex",
+    "coverage": [
+      "media estimation and execution follow the uploaded file type when the UI variant is stale",
+      "TrackSet history is exposed as per-frame detection bbox items",
+      "fallen/on-ground and hands-and-knees recovery frames pass the 0.6 aspect-ratio guard while the standing negative remains rejected"
+    ],
+    "positive_run_id": "20260820_191719_6bac8251",
+    "positive_box_samples": 11,
+    "positive_events": 1,
+    "standing_negative_run_id": "20260820_191732_a0e443be",
+    "standing_negative_box_samples": 0,
+    "standing_negative_events": 0,
+    "tests": "402 passed: full pytest suite"
+  },
+  "latest_grounding_prompt_debug": {
+    "date": "2026-08-19",
+    "status": "passed_code_ui_and_real_rex",
+    "implementation": "Optional query_prompt is now persisted on generic Rex Grounding nodes and edited from the V2 review page; the bounding-box return contract remains fixed.",
+    "browser": "P12_person_fall: selected fallen_people_raw, applied Someone fell down, observed query_prompt in Effective SkillPackage, then reset to Detect person lying on the ground with valid package status.",
+    "tests": "399 passed: full pytest suite; immediate-event deduplication regression included.",
+    "real_rex_comparison": {
+      "status": "passed",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\acceptance_media\\v2\\摔倒.mp4",
+      "sampling": "1 FPS, 11 sampled frames",
+      "queries": [
+        "Detect person lying on the ground",
+        "Someone fell down",
+        "fall-down event"
+      ],
+      "run_id": "20260819_104437_bd165d54",
+      "query_used": "Someone fell down",
+      "object_count": 1,
+      "event_count": 1,
+      "event_label": "人员摔倒事件",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs_v2\\20260819_104437_bd165d54\\annotated.mp4",
+      "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs_v2\\20260819_104437_bd165d54\\trace.json",
+      "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs_v2\\20260819_104437_bd165d54\\events.json"
+    }
+  },
+  "latest_fallen_pose_regression": {
+    "date": "2026-08-18",
+    "status": "passed",
+    "instruction": "识别视频中是否有人摔倒，持续时间1s",
+    "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\acceptance_media\\v2\\P12_negative_standing.mp4",
+    "natural_language_run": {
+      "run_id": "20260818_185051_1441f3b2",
+      "event_count": 0,
+      "rex_phrases": ["person", "person lying on the ground"],
+      "constraint": "pose=fallen_or_lying + temporal.persist=1s",
+      "artifacts": {
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_185051_1441f3b2\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_185051_1441f3b2\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_185051_1441f3b2\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_185051_1441f3b2\\annotated.mp4"
+      }
+    },
+    "p12_acceptance": {
+      "positive_run_id": "20260818_185600_cd97c462",
+      "standing_negative_run_id": "20260818_185607_41c1be44",
+      "positive_event_count": 1,
+      "standing_negative_event_count": 0,
+      "short_confusion_event_count": 0,
+      "semantic_passed": 63,
+      "runtime_failed": 0
+    },
+    "tests": "391 passed: full pytest suite"
+  },
+  "latest_temporal_and_natural_video_fix": {
+    "date": "2026-08-18",
+    "status": "passed",
+    "tests": "380 passed: full pytest suite",
+    "natural_language_video": {
+      "instruction": "检测视频中是否有人摔倒",
+      "skill_id": "fall_check_verify",
+      "requested_media": "video",
+      "browser_result": "annotation and runtime controls both selected video",
+      "guidance": "visible fallen/lying state; no claim of standing/walking-to-fall action"
+    },
+    "P07_illegal_parking": {
+      "configured_seconds": 10.0,
+      "run_id": "20260818_173023_72646471",
+      "event": {
+        "qualification_start_time": 1.0,
+        "trigger_time": 11.0,
+        "start_time": 11.0,
+        "end_time": 11.0,
+        "required_duration_seconds": 10.0
+      },
+      "track_visualization": {
+        "first_timestamp": 0.0,
+        "last_timestamp": 11.0,
+        "samples": 12,
+        "time_window": "whole_track"
+      },
+      "artifacts": {
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_173023_72646471\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_173023_72646471\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_173023_72646471\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_173023_72646471\\annotated.mp4"
+      }
+    }
+  },
+  "latest_generic_preset_regression": {
+    "date": "2026-08-18",
+    "status": "passed",
+    "verification": "374 passed: full pytest suite; P05 effective workflow rerun at one frame per second produced 9 objects and 9 events after temporal cadence handling was corrected.",
+    "run_id": "20260818_125944_63a22de3",
+    "artifacts": {
+      "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_125944_63a22de3\\effective_skill.json",
+      "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_125944_63a22de3\\events.json",
+      "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_125944_63a22de3\\trace.json",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260818_125944_63a22de3\\annotated.mp4"
+    },
+    "object_count": 9,
+    "event_count": 9
+  },
+  "latest_independent_region_generalization": {
+    "date": "2026-08-18",
+    "status": "passed_code_contracts",
+    "coverage": [
+      "multiple manually configured RegionSets render together through the registered regions.merge@1.0 atom",
+      "independent regional thresholds combine on the same sampled frame through frame_any",
+      "multiple comparisons over one region retain by_key range semantics after event-rule editing"
+    ],
+    "tests": "368 passed: full pytest suite",
+    "browser": "P04 loaded after the 6130 restart; the video event editor displayed both named-region conditions with zero browser console errors."
+  },
+  "latest_region_threshold_table_and_execution_read_regression": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "each saved named region is exposed as a labeled threshold row in the event-rule editor",
+      "per-row values map to the corresponding comparison nodes and persist as named-region overrides",
+      "reading execution settings from a valid image variant preserves video-only fields and succeeds without a callback error"
+    ],
+    "tests": "343 passed: full pytest suite",
+    "browser": "P01 at http://127.0.0.1:6130: loaded preset -> audit -> read current parameters; success status shown with zero browser console errors."
+  },
+  "latest_review_control_empty_state_regression": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "empty Effective SkillPackage no longer fails image resize, video sampling, tile/deduplication, or their shared execution-control callback",
+      "empty Effective SkillPackage no longer fails candidate-context confirmation reads",
+      "the browser shows actionable guidance instead of red field errors before a skill is generated or loaded"
+    ],
+    "tests": "341 passed: full pytest suite",
+    "browser": "http://127.0.0.1:6130: both review read actions displayed the expected guidance with zero console errors."
+  },
+  "latest_atomic_configuration_guidance": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "P04 guidance explains vehicle filtering, per-named-region count and speed thresholds, AND, persistence, alert, and the existing annotation step",
+      "P05 guidance explains vehicle direction by lane and required reference arrows without falsely reporting zero comparable conditions",
+      "create-page guidance refreshes after natural-language compilation, preset load, saved-version load, and asset-version load"
+    ],
+    "tests": "328 passed: full pytest suite; 39 passed: tests/test_v2_ui.py",
+    "runtime": "http://127.0.0.1:6130"
+  },
+  "latest_event_rule_scope_editor_regression": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "P04 exposes category, named-region/full-frame scope, count and speed comparisons, AND/OR, persistence, trigger mode, and alert label in the audit editor",
+      "switching the P04 event to full-frame rewrites generic region measurements and removes the required manual-region slot",
+      "applying the rule refreshes the annotation controls; no-scene workflows use a disabled valid placeholder and programmatic slot refreshes do not invoke the user-input handler"
+    ],
+    "tests": "324 passed: full pytest suite",
+    "browser": "P04 at http://127.0.0.1:6130: named region -> 全画面 -> 应用事件规则 -> 标注. The page showed 无需场景标注, an empty slot list, zero browser console errors, and no server request exception."
+  },
+  "latest_media_recovery_and_event_rule_regression": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "clearing a preset media file leaves a safe empty annotation draft",
+      "the browser restores the upload control and accepts a replacement P04.mp4 file",
+      "P04 audit shows its per-region count, speed, and one-second persistence condition",
+      "generic label filter, region count, comparison, persistence, and alert atoms preserve the region event key"
+    ],
+    "tests": "318 passed: full pytest suite, including UI, annotation, configuration, operator, compiler, and preset coverage",
+    "browser": "P04 at http://127.0.0.1:6130 loaded default video, cleared it, then uploaded P04.mp4 (2.1 MB); audit displayed the explicit congestion decision rule.",
+    "known_nonblocking_browser_console": "Gradio upload progress requests upload_id=undefined and receives 404 under Playwright after the file has already uploaded."
+  },
+  "latest_annotation_slot_selection_regression": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "region_set presents rectangle, polygon, and the linked direction shortcut",
+      "direction_set presents direction only",
+      "the selected field switches from the region row to the direction row when the dropdown changes"
+    ],
+    "tests": "53 passed: tests/test_v2_ui.py, tests/test_annotation_workspace.py, and tests/test_configuration_slots.py",
+    "browser": "P05 at http://127.0.0.1:6130 switched the slot panel and tool choices with zero console errors"
+  },
+  "latest_p05_default_media_regression": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "P05 default media is the unpadded 720x960 road video",
+      "the older 960x720 pillarboxed acceptance conversion remains a candidate but is not the default",
+      "clearing the loaded preset media restores the browser upload control without console errors"
+    ],
+    "tests": "52 passed: tests/test_v2_ui.py, tests/test_annotation_workspace.py, and tests/test_configuration_slots.py",
+    "runtime": "http://127.0.0.1:6130"
+  },
+  "latest_annotation_arrow_entry_regression": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "the linked region slot shows rectangle, polygon, and direction tools",
+      "selecting direction switches to the dependent direction slot with a fresh draft",
+      "P04/P05 lane wizard checks passed for four regions and four keyed arrows"
+    ],
+    "tests": "26 passed: tests/test_annotation_workspace.py and tests/test_configuration_slots.py",
+    "browser": "P05 at http://127.0.0.1:6130 showed the restored direction arrow and switched to lane_references_manual with zero console errors"
+  },
+  "latest_annotation_wizard_regression": {
+    "date": "2026-08-17",
+    "status": "passed_targeted_test_and_browser_flow",
+    "coverage": [
+      "await_source is never returned as a direction item ID",
+      "P05 polygon save advances to a real named lane target",
+      "Gradio queue requests return HTTP 200 without console errors"
+    ],
+    "known_unrelated_failure": null
+  },
+  "latest_annotation_state_machine_regression": {
+    "date": "2026-08-17",
+    "status": "passed",
+    "coverage": [
+      "save-and-continue selects the first missing direction after saved lanes",
+      "slot changes clear stale draft points",
+      "a stale region slot plus a direction arrow routes to the missing keyed direction",
+      "P04/P05 multi-lane redraw and deletion flow remains valid"
+    ],
+    "tests": "24 passed: tests/test_annotation_workspace.py and tests/test_configuration_slots.py",
+    "flow_script": "scripts/verify_lane_wizard_flow.py passed"
+  },
+  "latest_p05_arrow_save_browser_regression": {
+    "date": "2026-08-17",
+    "status": "passed_on_current_server",
+    "coverage": [
+      "P05 saves a polygon lane as lane_regions_1",
+      "the direction slot defaults to lane_regions_1",
+      "the drawn arrow saves to lane_references_manual without browser console errors"
+    ],
+    "runtime": "http://127.0.0.1:6130",
+    "stale_server_note": "Port 6125 retains the old await_source failure path."
+  },
+  "latest_annotation_drag_coordinate_regression": {
+    "date": "2026-08-17",
+    "status": "passed_targeted_test",
+    "coverage": "displayed canvas coordinates normalize correctly before original-media rendering"
+  },
+  "latest_annotation_wizard_slot_regression": {
+    "date": "2026-08-17",
+    "status": "passed_targeted_test",
+    "coverage": "region set is selected before dependent direction slots"
+  },
+  "latest_workflow_regression": {
+    "feature": "generic_candidate_context_confirmation",
+    "status": "passed",
+    "tests": "tests/test_context_confirmation.py",
+    "coverage": [
+      "compose",
+      "reconfigure_without_duplicate_branch",
+      "disable_and_restore_upstream_objects",
+      "downstream_count_keeps_confirmed_object_reference",
+      "controller_effective_package_round_trip"
+    ],
+    "full_suite": "295 passed, 4 non-blocking Gradio deprecation warnings"
+  },
+  "latest_p11_p13_wizard_media_regression": {
+    "date": "2026-08-14",
+    "status": "passed_code_and_ui_contracts",
+    "tests": [
+      "tests/test_operator_semantics.py::test_generic_count_can_group_frame_entities_by_label",
+      "tests/test_v2_presets.py (P11 grouped count, smaller tiling, P13 local tiles)",
+      "tests/test_annotation_workspace.py (dependency-aware wizard defaults and generated IDs)",
+      "tests/test_v2_ui.py (original media viewer entry)"
+    ],
+    "full_suite": "300 passed, 6 non-blocking Gradio deprecation warnings",
+    "runtime_recheck": "pending Rex API on port 8000"
+  },
+  "acceptance_scope": "historical_v1_runtime_acceptance",
+  "v2_requalification": {
+    "status": "implementation_in_progress_phase_c_backend_complete",
+    "reason": "V2 requires separate image/video workflow variants plus positive, negative, and confusion semantic cases. Existing artifacts prove real execution and displayable output, but object/event count alone does not prove semantic correctness.",
+    "recommended_max_demo_video_seconds": 30,
+    "duration_enforcement": "warn_only",
+    "source_of_truth": "IMPLEMENTATION_PLAN.md and TEST_PLAN.md"
+  },
+  "v2_implementation": {
+    "phase": "phase_c_backend_complete",
+    "automated_tests": "150 passed",
+    "completed": [
+      "SkillPackage and WorkflowVariant schemas",
+      "requested versus actual media capability validation",
+      "explicit V1 migration marked needs_review",
+      "package persistence",
+      "image/video runtime variant routing",
+      "semantic_ir.json and result.json artifacts",
+      "canonical semantic normalization and deterministic workflow compilation",
+      "atom-to-node traceability",
+      "quantity, ROI, spatial, persist, and sequence compilation",
+      "video.sample@1.1 with three modes and warn-only duration policy",
+      "TransformChain for contain/stretch/tile/object crop",
+      "explicit same-label IoS/IoU deduplication",
+      "detections, tracks, events, media policy, and constraint summaries in run artifacts"
+    ],
+    "next": "V2 explainable Gradio UI and preset semantic requalification"
+  },
+  "last_regression": {
+    "automated_tests": "33 passed",
+    "natural_language_instruction": "检测没有带安全帽的施工人员。",
+    "compile_strategy": "fixed_policy:no_helmet",
+    "llm_calls": 0,
+    "uses_preset": false,
+    "media": "C:\\yhe_user\\detection_project\\ultralytics\\03.png",
+    "detected_no_helmet": 0,
+    "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_092454_2d504d52"
+  },
+  "custom_skill_validation": {
+    "skill": "person_bus_car/v1",
+    "media": "C:\\yhe_user\\detection_project\\ultralytics\\smoke.png",
+    "result": "partially_improved_not_fully_accurate",
+    "best_tested_phrases": ["coach bus", "passenger car", "person"],
+    "result_file": "tests/person_bus_car_phrase_validation.json"
+  },
+  "sahi_slicing_validation": {
+    "skill": "person_bus_car/v1",
+    "media": "C:\\yhe_user\\detection_project\\ultralytics\\smoke.png",
+    "baseline_objects": 25,
+    "sliced_objects": 27,
+    "result": "no_accuracy_improvement_on_this_image",
+    "result_file": "tests/sahi_slicing_validation.json"
+  },
+  "latest_ui_walkthrough": {
+    "status": "passed",
+    "preset": "P07_illegal_parking",
+    "media": "data/media_assets/5a8570a32f64f39de55b4d2822e84c7d96e7d128fd8a079417a7b24f4316e92e/original.mp4",
+    "shared_media_flow": "预置加载后，01 当前任务媒体同时供 03 标注和 04 运行使用，无第二次上传",
+    "drag_annotation": "浏览器实测矩形拖拽并保存，绑定 no_parking_region",
+    "run_id": "20260814_105157_9c49dbbb",
+    "result": {"detections": 0, "tracks": 1, "events": 1},
+    "screenshots": [
+      "output/playwright/ui_redesign/shared_media_flow.png",
+      ".playwright-cli/page-2026-08-14T02-55-02-211Z.png"
+    ]
+  },
+  "latest_preset_loading_regression": {
+    "status": "passed",
+    "url": "http://127.0.0.1:6125/",
+    "sequence": [
+      "P04_highway_congestion",
+      "P13_bridge_damage"
+    ],
+    "checks": [
+      "preset schema classes field loads in the current service process",
+      "media variant and default media switch with the preset",
+      "temporal-event dropdown does not reuse a stale event id",
+      "server error log remains empty"
+    ],
+    "pytest": "288 passed"
+  },
+  "latest_p11_p13_recheck": {
+    "date": "2026-08-14",
+    "p11": {
+      "run_id": "20260814_191503_17651d4d",
+      "detections": 4,
+      "labels": ["垃圾"],
+      "note": "The current preset excludes garbage containers as targets; overflowing/adjacent waste is detected, but the bin is not emitted as a separate class."
+    },
+    "p13": {
+      "run_id": "20260814_191508_a7072e86",
+      "detections": 8,
+      "labels": ["裂纹", "锈蚀", "渗水", "混凝土剥落", "露筋"],
+      "note": "The removed geometry filter restored category recall, but several boxes are coarse and overlap."
+    },
+    "result_contract_regression": "filtered EntitySet outputs are now resolved to ObjectSet applicability",
+    "pytest": "289 passed"
+  },
+  "summary": {
+    "total": 13,
+    "passed": 13,
+    "executed_no_detection": 0,
+    "execution_failed": 0
+  },
+  "tests": [
+    {
+      "id": "P01",
+      "name": "fire_smoke",
+      "display_name": "烟火检测",
+      "input_type": "video",
+      "instruction": "检测画面中的烟雾或明火，持续出现2秒后报警。",
+      "required_ops": [
+        "video.sample@1.0",
+        "image.resize@1.0",
+        "rex.ground@1.0",
+        "measure.count@1.0",
+        "logic.compare@1.0",
+        "temporal.persist@1.0",
+        "output.draw@1.0",
+        "output.alert@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190102_df1eed52",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P01.mp4",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190102_df1eed52\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190102_df1eed52\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190102_df1eed52\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190102_df1eed52\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190102_df1eed52\\annotated.mp4",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190102_df1eed52\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190102_df1eed52\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=8, events=1. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 8,
+      "event_count": 1
+    },
+    {
+      "id": "P02",
+      "name": "traffic_accident",
+      "display_name": "交通事故检测",
+      "input_type": "video",
+      "instruction": "检测道路上的车辆碰撞、侧翻或事故车辆，持续2秒后报警。",
+      "required_ops": [
+        "video.sample@1.0",
+        "image.resize@1.0",
+        "rex.ground@1.0",
+        "measure.count@1.0",
+        "logic.compare@1.0",
+        "temporal.persist@1.0",
+        "output.draw@1.0",
+        "output.alert@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190108_95f5ed4b",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P02.mp4",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190108_95f5ed4b\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190108_95f5ed4b\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190108_95f5ed4b\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190108_95f5ed4b\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190108_95f5ed4b\\annotated.mp4",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190108_95f5ed4b\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190108_95f5ed4b\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=12, events=1. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 12,
+      "event_count": 1
+    },
+    {
+      "id": "P03",
+      "name": "special_vehicles",
+      "display_name": "特种车辆检测",
+      "input_type": "image_or_video",
+      "instruction": "检测画面中的所有特种车辆并标注具体类型。",
+      "required_ops": [
+        "image.resize@1.0",
+        "rex.ground@1.0",
+        "output.draw@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190113_181c0f56",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P03.jpg",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190113_181c0f56\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190113_181c0f56\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190113_181c0f56\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190113_181c0f56\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190113_181c0f56\\annotated.jpg",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190113_181c0f56\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190113_181c0f56\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=6, events=0. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 6,
+      "event_count": 0
+    },
+    {
+      "id": "P04",
+      "name": "highway_congestion",
+      "display_name": "高速车辆拥堵",
+      "input_type": "video",
+      "instruction": "车道内车辆数量超过阈值且平均速度较低并持续10秒时判断为拥堵。",
+      "required_ops": [
+        "video.sample@1.0",
+        "rex.ground@1.0",
+        "track.iou@1.0",
+        "measure.count@1.0",
+        "measure.speed@1.0",
+        "logic.compare@1.0",
+        "logic.all@1.0",
+        "temporal.persist@1.0",
+        "output.alert@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190117_1f1f4c9d",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P04.mp4",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190117_1f1f4c9d\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190117_1f1f4c9d\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190117_1f1f4c9d\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190117_1f1f4c9d\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190117_1f1f4c9d\\annotated.mp4",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190117_1f1f4c9d\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190117_1f1f4c9d\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=258, events=1. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 258,
+      "event_count": 1
+    },
+    {
+      "id": "P05",
+      "name": "highway_wrong_way",
+      "display_name": "高速车辆逆行",
+      "input_type": "video",
+      "instruction": "检测与大多数车辆方向相反并持续2秒的车辆。",
+      "required_ops": [
+        "video.sample@1.0",
+        "rex.ground@1.0",
+        "track.iou@1.0",
+        "measure.heading@1.0",
+        "measure.majority_heading@1.0",
+        "logic.compare@1.0",
+        "temporal.persist@1.0",
+        "output.alert@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190131_db46a0ef",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P05.mp4",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190131_db46a0ef\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190131_db46a0ef\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190131_db46a0ef\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190131_db46a0ef\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190131_db46a0ef\\annotated.mp4",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190131_db46a0ef\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190131_db46a0ef\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=70, events=2. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 70,
+      "event_count": 2
+    },
+    {
+      "id": "P06",
+      "name": "highway_person_dwell",
+      "display_name": "车道人员逗留",
+      "input_type": "video",
+      "instruction": "检测在车道范围持续逗留超过10秒的人员。",
+      "required_ops": [
+        "video.sample@1.0",
+        "rex.ground@1.0",
+        "track.iou@1.0",
+        "temporal.persist@1.0",
+        "output.alert@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190137_c01fe1cd",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P06.mp4",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_c01fe1cd\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_c01fe1cd\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_c01fe1cd\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_c01fe1cd\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_c01fe1cd\\annotated.mp4",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_c01fe1cd\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_c01fe1cd\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=4, events=1. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 4,
+      "event_count": 1
+    },
+    {
+      "id": "P07",
+      "name": "illegal_parking",
+      "display_name": "车辆违停",
+      "input_type": "video",
+      "instruction": "检测持续静止超过30秒的车辆并报警。",
+      "required_ops": [
+        "video.sample@1.0",
+        "rex.ground@1.0",
+        "track.iou@1.0",
+        "measure.speed@1.0",
+        "logic.compare@1.0",
+        "temporal.persist@1.0",
+        "output.alert@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190137_2bad5856",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P07.mp4",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_2bad5856\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_2bad5856\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_2bad5856\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_2bad5856\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_2bad5856\\annotated.mp4",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_2bad5856\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190137_2bad5856\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=12, events=3. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 12,
+      "event_count": 3
+    },
+    {
+      "id": "P08",
+      "name": "road_debris",
+      "display_name": "道路抛洒物",
+      "input_type": "image_or_video",
+      "instruction": "检测道路上的抛洒物、掉落货物或其他障碍物。",
+      "required_ops": [
+        "rex.ground@1.0",
+        "output.draw@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190139_f4d57050",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P08.jpg",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190139_f4d57050\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190139_f4d57050\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190139_f4d57050\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190139_f4d57050\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190139_f4d57050\\annotated.jpg",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190139_f4d57050\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190139_f4d57050\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=28, events=0. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 28,
+      "event_count": 0
+    },
+    {
+      "id": "P09",
+      "name": "no_helmet",
+      "display_name": "施工未戴安全帽",
+      "input_type": "image",
+      "instruction": "检测施工人员中没有佩戴安全帽的人。",
+      "required_ops": [
+        "media.image@1.0",
+        "image.resize@1.0",
+        "rex.ground@1.0",
+        "output.draw@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190142_16af3cdb",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P09.jpg",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190142_16af3cdb\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190142_16af3cdb\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190142_16af3cdb\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190142_16af3cdb\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190142_16af3cdb\\annotated.jpg",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190142_16af3cdb\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190142_16af3cdb\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=1, events=0. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 1,
+      "event_count": 0
+    },
+    {
+      "id": "P10",
+      "name": "no_safety_rope",
+      "display_name": "高处作业未系安全绳",
+      "input_type": "image",
+      "instruction": "检测高处作业中没有连接安全绳或安全带的人员。",
+      "required_ops": [
+        "media.image@1.0",
+        "image.resize@1.0",
+        "rex.ground@1.0",
+        "output.draw@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190143_7c9674dd",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P10.jpg",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190143_7c9674dd\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190143_7c9674dd\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190143_7c9674dd\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190143_7c9674dd\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190143_7c9674dd\\annotated.jpg",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190143_7c9674dd\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190143_7c9674dd\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=1, events=0. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 1,
+      "event_count": 0
+    },
+    {
+      "id": "P11",
+      "name": "service_area_garbage",
+      "display_name": "服务区垃圾",
+      "input_type": "image",
+      "instruction": "检测服务区画面中的垃圾、垃圾堆或散落废弃物。",
+      "required_ops": [
+        "media.image@1.0",
+        "image.resize@1.0",
+        "rex.ground@1.0",
+        "output.draw@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190144_b3cdb3be",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P11.png",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190144_b3cdb3be\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190144_b3cdb3be\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190144_b3cdb3be\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190144_b3cdb3be\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190144_b3cdb3be\\annotated.jpg",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190144_b3cdb3be\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190144_b3cdb3be\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=6, events=0. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 6,
+      "event_count": 0
+    },
+    {
+      "id": "P12",
+      "name": "person_fall",
+      "display_name": "人员摔倒",
+      "input_type": "video",
+      "instruction": "检测画面中摔倒或躺在地面上的人员，持续2秒后报警。",
+      "required_ops": [
+        "video.sample@1.0",
+        "rex.ground@1.0",
+        "measure.count@1.0",
+        "logic.compare@1.0",
+        "temporal.persist@1.0",
+        "output.alert@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190146_4e6c9a6a",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P12.mp4",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190146_4e6c9a6a\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190146_4e6c9a6a\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190146_4e6c9a6a\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190146_4e6c9a6a\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190146_4e6c9a6a\\annotated.mp4",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190146_4e6c9a6a\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190146_4e6c9a6a\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=4, events=1. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 4,
+      "event_count": 1
+    },
+    {
+      "id": "P13",
+      "name": "bridge_damage",
+      "display_name": "桥梁病害",
+      "input_type": "image",
+      "instruction": "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋。",
+      "required_ops": [
+        "media.image@1.0",
+        "image.resize@1.0",
+        "image.tile@1.0",
+        "rex.ground@1.0",
+        "output.draw@1.0"
+      ],
+      "status": "passed",
+      "run_id": "20260811_190150_e514a36b",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\demo_media\\P13.png",
+      "artifacts": {
+        "generated_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190150_e514a36b\\generated_skill.json",
+        "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190150_e514a36b\\effective_skill.json",
+        "events": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190150_e514a36b\\events.json",
+        "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190150_e514a36b\\trace.json",
+        "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190150_e514a36b\\annotated.jpg",
+        "evidence": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190150_e514a36b\\evidence",
+        "run_metadata": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260811_190150_e514a36b\\run.json"
+      },
+      "notes": "真实 Rex 端到端执行；objects=32, events=0. 验收目标已产生。",
+      "executed_date": "2026-08-11",
+      "object_count": 32,
+      "event_count": 0
+    }
+  ]
+}

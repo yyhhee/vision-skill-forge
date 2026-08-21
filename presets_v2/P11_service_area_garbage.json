@@ -1,0 +1,1067 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "service_area_garbage",
+  "version": 1,
+  "display_name": "服务区垃圾",
+  "original_instruction": "检测服务区画面中的垃圾、垃圾容器及溢出垃圾，排除整齐包装货物。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "image",
+      "video"
+    ],
+    "accept": [
+      "image",
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "entity_query",
+    "target": {
+      "concept": "garbage",
+      "source_span": "垃圾、垃圾容器及溢出垃圾",
+      "phrases": [
+        "trash bin",
+        "garbage container",
+        "waste bin",
+        "overflowing trash",
+        "trash spilling from a bin",
+        "trash attached to a garbage bin",
+        "loose trash",
+        "discarded waste on the ground",
+        "small litter",
+        "small piece of trash"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "entity_exclusion",
+        "value": "orderly_packages",
+        "source": "排除整齐包装货物",
+        "source_span": "整齐包装货物",
+        "polarity": "absent",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [
+          "neatly stacked packages",
+          "cardboard boxes on a pallet",
+          "shrink wrapped package"
+        ],
+        "temporal": false
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "789beca5d2b5bd032abd769b7b4f130d8437cad565fb99f75b187544f5e2980c"
+  },
+  "variants": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "tiles",
+          "op": "image.tile@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "tile_width": 384,
+            "tile_height": 384,
+            "overlap_x": 0.25,
+            "overlap_y": 0.25,
+            "include_full_frame": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$tiles"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "垃圾容器",
+                "phrases": [
+                  "trash bin",
+                  "garbage container",
+                  "waste bin"
+                ]
+              },
+              {
+                "label": "溢出垃圾",
+                "phrases": [
+                  "overflowing trash",
+                  "trash spilling from a bin",
+                  "trash attached to a garbage bin"
+                ]
+              },
+              {
+                "label": "散落垃圾",
+                "phrases": [
+                  "loose trash",
+                  "discarded waste on the ground",
+                  "small litter",
+                  "small piece of trash"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$garbage_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_exclusion_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "整齐包装货物",
+                "phrases": [
+                  "neatly stacked packages",
+                  "cardboard boxes on a pallet",
+                  "shrink wrapped package"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_exclusion",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$garbage_exclusion_1_exclusion_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_matches",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$garbage",
+            "objects": "$garbage_exclusion_1_exclusion"
+          },
+          "params": {
+            "relation": "mutual_match",
+            "threshold": 0.5,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "same_source_only": false
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_not",
+          "op": "logic.not@1.0",
+          "inputs": {
+            "condition": "$garbage_exclusion_1_matches"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_filtered",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$garbage",
+            "condition": "$garbage_exclusion_1_not"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_candidates",
+          "op": "objects.filter_by_label@1.0",
+          "inputs": {
+            "objects": "$garbage_exclusion_1_filtered"
+          },
+          "params": {
+            "labels": [
+              "散落垃圾"
+            ],
+            "mode": "include"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_remainder",
+          "op": "objects.filter_by_label@1.0",
+          "inputs": {
+            "objects": "$garbage_exclusion_1_filtered"
+          },
+          "params": {
+            "labels": [
+              "散落垃圾"
+            ],
+            "mode": "exclude"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_container_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "垃圾容器",
+                "phrases": [
+                  "trash bin",
+                  "garbage container",
+                  "waste bin",
+                  "complete trash bin with visible container body"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_container",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_container_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_matches",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$garbage_category_1_candidates",
+            "objects": "$garbage_category_1_container"
+          },
+          "params": {
+            "relation": "mutual_match",
+            "threshold": 0.45,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "same_source_only": false
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_not",
+          "op": "logic.not@1.0",
+          "inputs": {
+            "condition": "$garbage_category_1_matches"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_filtered",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_candidates",
+            "condition": "$garbage_category_1_not"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_merged",
+          "op": "objects.merge@1.0",
+          "inputs": {
+            "objects": [
+              "$garbage_category_1_remainder",
+              "$garbage_category_1_filtered",
+              "$garbage_category_1_container"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_deduplicated",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_merged"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_candidates",
+          "op": "objects.filter_by_phrase@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_deduplicated"
+          },
+          "params": {
+            "phrases": [
+              "trash bin",
+              "garbage container",
+              "waste bin"
+            ],
+            "mode": "include"
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_unverified",
+          "op": "objects.filter_by_phrase@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_deduplicated"
+          },
+          "params": {
+            "phrases": [
+              "trash bin",
+              "garbage container",
+              "waste bin"
+            ],
+            "mode": "exclude"
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_crops",
+          "op": "object.crop@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$context_confirmation_candidates"
+          },
+          "params": {
+            "padding_fraction": 1.0,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_crop_resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$context_confirmation_crops"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 640
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_evidence_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$context_confirmation_crop_resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "垃圾容器复核证据",
+                "phrases": [
+                  "complete trash bin with visible container body",
+                  "complete garbage container with visible opening and body"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_evidence",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$context_confirmation_evidence_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_matches",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$context_confirmation_candidates",
+            "objects": "$context_confirmation_evidence"
+          },
+          "params": {
+            "relation": "source_entity",
+            "threshold": 0.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_confirmed",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$context_confirmation_candidates",
+            "condition": "$context_confirmation_matches"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_merged",
+          "op": "objects.merge@1.0",
+          "inputs": {
+            "objects": [
+              "$context_confirmation_unverified",
+              "$context_confirmation_confirmed"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_deduplicated",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$context_confirmation_merged"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "count",
+          "op": "measure.count@1.0",
+          "inputs": {
+            "entities": "$context_confirmation_deduplicated"
+          },
+          "params": {
+            "scope": "frame",
+            "group_by": "label"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$context_confirmation_deduplicated",
+            "measurements": "$count"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$context_confirmation_deduplicated",
+        "measurements": "$count"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "garbage_exclusion_1_exclusion_raw",
+          "garbage_exclusion_1_exclusion",
+          "garbage_exclusion_1_matches",
+          "garbage_exclusion_1_not",
+          "garbage_exclusion_1_filtered"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    },
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "tiles",
+          "op": "image.tile@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "tile_width": 384,
+            "tile_height": 384,
+            "overlap_x": 0.25,
+            "overlap_y": 0.25,
+            "include_full_frame": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$tiles"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "垃圾容器",
+                "phrases": [
+                  "trash bin",
+                  "garbage container",
+                  "waste bin"
+                ]
+              },
+              {
+                "label": "溢出垃圾",
+                "phrases": [
+                  "overflowing trash",
+                  "trash spilling from a bin",
+                  "trash attached to a garbage bin"
+                ]
+              },
+              {
+                "label": "散落垃圾",
+                "phrases": [
+                  "loose trash",
+                  "discarded waste on the ground",
+                  "small litter",
+                  "small piece of trash"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$garbage_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_exclusion_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "整齐包装货物",
+                "phrases": [
+                  "neatly stacked packages",
+                  "cardboard boxes on a pallet",
+                  "shrink wrapped package"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_exclusion",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$garbage_exclusion_1_exclusion_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_matches",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$garbage",
+            "objects": "$garbage_exclusion_1_exclusion"
+          },
+          "params": {
+            "relation": "mutual_match",
+            "threshold": 0.5,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "same_source_only": false
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_not",
+          "op": "logic.not@1.0",
+          "inputs": {
+            "condition": "$garbage_exclusion_1_matches"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_exclusion_1_filtered",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$garbage",
+            "condition": "$garbage_exclusion_1_not"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_candidates",
+          "op": "objects.filter_by_label@1.0",
+          "inputs": {
+            "objects": "$garbage_exclusion_1_filtered"
+          },
+          "params": {
+            "labels": [
+              "散落垃圾"
+            ],
+            "mode": "include"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_remainder",
+          "op": "objects.filter_by_label@1.0",
+          "inputs": {
+            "objects": "$garbage_exclusion_1_filtered"
+          },
+          "params": {
+            "labels": [
+              "散落垃圾"
+            ],
+            "mode": "exclude"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_container_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "垃圾容器",
+                "phrases": [
+                  "trash bin",
+                  "garbage container",
+                  "waste bin",
+                  "complete trash bin with visible container body"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_container",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_container_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_matches",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$garbage_category_1_candidates",
+            "objects": "$garbage_category_1_container"
+          },
+          "params": {
+            "relation": "mutual_match",
+            "threshold": 0.45,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "same_source_only": false
+          },
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_not",
+          "op": "logic.not@1.0",
+          "inputs": {
+            "condition": "$garbage_category_1_matches"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_filtered",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_candidates",
+            "condition": "$garbage_category_1_not"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_merged",
+          "op": "objects.merge@1.0",
+          "inputs": {
+            "objects": [
+              "$garbage_category_1_remainder",
+              "$garbage_category_1_filtered",
+              "$garbage_category_1_container"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "garbage_category_1_deduplicated",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_merged"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_candidates",
+          "op": "objects.filter_by_phrase@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_deduplicated"
+          },
+          "params": {
+            "phrases": [
+              "trash bin",
+              "garbage container",
+              "waste bin"
+            ],
+            "mode": "include"
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_unverified",
+          "op": "objects.filter_by_phrase@1.0",
+          "inputs": {
+            "objects": "$garbage_category_1_deduplicated"
+          },
+          "params": {
+            "phrases": [
+              "trash bin",
+              "garbage container",
+              "waste bin"
+            ],
+            "mode": "exclude"
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_crops",
+          "op": "object.crop@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$context_confirmation_candidates"
+          },
+          "params": {
+            "padding_fraction": 1.0,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_crop_resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$context_confirmation_crops"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 640
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_evidence_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$context_confirmation_crop_resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "垃圾容器复核证据",
+                "phrases": [
+                  "complete trash bin with visible container body",
+                  "complete garbage container with visible opening and body"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_evidence",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$context_confirmation_evidence_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_matches",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$context_confirmation_candidates",
+            "objects": "$context_confirmation_evidence"
+          },
+          "params": {
+            "relation": "source_entity",
+            "threshold": 0.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_confirmed",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$context_confirmation_candidates",
+            "condition": "$context_confirmation_matches"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_merged",
+          "op": "objects.merge@1.0",
+          "inputs": {
+            "objects": [
+              "$context_confirmation_unverified",
+              "$context_confirmation_confirmed"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "context_confirmation_deduplicated",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$context_confirmation_merged"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "result_tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$context_confirmation_deduplicated"
+          },
+          "params": {
+            "iou_threshold": 0.2,
+            "max_missing_frames": 1,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "confirmed_tracks",
+          "op": "track.confirm@1.0",
+          "inputs": {
+            "tracks": "$result_tracks"
+          },
+          "params": {
+            "min_hits": 2,
+            "min_span_seconds": 0.5
+          },
+          "enabled": true
+        },
+        {
+          "id": "confirmed_objects",
+          "op": "objects.from_tracks@1.0",
+          "inputs": {
+            "tracks": "$confirmed_tracks"
+          },
+          "params": {
+            "selection": "all"
+          },
+          "enabled": true
+        },
+        {
+          "id": "count",
+          "op": "measure.count@1.0",
+          "inputs": {
+            "entities": "$confirmed_tracks"
+          },
+          "params": {
+            "scope": "unique",
+            "group_by": "label"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$confirmed_tracks",
+            "measurements": "$count"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true,
+            "show_trajectory": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$confirmed_objects",
+        "tracks": "$confirmed_tracks",
+        "measurements": "$count"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "garbage_exclusion_1_exclusion_raw",
+          "garbage_exclusion_1_exclusion",
+          "garbage_exclusion_1_matches",
+          "garbage_exclusion_1_not",
+          "garbage_exclusion_1_filtered"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

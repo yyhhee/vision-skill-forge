@@ -1,0 +1,13 @@
+gradio>=4.44,<6
+numpy>=1.26,<3
+openai>=1.50,<3
+opencv-python>=4.10,<5
+Pillow>=10,<13
+pydantic>=2.10,<3
+python-dotenv>=1.0,<2
+pytest>=8,<9
+
+imageio>=2.34
+imageio-ffmpeg>=0.5
+imageio>=2.34
+imageio-ffmpeg>=0.5

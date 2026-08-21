@@ -1,0 +1,143 @@
+{
+  "version": "0.1",
+  "name": "highway_wrong_way",
+  "display_name": "车辆逆行",
+  "original_instruction": "检测与多数车辆方向相反并持续1秒的车辆。",
+  "compile_status": "compiled",
+  "input": {
+    "accept": [
+      "video"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "video",
+      "op": "media.video@1.0",
+      "inputs": {
+        "media": "$input"
+      },
+      "params": {}
+    },
+    {
+      "id": "frames",
+      "op": "video.sample@1.0",
+      "inputs": {
+        "video": "$video"
+      },
+      "params": {
+        "mode": "fps",
+        "fps": 2.0
+      }
+    },
+    {
+      "id": "vehicles",
+      "op": "rex.ground@1.0",
+      "inputs": {
+        "frames": "$frames"
+      },
+      "params": {
+        "targets": [
+          {
+            "label": "车辆",
+            "phrases": [
+              "vehicle"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "tracks",
+      "op": "track.iou@1.0",
+      "inputs": {
+        "objects": "$vehicles"
+      },
+      "params": {
+        "iou_threshold": 0.2,
+        "max_missing_frames": 1
+      }
+    },
+    {
+      "id": "headings",
+      "op": "measure.heading@1.0",
+      "inputs": {
+        "tracks": "$tracks"
+      },
+      "params": {
+        "window_frames": 3,
+        "min_displacement_pixels": 5.0
+      }
+    },
+    {
+      "id": "majority",
+      "op": "measure.majority_heading@1.0",
+      "inputs": {
+        "directions": "$headings"
+      },
+      "params": {
+        "minimum_tracks": 3
+      }
+    },
+    {
+      "id": "expected",
+      "op": "direction.manual@1.0",
+      "inputs": {},
+      "params": {
+        "vector": [
+          1.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": "opposite",
+      "op": "logic.compare@1.0",
+      "inputs": {
+        "left": "$headings",
+        "right": "$expected"
+      },
+      "params": {
+        "operator": "opposite_direction",
+        "threshold": -0.5
+      }
+    },
+    {
+      "id": "events",
+      "op": "temporal.persist@1.0",
+      "inputs": {
+        "condition": "$opposite"
+      },
+      "params": {
+        "seconds": 1.0,
+        "scope": "track",
+        "gap_tolerance_seconds": 0.6
+      }
+    },
+    {
+      "id": "alerts",
+      "op": "output.alert@1.0",
+      "inputs": {
+        "events": "$events"
+      },
+      "params": {
+        "label": "逆行车辆"
+      }
+    },
+    {
+      "id": "draw",
+      "op": "output.draw@1.0",
+      "inputs": {
+        "frames": "$frames",
+        "objects": "$vehicles",
+        "events": "$alerts"
+      },
+      "params": {}
+    }
+  ],
+  "outputs": {
+    "media": "$draw",
+    "events": "$alerts",
+    "objects": "$vehicles",
+    "observed_majority": "$majority"
+  }
+}

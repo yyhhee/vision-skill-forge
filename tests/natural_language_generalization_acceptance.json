@@ -1,0 +1,1217 @@
+[
+  {
+    "instruction": "检测消防车、救护车和警车并标注具体类型",
+    "attempts": 1,
+    "errors": [],
+    "strategy": "semantic_ir+deterministic_workflow",
+    "raw_outputs": [
+      "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"emergency vehicle\",\n    \"source_span\": \"消防车、救护车和警车\",\n    \"phrases\": [\"emergency vehicle\"],\n    \"classes\": [\n      {\"label\": \"消防车\", \"phrases\": [\"fire truck\"]},\n      {\"label\": \"救护车\", \"phrases\": [\"ambulance\"]},\n      {\"label\": \"警车\", \"phrases\": [\"police car\"]}\n    ]\n  },\n  \"constraints\": [],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+    ],
+    "package": {
+      "schema_version": "2.0",
+      "skill_id": "nl_case_1",
+      "version": 1,
+      "display_name": "自然语言案例1",
+      "original_instruction": "检测消防车、救护车和警车并标注具体类型",
+      "compile_status": "compiled",
+      "input": {
+        "requested_accept": [
+          "image"
+        ],
+        "accept": [
+          "image"
+        ],
+        "video_guidance": {
+          "recommended_max_duration_seconds": 30.0,
+          "enforcement": "warn_only"
+        }
+      },
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "direct_grounding",
+        "target": {
+          "concept": "emergency vehicle",
+          "source_span": "消防车、救护车和警车",
+          "phrases": [
+            "emergency vehicle"
+          ],
+          "classes": [
+            {
+              "label": "消防车",
+              "phrases": [
+                "fire truck"
+              ]
+            },
+            {
+              "label": "救护车",
+              "phrases": [
+                "ambulance"
+              ]
+            },
+            {
+              "label": "警车",
+              "phrases": [
+                "police car"
+              ]
+            }
+          ]
+        },
+        "constraints": [],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "4d7e9266e0b73c4d25cbb0bfc8a558f129ac3ada224083c734b3abeb30010b2f"
+      },
+      "variants": {
+        "image": {
+          "media_type": "image",
+          "status": "executable",
+          "nodes": [
+            {
+              "id": "media",
+              "op": "media.image@1.0",
+              "inputs": {
+                "media": "$input"
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "resized",
+              "op": "image.resize@1.1",
+              "inputs": {
+                "frames": "$media"
+              },
+              "params": {
+                "mode": "identity"
+              },
+              "enabled": true
+            },
+            {
+              "id": "candidates_raw",
+              "op": "rex.ground@1.1",
+              "inputs": {
+                "frames": "$resized"
+              },
+              "params": {
+                "targets": [
+                  {
+                    "label": "消防车",
+                    "phrases": [
+                      "fire truck"
+                    ]
+                  },
+                  {
+                    "label": "救护车",
+                    "phrases": [
+                      "ambulance"
+                    ]
+                  },
+                  {
+                    "label": "警车",
+                    "phrases": [
+                      "police car"
+                    ]
+                  }
+                ]
+              },
+              "enabled": true
+            },
+            {
+              "id": "candidates",
+              "op": "objects.deduplicate@1.0",
+              "inputs": {
+                "objects": "$candidates_raw"
+              },
+              "params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "enabled": true
+            },
+            {
+              "id": "draw",
+              "op": "output.draw@1.0",
+              "inputs": {
+                "frames": "$resized",
+                "objects": "$candidates"
+              },
+              "params": {},
+              "enabled": true
+            }
+          ],
+          "outputs": {
+            "media": "$draw",
+            "objects": "$candidates"
+          },
+          "atom_bindings": {},
+          "configuration_slots": [],
+          "issue": null
+        }
+      },
+      "compatibility_issues": []
+    },
+    "variant_status": {
+      "image": "executable"
+    },
+    "accept": [
+      "image"
+    ]
+  },
+  {
+    "instruction": "按每条车道检测车辆数量不少于4辆、平均像素速度低于10并持续1秒的拥堵事件",
+    "attempts": 1,
+    "errors": [],
+    "strategy": "semantic_ir+deterministic_workflow",
+    "raw_outputs": [
+      "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"traffic_congestion_event\",\n    \"source_span\": \"拥堵事件\",\n    \"phrases\": [\"traffic congestion event\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"quantity\",\n      \"value\": {\n        \"measure\": \"count\",\n        \"operator\": \">=\",\n        \"value\": 4,\n        \"group_by\": \"named_region\",\n        \"region_role\": \"lane\"\n      },\n      \"source\": \"按每条车道检测车辆数量不少于4辆\",\n      \"source_span\": \"车辆数量不少于4辆\",\n      \"carrier\": \"vehicle\",\n      \"carrier_span\": \"车辆\",\n      \"phrases\": [\"vehicles\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"motion\",\n      \"value\": {\n        \"measure\": \"speed\",\n        \"operator\": \"<\",\n        \"threshold\": 10,\n        \"unit\": \"pixels_per_second\",\n        \"aggregation\": \"region_mean\",\n        \"group_by\": \"named_region\",\n        \"region_role\": \"lane\"\n      },\n      \"source\": \"平均像素速度低于10\",\n      \"source_span\": \"平均像素速度低于10\",\n      \"carrier\": \"vehicle\",\n      \"carrier_span\": \"车辆\",\n      \"phrases\": [\"vehicles\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"phrases\": [\"condition persists for 1 second\"],\n      \"temporal\": true\n    },\n    {\n      \"kind\": \"region_requirement\",\n      \"value\": {\n        \"source\": \"manual\",\n        \"cardinality\": \"many\",\n        \"semantic_role\": \"lane\",\n        \"allowed_shapes\": [\"rectangle\", \"polygon\"]\n      },\n      \"source\": \"按每条车道\",\n      \"source_span\": \"按每条车道\",\n      \"phrases\": [\"lane regions\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+    ],
+    "package": {
+      "schema_version": "2.0",
+      "skill_id": "nl_case_2",
+      "version": 1,
+      "display_name": "自然语言案例2",
+      "original_instruction": "按每条车道检测车辆数量不少于4辆、平均像素速度低于10并持续1秒的拥堵事件",
+      "compile_status": "needs_review",
+      "input": {
+        "requested_accept": [
+          "video"
+        ],
+        "accept": [
+          "video"
+        ],
+        "video_guidance": {
+          "recommended_max_duration_seconds": 30.0,
+          "enforcement": "warn_only"
+        }
+      },
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "workflow",
+        "target": {
+          "concept": "traffic_congestion_event",
+          "source_span": "拥堵事件",
+          "phrases": [
+            "traffic congestion event"
+          ],
+          "classes": []
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "region_requirement",
+            "value": {
+              "source": "manual",
+              "cardinality": "many",
+              "semantic_role": "lane",
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ]
+            },
+            "source": "按每条车道",
+            "source_span": "按每条车道",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "lane regions"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "temporal",
+            "value": {
+              "type": "persist",
+              "seconds": 1.0
+            },
+            "source": "持续1秒",
+            "source_span": "持续1秒",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "condition persists for 1 second"
+            ],
+            "temporal": true
+          },
+          {
+            "atom_id": "atom_3",
+            "kind": "quantity",
+            "value": {
+              "measure": "count",
+              "operator": ">=",
+              "value": 4,
+              "group_by": "named_region",
+              "region_role": "lane"
+            },
+            "source": "按每条车道检测车辆数量不少于4辆",
+            "source_span": "车辆数量不少于4辆",
+            "polarity": "required",
+            "carrier": "vehicle",
+            "carrier_span": "车辆",
+            "phrases": [
+              "vehicles"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_4",
+            "kind": "motion",
+            "value": {
+              "measure": "speed",
+              "operator": "<",
+              "threshold": 10,
+              "unit": "pixels_per_second",
+              "aggregation": "region_mean",
+              "group_by": "named_region",
+              "region_role": "lane"
+            },
+            "source": "平均像素速度低于10",
+            "source_span": "平均像素速度低于10",
+            "polarity": "required",
+            "carrier": "vehicle",
+            "carrier_span": "车辆",
+            "phrases": [
+              "vehicles"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "b5266b743bd032d05d06a7779708ab8e321f716bd6481faa361856dc6633cef5"
+      },
+      "variants": {
+        "video": {
+          "media_type": "video",
+          "status": "needs_configuration",
+          "nodes": [
+            {
+              "id": "media",
+              "op": "media.video@1.0",
+              "inputs": {
+                "media": "$input"
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "frames",
+              "op": "video.sample@1.1",
+              "inputs": {
+                "video": "$media"
+              },
+              "params": {
+                "mode": "frame_step",
+                "frame_step": 1,
+                "start_seconds": 0.0,
+                "end_seconds": null,
+                "max_frames": null
+              },
+              "enabled": true
+            },
+            {
+              "id": "resized",
+              "op": "image.resize@1.1",
+              "inputs": {
+                "frames": "$frames"
+              },
+              "params": {
+                "mode": "identity"
+              },
+              "enabled": true
+            },
+            {
+              "id": "candidates_raw",
+              "op": "rex.ground@1.1",
+              "inputs": {
+                "frames": "$resized"
+              },
+              "params": {
+                "targets": [
+                  {
+                    "label": "自然语言案例2",
+                    "phrases": [
+                      "traffic congestion event"
+                    ]
+                  }
+                ]
+              },
+              "enabled": true
+            },
+            {
+              "id": "candidates",
+              "op": "objects.deduplicate@1.0",
+              "inputs": {
+                "objects": "$candidates_raw"
+              },
+              "params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "enabled": true
+            },
+            {
+              "id": "stream_tracks",
+              "op": "track.iou@1.0",
+              "inputs": {
+                "objects": "$candidates"
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "constraint_1_regions",
+              "op": "region.manual_set@1.0",
+              "inputs": {},
+              "params": {
+                "regions": []
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_4_speed",
+              "op": "measure.region_speed@1.0",
+              "inputs": {
+                "tracks": "$stream_tracks",
+                "regions": "$constraint_1_regions"
+              },
+              "params": {
+                "window_frames": 5,
+                "unit": "pixels_per_second",
+                "aggregation": "mean",
+                "membership_mode": "sample_center"
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_4_compare",
+              "op": "logic.compare@1.0",
+              "inputs": {
+                "left": "$constraint_4_speed"
+              },
+              "params": {
+                "operator": "<",
+                "value": 10
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_3_count",
+              "op": "measure.region_count@1.0",
+              "inputs": {
+                "objects": "$candidates",
+                "regions": "$constraint_1_regions",
+                "frames": "$resized"
+              },
+              "params": {
+                "membership_mode": "center"
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_3_compare",
+              "op": "logic.compare@1.0",
+              "inputs": {
+                "left": "$constraint_3_count"
+              },
+              "params": {
+                "operator": ">=",
+                "value": 4
+              },
+              "enabled": true
+            },
+            {
+              "id": "stream_conditions",
+              "op": "logic.all@1.0",
+              "inputs": {
+                "conditions": [
+                  "$constraint_4_compare",
+                  "$constraint_3_compare"
+                ]
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "constraint_2_event",
+              "op": "event.from_condition@1.0",
+              "inputs": {
+                "condition": "$stream_conditions"
+              },
+              "params": {
+                "seconds": 1.0,
+                "scope": "region",
+                "gap_tolerance_seconds": 0.5,
+                "trigger_mode": "once",
+                "label": "自然语言案例2"
+              },
+              "enabled": true
+            },
+            {
+              "id": "result_boxes",
+              "op": "objects.from_tracks@1.0",
+              "inputs": {
+                "tracks": "$stream_tracks"
+              },
+              "params": {
+                "selection": "all"
+              },
+              "enabled": true
+            },
+            {
+              "id": "result_boxes_labeled",
+              "op": "objects.relabel@1.0",
+              "inputs": {
+                "objects": "$result_boxes"
+              },
+              "params": {
+                "label": "自然语言案例2"
+              },
+              "enabled": true
+            },
+            {
+              "id": "draw",
+              "op": "output.draw@1.0",
+              "inputs": {
+                "frames": "$resized",
+                "objects": "$result_boxes_labeled",
+                "events": "$constraint_2_event",
+                "regions": "$constraint_1_regions"
+              },
+              "params": {},
+              "enabled": true
+            }
+          ],
+          "outputs": {
+            "media": "$draw",
+            "objects": "$result_boxes_labeled",
+            "tracks": "$stream_tracks",
+            "condition": "$stream_conditions",
+            "measurements_1": "$constraint_4_speed",
+            "measurements_2": "$constraint_3_count",
+            "events": "$constraint_2_event",
+            "regions": "$constraint_1_regions"
+          },
+          "atom_bindings": {
+            "atom_1": [
+              "constraint_1_regions"
+            ],
+            "atom_4": [
+              "constraint_4_speed",
+              "constraint_4_compare"
+            ],
+            "atom_3": [
+              "constraint_3_count",
+              "constraint_3_compare"
+            ],
+            "atom_2": [
+              "constraint_2_event"
+            ]
+          },
+          "configuration_slots": [
+            {
+              "slot_id": "constraint_1_regions",
+              "kind": "region_set",
+              "label": "按每条车道",
+              "required": true,
+              "binding": {
+                "node_id": "constraint_1_regions",
+                "parameter": "regions"
+              },
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ],
+              "minimum_items": 1,
+              "source_atom_ids": [
+                "atom_1"
+              ],
+              "help_text": "在原图或视频标注帧上配置命名区域",
+              "active_when_op": null,
+              "key_source_slot_id": null
+            }
+          ],
+          "issue": null
+        }
+      },
+      "compatibility_issues": []
+    },
+    "variant_status": {
+      "video": "needs_configuration"
+    },
+    "accept": [
+      "video"
+    ]
+  },
+  {
+    "instruction": "按每条车道手工标注方向，检测与对应车道方向相反并持续1秒的车辆",
+    "attempts": 1,
+    "errors": [],
+    "strategy": "semantic_ir+deterministic_workflow",
+    "raw_outputs": [
+      "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"vehicle\",\n    \"source_span\": \"车辆\",\n    \"phrases\": [\"vehicle\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"spatial_relation\",\n      \"value\": {\n        \"relation\": \"inside_roi\",\n        \"region\": {\n          \"source\": \"manual\",\n          \"semantic_role\": \"lane\",\n          \"shape\": \"polygon\",\n          \"allowed_shapes\": [\"rectangle\", \"polygon\"]\n        }\n      },\n      \"source\": \"检测与对应车道方向相反并持续1秒的车辆\",\n      \"source_span\": \"对应车道\",\n      \"carrier\": \"\",\n      \"carrier_span\": \"\",\n      \"phrases\": [\"vehicle inside lane\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"direction_relation\",\n      \"value\": {\n        \"relation\": \"opposite\",\n        \"reference_scope\": \"per_named_region\",\n        \"reference_source\": \"manual\"\n      },\n      \"source\": \"检测与对应车道方向相反并持续1秒的车辆\",\n      \"source_span\": \"与对应车道方向相反\",\n      \"carrier\": \"\",\n      \"carrier_span\": \"\",\n      \"phrases\": [\"vehicle moving opposite to lane direction\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1\n      },\n      \"source\": \"检测与对应车道方向相反并持续1秒的车辆\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": \"\",\n      \"carrier_span\": \"\",\n      \"phrases\": [\"vehicle persists for 1 second\"],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+    ],
+    "package": {
+      "schema_version": "2.0",
+      "skill_id": "nl_case_3",
+      "version": 1,
+      "display_name": "自然语言案例3",
+      "original_instruction": "按每条车道手工标注方向，检测与对应车道方向相反并持续1秒的车辆",
+      "compile_status": "needs_review",
+      "input": {
+        "requested_accept": [
+          "video"
+        ],
+        "accept": [
+          "video"
+        ],
+        "video_guidance": {
+          "recommended_max_duration_seconds": 30.0,
+          "enforcement": "warn_only"
+        }
+      },
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "workflow",
+        "target": {
+          "concept": "vehicle",
+          "source_span": "车辆",
+          "phrases": [
+            "vehicle"
+          ],
+          "classes": []
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "spatial_relation",
+            "value": {
+              "relation": "inside_roi",
+              "region": {
+                "source": "manual",
+                "semantic_role": "lane",
+                "shape": "polygon",
+                "allowed_shapes": [
+                  "rectangle",
+                  "polygon"
+                ]
+              }
+            },
+            "source": "检测与对应车道方向相反并持续1秒的车辆",
+            "source_span": "对应车道",
+            "polarity": "required",
+            "carrier": "",
+            "carrier_span": "",
+            "phrases": [
+              "vehicle inside lane"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "direction_relation",
+            "value": {
+              "relation": "opposite",
+              "reference_scope": "per_named_region",
+              "reference_source": "manual"
+            },
+            "source": "检测与对应车道方向相反并持续1秒的车辆",
+            "source_span": "与对应车道方向相反",
+            "polarity": "required",
+            "carrier": "",
+            "carrier_span": "",
+            "phrases": [
+              "vehicle moving opposite to lane direction"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_3",
+            "kind": "temporal",
+            "value": {
+              "type": "persist",
+              "seconds": 1
+            },
+            "source": "检测与对应车道方向相反并持续1秒的车辆",
+            "source_span": "持续1秒",
+            "polarity": "required",
+            "carrier": "",
+            "carrier_span": "",
+            "phrases": [
+              "vehicle persists for 1 second"
+            ],
+            "temporal": true
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "fc72a3552c3042dcb4181d4fc5d3d38fabd2b104cf1c89bf3f35b2f064d73364"
+      },
+      "variants": {
+        "video": {
+          "media_type": "video",
+          "status": "needs_configuration",
+          "nodes": [
+            {
+              "id": "media",
+              "op": "media.video@1.0",
+              "inputs": {
+                "media": "$input"
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "frames",
+              "op": "video.sample@1.1",
+              "inputs": {
+                "video": "$media"
+              },
+              "params": {
+                "mode": "frame_step",
+                "frame_step": 1,
+                "start_seconds": 0.0,
+                "end_seconds": null,
+                "max_frames": null
+              },
+              "enabled": true
+            },
+            {
+              "id": "resized",
+              "op": "image.resize@1.1",
+              "inputs": {
+                "frames": "$frames"
+              },
+              "params": {
+                "mode": "identity"
+              },
+              "enabled": true
+            },
+            {
+              "id": "candidates_raw",
+              "op": "rex.ground@1.1",
+              "inputs": {
+                "frames": "$resized"
+              },
+              "params": {
+                "targets": [
+                  {
+                    "label": "自然语言案例3",
+                    "phrases": [
+                      "vehicle"
+                    ]
+                  }
+                ]
+              },
+              "enabled": true
+            },
+            {
+              "id": "candidates",
+              "op": "objects.deduplicate@1.0",
+              "inputs": {
+                "objects": "$candidates_raw"
+              },
+              "params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "enabled": true
+            },
+            {
+              "id": "stream_tracks",
+              "op": "track.iou@1.0",
+              "inputs": {
+                "objects": "$candidates"
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "constraint_1_region",
+              "op": "region.manual@1.0",
+              "inputs": {},
+              "params": {
+                "shape": "polygon",
+                "points": []
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_1_inside",
+              "op": "spatial.inside@1.0",
+              "inputs": {
+                "objects": "$stream_tracks",
+                "region": "$constraint_1_region"
+              },
+              "params": {
+                "mode": "center",
+                "overlap_threshold": 0.5
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_2_headings",
+              "op": "measure.heading@1.0",
+              "inputs": {
+                "tracks": "$stream_tracks"
+              },
+              "params": {
+                "window_frames": 3,
+                "min_displacement_pixels": 5.0
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_2_references",
+              "op": "direction.manual_set@1.0",
+              "inputs": {},
+              "params": {
+                "directions": []
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_2_direction",
+              "op": "logic.heading_by_lane@1.0",
+              "inputs": {
+                "tracks": "$stream_tracks",
+                "headings": "$constraint_2_headings",
+                "lanes": "$constraint_1_region",
+                "references": "$constraint_2_references"
+              },
+              "params": {
+                "threshold": -0.5,
+                "membership_mode": "majority_center",
+                "relation": "opposite"
+              },
+              "enabled": true
+            },
+            {
+              "id": "stream_conditions",
+              "op": "logic.all@1.0",
+              "inputs": {
+                "conditions": [
+                  "$constraint_1_inside",
+                  "$constraint_2_direction"
+                ]
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "constraint_3_event",
+              "op": "event.from_condition@1.0",
+              "inputs": {
+                "condition": "$stream_conditions"
+              },
+              "params": {
+                "seconds": 1,
+                "scope": "track",
+                "gap_tolerance_seconds": 0.5,
+                "trigger_mode": "once",
+                "label": "自然语言案例3"
+              },
+              "enabled": true
+            },
+            {
+              "id": "result_tracks",
+              "op": "tracks.filter@1.0",
+              "inputs": {
+                "tracks": "$stream_tracks",
+                "condition": "$stream_conditions"
+              },
+              "params": {
+                "history_mode": "matching_samples"
+              },
+              "enabled": true
+            },
+            {
+              "id": "result_boxes",
+              "op": "objects.from_tracks@1.0",
+              "inputs": {
+                "tracks": "$result_tracks"
+              },
+              "params": {
+                "selection": "all"
+              },
+              "enabled": true
+            },
+            {
+              "id": "result_boxes_labeled",
+              "op": "objects.relabel@1.0",
+              "inputs": {
+                "objects": "$result_boxes"
+              },
+              "params": {
+                "label": "自然语言案例3"
+              },
+              "enabled": true
+            },
+            {
+              "id": "draw",
+              "op": "output.draw@1.0",
+              "inputs": {
+                "frames": "$resized",
+                "objects": "$result_boxes_labeled",
+                "events": "$constraint_3_event",
+                "regions": "$constraint_1_region",
+                "directions": "$constraint_2_references"
+              },
+              "params": {},
+              "enabled": true
+            }
+          ],
+          "outputs": {
+            "media": "$draw",
+            "objects": "$result_boxes_labeled",
+            "tracks": "$result_tracks",
+            "condition": "$stream_conditions",
+            "events": "$constraint_3_event",
+            "regions": "$constraint_1_region",
+            "directions": "$constraint_2_references"
+          },
+          "atom_bindings": {
+            "atom_1": [
+              "constraint_1_region",
+              "constraint_1_inside"
+            ],
+            "atom_2": [
+              "constraint_2_headings",
+              "constraint_2_references",
+              "constraint_2_direction"
+            ],
+            "atom_3": [
+              "constraint_3_event"
+            ]
+          },
+          "configuration_slots": [
+            {
+              "slot_id": "constraint_1_region",
+              "kind": "region",
+              "label": "对应车道",
+              "required": true,
+              "binding": {
+                "node_id": "constraint_1_region",
+                "parameter": "points"
+              },
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ],
+              "minimum_items": 1,
+              "source_atom_ids": [
+                "atom_1"
+              ],
+              "help_text": "在原图或视频标注帧上绘制区域",
+              "active_when_op": null,
+              "key_source_slot_id": null
+            },
+            {
+              "slot_id": "constraint_2_references_manual",
+              "kind": "direction_set",
+              "label": "逐区域参考方向",
+              "required": true,
+              "binding": {
+                "node_id": "constraint_2_references",
+                "parameter": "directions"
+              },
+              "allowed_shapes": [],
+              "minimum_items": 1,
+              "source_atom_ids": [
+                "atom_2"
+              ],
+              "help_text": "切换手工模式后，每个命名区域绘制一个方向",
+              "active_when_op": [
+                "direction.manual_set@1.0"
+              ],
+              "key_source_slot_id": "constraint_1_region"
+            }
+          ],
+          "issue": null
+        }
+      },
+      "compatibility_issues": []
+    },
+    "variant_status": {
+      "video": "needs_configuration"
+    },
+    "accept": [
+      "video"
+    ]
+  },
+  {
+    "instruction": "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋，排除规则施工缝",
+    "attempts": 1,
+    "errors": [],
+    "strategy": "semantic_ir+deterministic_workflow",
+    "raw_outputs": [
+      "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"surface defect\",\n    \"source_span\": \"桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋\",\n    \"phrases\": [\"surface defect\"],\n    \"classes\": [\n      {\n        \"label\": \"裂纹\",\n        \"phrases\": [\"crack\"]\n      },\n      {\n        \"label\": \"锈蚀\",\n        \"phrases\": [\"rust\"]\n      },\n      {\n        \"label\": \"渗水\",\n        \"phrases\": [\"water seepage\"]\n      },\n      {\n        \"label\": \"混凝土剥落\",\n        \"phrases\": [\"concrete spalling\"]\n      },\n      {\n        \"label\": \"露筋\",\n        \"phrases\": [\"exposed rebar\"]\n      }\n    ]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"entity_exclusion\",\n      \"value\": \"regular construction joint\",\n      \"source\": \"排除规则施工缝\",\n      \"source_span\": \"规则施工缝\",\n      \"carrier\": \"\",\n      \"carrier_span\": \"\",\n      \"phrases\": [\"regular construction joint\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+    ],
+    "package": {
+      "schema_version": "2.0",
+      "skill_id": "nl_case_4",
+      "version": 1,
+      "display_name": "自然语言案例4",
+      "original_instruction": "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋，排除规则施工缝",
+      "compile_status": "compiled",
+      "input": {
+        "requested_accept": [
+          "image"
+        ],
+        "accept": [
+          "image"
+        ],
+        "video_guidance": {
+          "recommended_max_duration_seconds": 30.0,
+          "enforcement": "warn_only"
+        }
+      },
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "surface defect",
+          "source_span": "桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋",
+          "phrases": [
+            "surface defect"
+          ],
+          "classes": [
+            {
+              "label": "裂纹",
+              "phrases": [
+                "crack"
+              ]
+            },
+            {
+              "label": "锈蚀",
+              "phrases": [
+                "rust"
+              ]
+            },
+            {
+              "label": "渗水",
+              "phrases": [
+                "water seepage"
+              ]
+            },
+            {
+              "label": "混凝土剥落",
+              "phrases": [
+                "concrete spalling"
+              ]
+            },
+            {
+              "label": "露筋",
+              "phrases": [
+                "exposed rebar"
+              ]
+            }
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "entity_exclusion",
+            "value": "regular construction joint",
+            "source": "排除规则施工缝",
+            "source_span": "规则施工缝",
+            "polarity": "absent",
+            "carrier": "",
+            "carrier_span": "",
+            "phrases": [
+              "regular construction joint"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "f0b4941c1833832418b4ac0acfbaf7f7fc6dab797c18e7788d36bb7b57ae13af"
+      },
+      "variants": {
+        "image": {
+          "media_type": "image",
+          "status": "executable",
+          "nodes": [
+            {
+              "id": "media",
+              "op": "media.image@1.0",
+              "inputs": {
+                "media": "$input"
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "resized",
+              "op": "image.resize@1.1",
+              "inputs": {
+                "frames": "$media"
+              },
+              "params": {
+                "mode": "identity"
+              },
+              "enabled": true
+            },
+            {
+              "id": "candidates_raw",
+              "op": "rex.ground@1.1",
+              "inputs": {
+                "frames": "$resized"
+              },
+              "params": {
+                "targets": [
+                  {
+                    "label": "裂纹",
+                    "phrases": [
+                      "crack"
+                    ]
+                  },
+                  {
+                    "label": "锈蚀",
+                    "phrases": [
+                      "rust"
+                    ]
+                  },
+                  {
+                    "label": "渗水",
+                    "phrases": [
+                      "water seepage"
+                    ]
+                  },
+                  {
+                    "label": "混凝土剥落",
+                    "phrases": [
+                      "concrete spalling"
+                    ]
+                  },
+                  {
+                    "label": "露筋",
+                    "phrases": [
+                      "exposed rebar"
+                    ]
+                  }
+                ]
+              },
+              "enabled": true
+            },
+            {
+              "id": "candidates",
+              "op": "objects.deduplicate@1.0",
+              "inputs": {
+                "objects": "$candidates_raw"
+              },
+              "params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_1_objects",
+              "op": "rex.ground@1.1",
+              "inputs": {
+                "frames": "$resized"
+              },
+              "params": {
+                "targets": [
+                  {
+                    "label": "规则施工缝",
+                    "phrases": [
+                      "regular construction joint"
+                    ]
+                  }
+                ]
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_1_objects_dedup",
+              "op": "objects.deduplicate@1.0",
+              "inputs": {
+                "objects": "$constraint_1_objects"
+              },
+              "params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_1_matches",
+              "op": "spatial.associate@1.0",
+              "inputs": {
+                "subjects": "$candidates",
+                "objects": "$constraint_1_objects_dedup"
+              },
+              "params": {
+                "relation": "mutual_match",
+                "threshold": 0.5
+              },
+              "enabled": true
+            },
+            {
+              "id": "constraint_1_not",
+              "op": "logic.not@1.0",
+              "inputs": {
+                "condition": "$constraint_1_matches"
+              },
+              "params": {},
+              "enabled": true
+            },
+            {
+              "id": "filtered",
+              "op": "filter.apply@1.0",
+              "inputs": {
+                "objects": "$candidates",
+                "condition": "$constraint_1_not"
+              },
+              "params": {
+                "output_label": "自然语言案例4"
+              },
+              "enabled": true
+            },
+            {
+              "id": "draw",
+              "op": "output.draw@1.0",
+              "inputs": {
+                "frames": "$resized",
+                "objects": "$filtered"
+              },
+              "params": {},
+              "enabled": true
+            }
+          ],
+          "outputs": {
+            "media": "$draw",
+            "objects": "$filtered"
+          },
+          "atom_bindings": {
+            "atom_1": [
+              "constraint_1_objects",
+              "constraint_1_objects_dedup",
+              "constraint_1_matches",
+              "constraint_1_not"
+            ]
+          },
+          "configuration_slots": [],
+          "issue": null
+        }
+      },
+      "compatibility_issues": []
+    },
+    "variant_status": {
+      "image": "executable"
+    },
+    "accept": [
+      "image"
+    ]
+  }
+]

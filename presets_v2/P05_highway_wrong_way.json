@@ -1,0 +1,341 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "highway_wrong_way",
+  "version": 1,
+  "display_name": "高速车辆逆行",
+  "original_instruction": "按每条车道标注方向后检测与车流方向相反并持续1秒的车辆。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "video"
+    ],
+    "accept": [
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "workflow",
+    "target": {
+      "concept": "vehicle",
+      "source_span": "车辆",
+      "phrases": [
+        "vehicle"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "direction_relation",
+        "value": {
+          "relation": "opposite",
+          "reference_scope": "per_named_region",
+          "reference_source": "manual",
+          "cosine_threshold": -0.5
+        },
+        "source": "按每条车道标注方向后检测与车流方向相反并持续1秒的车辆",
+        "source_span": "标注方向后检测与车流方向相反",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_2",
+        "kind": "region_requirement",
+        "value": {
+          "source": "manual",
+          "cardinality": "many",
+          "semantic_role": "lane",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ]
+        },
+        "source": "按每条车道标注方向后检测与车流方向相反并持续1秒的车辆",
+        "source_span": "每条车道",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_3",
+        "kind": "temporal",
+        "value": {
+          "type": "persist",
+          "seconds": 1.0
+        },
+        "source": "按每条车道标注方向后检测与车流方向相反并持续1秒的车辆",
+        "source_span": "持续1秒",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": true
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "54cececc0e9a51915cf97ffc8082d0afe99e9dd765ced6996c9d34d50aa12c30"
+  },
+  "variants": {
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "vehicles_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "车辆",
+                "phrases": [
+                  "vehicle",
+                  "passenger car",
+                  "truck"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "vehicles",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$vehicles_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$vehicles"
+          },
+          "params": {
+            "iou_threshold": 0.2,
+            "max_missing_frames": 2,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "headings",
+          "op": "measure.heading@1.0",
+          "inputs": {
+            "tracks": "$tracks"
+          },
+          "params": {
+            "window_frames": 3,
+            "min_displacement_pixels": 5.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "lane_regions",
+          "op": "region.manual_set@1.0",
+          "inputs": {},
+          "params": {
+            "regions": []
+          },
+          "enabled": true
+        },
+        {
+          "id": "lane_references",
+          "op": "direction.manual_set@1.0",
+          "inputs": {},
+          "params": {
+            "directions": []
+          },
+          "enabled": true
+        },
+        {
+          "id": "opposite",
+          "op": "logic.heading_by_lane@1.0",
+          "inputs": {
+            "tracks": "$tracks",
+            "headings": "$headings",
+            "lanes": "$lane_regions",
+            "references": "$lane_references"
+          },
+          "params": {
+            "threshold": -0.5,
+            "membership_mode": "majority_center"
+          },
+          "enabled": true
+        },
+        {
+          "id": "events",
+          "op": "temporal.persist@1.0",
+          "inputs": {
+            "condition": "$opposite"
+          },
+          "params": {
+            "seconds": 1.0,
+            "scope": "track",
+            "gap_tolerance_seconds": 0.6
+          },
+          "enabled": true
+        },
+        {
+          "id": "alerts",
+          "op": "output.alert@1.0",
+          "inputs": {
+            "events": "$events"
+          },
+          "params": {
+            "label": "逆行车辆"
+          },
+          "enabled": true
+        },
+        {
+          "id": "event_tracks",
+          "op": "tracks.filter_by_events@1.0",
+          "inputs": {
+            "tracks": "$tracks",
+            "events": "$alerts"
+          },
+          "params": {
+            "time_window": "whole_track"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$event_tracks",
+            "events": "$alerts",
+            "regions": "$lane_regions",
+            "directions": "$lane_references"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$event_tracks",
+        "events": "$alerts",
+        "regions": "$lane_regions",
+        "directions": "$lane_references",
+        "observed_lane_directions": "$lane_references"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "tracks",
+          "headings",
+          "lane_regions",
+          "lane_references",
+          "opposite"
+        ],
+        "atom_2": [
+          "lane_regions"
+        ],
+        "atom_3": [
+          "opposite",
+          "events",
+          "alerts"
+        ]
+      },
+      "configuration_slots": [
+        {
+          "slot_id": "lane_regions",
+          "kind": "region_set",
+          "label": "命名车道区域",
+          "required": true,
+          "binding": {
+            "node_id": "lane_regions",
+            "parameter": "regions"
+          },
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "minimum_items": 1,
+          "source_atom_ids": [
+            "atom_1"
+          ],
+          "help_text": "请按视频实际车道逐条绘制；初始为空，可添加任意多个区域。",
+          "active_when_op": null,
+          "key_source_slot_id": null
+        },
+        {
+          "slot_id": "lane_references_manual",
+          "kind": "direction_set",
+          "label": "逐车道参考方向",
+          "required": true,
+          "binding": {
+            "node_id": "lane_references",
+            "parameter": "directions"
+          },
+          "allowed_shapes": [],
+          "minimum_items": 1,
+          "source_atom_ids": [
+            "atom_1"
+          ],
+          "help_text": "逆行判断需要为每个已保存车道绘制一条参考方向箭头；箭头 key 会自动绑定该车道。",
+          "active_when_op": null,
+          "key_source_slot_id": "lane_regions"
+        }
+      ],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

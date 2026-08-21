@@ -1,0 +1,24 @@
+{
+  "updated_date": "2026-08-12",
+  "rule": "construction worker + safety helmet center within worker top 35% head region + logical negation",
+  "all_helmeted": {
+    "media": "C:\\yhe_user\\detection_project\\ultralytics\\03.png",
+    "expected_no_helmet": 0,
+    "detected_no_helmet": 0,
+    "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_092454_2d504d52\\annotated.jpg",
+    "effective_skill_path": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_092454_2d504d52\\effective_skill.json",
+    "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_092454_2d504d52",
+    "compile_strategy": "fixed_policy:no_helmet",
+    "llm_calls": 0,
+    "uses_preset": false,
+    "media_type": "user_provided_real_image"
+  },
+  "one_without_helmet": {
+    "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\acceptance_media\\ppe_one_without_helmet.png",
+    "expected_no_helmet": 1,
+    "detected_no_helmet": 1,
+    "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\diagnostic_runs\\ppe_one_without_final\\draw.png",
+    "effective_skill_path": "C:\\yhe_user\\detection_project\\vision_skill\\presets\\P09_no_helmet.json",
+    "media_type": "synthetic_control_fixture_generated_from_demo_scene"
+  }
+}

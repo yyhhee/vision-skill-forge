@@ -1,0 +1,149 @@
+{
+  "version": "0.1",
+  "name": "highway_congestion",
+  "display_name": "车辆拥堵",
+  "original_instruction": "车辆不少于4且平均像素速度低于5，持续1秒报警。",
+  "compile_status": "compiled",
+  "input": {
+    "accept": [
+      "video"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "video",
+      "op": "media.video@1.0",
+      "inputs": {
+        "media": "$input"
+      },
+      "params": {}
+    },
+    {
+      "id": "frames",
+      "op": "video.sample@1.0",
+      "inputs": {
+        "video": "$video"
+      },
+      "params": {
+        "mode": "fps",
+        "fps": 2.0
+      }
+    },
+    {
+      "id": "vehicles",
+      "op": "rex.ground@1.0",
+      "inputs": {
+        "frames": "$frames"
+      },
+      "params": {
+        "targets": [
+          {
+            "label": "车辆",
+            "phrases": [
+              "vehicle",
+              "car",
+              "truck"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "tracks",
+      "op": "track.iou@1.0",
+      "inputs": {
+        "objects": "$vehicles"
+      },
+      "params": {}
+    },
+    {
+      "id": "count",
+      "op": "measure.count@1.0",
+      "inputs": {
+        "objects": "$vehicles"
+      },
+      "params": {}
+    },
+    {
+      "id": "many",
+      "op": "logic.compare@1.0",
+      "inputs": {
+        "left": "$count"
+      },
+      "params": {
+        "operator": ">=",
+        "value": 4
+      }
+    },
+    {
+      "id": "speed",
+      "op": "measure.speed@1.0",
+      "inputs": {
+        "tracks": "$tracks"
+      },
+      "params": {
+        "window_frames": 2,
+        "aggregation": "global_mean"
+      }
+    },
+    {
+      "id": "slow",
+      "op": "logic.compare@1.0",
+      "inputs": {
+        "left": "$speed"
+      },
+      "params": {
+        "operator": "<",
+        "value": 10.0
+      }
+    },
+    {
+      "id": "congested",
+      "op": "logic.all@1.0",
+      "inputs": {
+        "conditions": [
+          "$many",
+          "$slow"
+        ]
+      },
+      "params": {}
+    },
+    {
+      "id": "events",
+      "op": "temporal.persist@1.0",
+      "inputs": {
+        "condition": "$congested"
+      },
+      "params": {
+        "seconds": 1.0,
+        "scope": "global",
+        "gap_tolerance_seconds": 0.6
+      }
+    },
+    {
+      "id": "alerts",
+      "op": "output.alert@1.0",
+      "inputs": {
+        "events": "$events"
+      },
+      "params": {
+        "label": "车辆拥堵"
+      }
+    },
+    {
+      "id": "draw",
+      "op": "output.draw@1.0",
+      "inputs": {
+        "frames": "$frames",
+        "objects": "$vehicles",
+        "events": "$alerts"
+      },
+      "params": {}
+    }
+  ],
+  "outputs": {
+    "media": "$draw",
+    "events": "$alerts",
+    "objects": "$vehicles"
+  }
+}

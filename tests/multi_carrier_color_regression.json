@@ -1,0 +1,34 @@
+{
+  "date": "2026-08-12",
+  "instruction": "识别穿红色上衣、灰色长裤的人",
+  "media": "C:/yhe_user/detection_project/ultralytics/03.png",
+  "initial_run": {
+    "result": "failed_zero",
+    "run": "data/runs/20260812_180020_53675f50",
+    "root_causes": [
+      "upper garment was narrowed to shirt, which missed jacket/workwear",
+      "wearable existence predicates duplicated the color-carrier predicates",
+      "plain overlap allowed a carrier to be shared with neighboring people",
+      "gray dominance margin was too strict for highlighted and wrinkled gray fabric"
+    ]
+  },
+  "generic_fix": {
+    "carrier_taxonomy": {
+      "shirt|jacket|coat|top": "upper body clothing",
+      "pants|trousers|shorts|skirt": "lower body clothing"
+    },
+    "ownership": "each carrier is assigned only to the subject that covers the largest fraction of that carrier",
+    "multi_attribute_logic": "carrier conditions are filtered sequentially on the same base entity set (AND)",
+    "gray_mode": "explicit fraction threshold rather than dominance margin"
+  },
+  "final_run": {
+    "result": "passed_one_correct_target",
+    "detected": 1,
+    "run": "data/runs/20260812_182408_e269c040",
+    "visual_check": "the central suspended person wearing a red upper garment and gray trousers is retained"
+  },
+  "automated_tests": {
+    "passed": 90,
+    "failed": 0
+  }
+}

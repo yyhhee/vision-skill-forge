@@ -1,0 +1,287 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "person_fall",
+  "version": 1,
+  "display_name": "人员摔倒",
+  "original_instruction": "检测出现摔倒或躺在地面上的可见姿态并持续1秒的人员。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "video"
+    ],
+    "accept": [
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "workflow",
+    "target": {
+      "concept": "person",
+      "source_span": "人员",
+      "phrases": [
+        "person"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "pose",
+        "value": "fallen_or_lying",
+        "source": "检测出现摔倒或躺在地面上的可见姿态并持续1秒的人员",
+        "source_span": "出现摔倒或躺在地面上的可见姿态",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [
+          "person lying on the ground"
+        ],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_2",
+        "kind": "temporal",
+        "value": {
+          "type": "persist",
+          "seconds": 1.0
+        },
+        "source": "检测出现摔倒或躺在地面上的可见姿态并持续1秒的人员",
+        "source_span": "持续1秒",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": true
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "b3488187e927be2a8628749f7e5142e9f08fa14ff128e64d040fa8529c693745"
+  },
+  "variants": {
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "people_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "人员",
+                "phrases": [
+                  "person"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "people",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$people_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "fallen_people_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "倒地人员",
+                "phrases": [
+                  "person lying on the ground"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "fallen_people",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$fallen_people_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$people"
+          },
+          "params": {
+            "iou_threshold": 0.2,
+            "max_missing_frames": 2,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "fallen_state",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$tracks",
+            "objects": "$fallen_people"
+          },
+          "params": {
+            "relation": "overlap",
+            "threshold": 0.3,
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "fallen_pose_geometry",
+          "op": "visual.geometry@1.0",
+          "inputs": {
+            "objects": "$tracks"
+          },
+          "params": {
+            "dimension": "aspect_ratio",
+            "value": "horizontal",
+            "aspect_ratio_threshold": 0.6
+          },
+          "enabled": true
+        },
+        {
+          "id": "fallen_qualified",
+          "op": "logic.all@1.0",
+          "inputs": {
+            "conditions": [
+              "$fallen_state",
+              "$fallen_pose_geometry"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "events",
+          "op": "temporal.persist@1.0",
+          "inputs": {
+            "condition": "$fallen_qualified"
+          },
+          "params": {
+            "seconds": 1.0,
+            "scope": "track",
+            "gap_tolerance_seconds": 0.6
+          },
+          "enabled": true
+        },
+        {
+          "id": "alerts",
+          "op": "output.alert@1.0",
+          "inputs": {
+            "events": "$events"
+          },
+          "params": {
+            "label": "人员摔倒"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$tracks",
+            "events": "$alerts"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$tracks",
+        "events": "$alerts"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "fallen_people_raw",
+          "fallen_people",
+          "tracks",
+          "fallen_state",
+          "fallen_pose_geometry",
+          "fallen_qualified"
+        ],
+        "atom_2": [
+          "fallen_qualified",
+          "events",
+          "alerts"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

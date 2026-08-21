@@ -1,0 +1,760 @@
+{
+  "schema_version": "2.0",
+  "review_date": "2026-08-13",
+  "scope": "current_v2_real_deepseek_thinking_and_real_rex_historical_failures",
+  "case_count": 1,
+  "automatic_passed": 1,
+  "automatic_failed": 0,
+  "runtime_failed": 0,
+  "manual_review_pending": 1,
+  "cases": [
+    {
+      "case_id": "squat_without_support",
+      "instruction": "识别蹲着的人，双膝弯曲、臀部无支撑。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 1,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "中央蹲姿人员；排除站立与有支撑坐姿",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"蹲着的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"squatting\",\n      \"source\": \"识别蹲着的人\",\n      \"source_span\": \"蹲着\",\n      \"phrases\": [\"person squatting\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"pose\",\n      \"value\": \"both knees bent\",\n      \"source\": \"双膝弯曲\",\n      \"source_span\": \"双膝弯曲\",\n      \"carrier\": \"knees\",\n      \"carrier_span\": \"双膝\",\n      \"phrases\": [\"both knees bent\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"state\",\n      \"value\": \"support under hips\",\n      \"source\": \"臀部无支撑\",\n      \"source_span\": \"臀部无支撑\",\n      \"carrier\": \"hips\",\n      \"carrier_span\": \"臀部\",\n      \"phrases\": [\"support under hips\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "蹲着的人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "pose",
+            "value": "squatting",
+            "source": "识别蹲着的人",
+            "source_span": "蹲着",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person squatting"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "state",
+            "value": "support under hips",
+            "source": "臀部无支撑",
+            "source_span": "臀部无支撑",
+            "polarity": "absent",
+            "carrier": "hips",
+            "carrier_span": "臀部",
+            "phrases": [
+              "support under hips"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_3",
+            "kind": "pose",
+            "value": "both knees bent",
+            "source": "双膝弯曲",
+            "source_span": "双膝弯曲",
+            "polarity": "required",
+            "carrier": "knees",
+            "carrier_span": "双膝",
+            "phrases": [
+              "both knees bent"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "24477712aa6382ecbc1bee42a3281992e5e1f94e9ad0e5165f9108f7cf9ab9d3"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_squat_without_support",
+        "version": 1,
+        "display_name": "squat_without_support",
+        "original_instruction": "识别蹲着的人，双膝弯曲、臀部无支撑。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "蹲着的人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "pose",
+              "value": "squatting",
+              "source": "识别蹲着的人",
+              "source_span": "蹲着",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person squatting"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "state",
+              "value": "support under hips",
+              "source": "臀部无支撑",
+              "source_span": "臀部无支撑",
+              "polarity": "absent",
+              "carrier": "hips",
+              "carrier_span": "臀部",
+              "phrases": [
+                "support under hips"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_3",
+              "kind": "pose",
+              "value": "both knees bent",
+              "source": "双膝弯曲",
+              "source_span": "双膝弯曲",
+              "polarity": "required",
+              "carrier": "knees",
+              "carrier_span": "双膝",
+              "phrases": [
+                "both knees bent"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "24477712aa6382ecbc1bee42a3281992e5e1f94e9ad0e5165f9108f7cf9ab9d3"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "long_side",
+                  "long_side": 1280
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "squat_without_support",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "evidence_frames",
+                "op": "image.tile@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "tile_width": 640,
+                  "tile_height": 640,
+                  "overlap_x": 0.2,
+                  "overlap_y": 0.2,
+                  "include_full_frame": true
+                },
+                "enabled": true
+              },
+              {
+                "id": "pose_group_1_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "蹲着 + 双膝弯曲",
+                      "phrases": [
+                        "person squatting with both knees bent"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "pose_group_1_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$pose_group_1_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "pose_group_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$pose_group_1_objects_dedup"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "臀部无支撑",
+                      "phrases": [
+                        "person with support under hips"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_objects_dedup"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_not",
+                "op": "logic.not@1.0",
+                "inputs": {
+                  "condition": "$constraint_2_matches"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$pose_group_1_matches",
+                    "$constraint_2_not"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "squat_without_support"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "evidence_frames",
+                "pose_group_1_objects",
+                "pose_group_1_objects_dedup",
+                "pose_group_1_matches"
+              ],
+              "atom_3": [
+                "evidence_frames",
+                "pose_group_1_objects",
+                "pose_group_1_objects_dedup",
+                "pose_group_1_matches"
+              ],
+              "atom_2": [
+                "constraint_2_objects",
+                "constraint_2_objects_dedup",
+                "constraint_2_matches",
+                "constraint_2_not"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 1,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "person squatting with both knees bent",
+        "person with support under hips"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "pose",
+          "value": "squatting",
+          "source_span": "蹲着",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "person squatting"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "pose_group_1_objects",
+            "pose_group_1_objects_dedup",
+            "pose_group_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 2.2650000028079376,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "蹲着 + 双膝弯曲",
+                    "phrases": [
+                      "person squatting with both knees bent"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 7
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 3132.9326999984914,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 4
+              },
+              "elapsed_ms": 0.02239999594166875,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 4
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.0934000127017498,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "state",
+          "value": "support under hips",
+          "source_span": "臀部无支撑",
+          "polarity": "absent",
+          "carrier": "hips",
+          "phrases": [
+            "support under hips"
+          ],
+          "bound_nodes": [
+            "constraint_2_objects",
+            "constraint_2_objects_dedup",
+            "constraint_2_matches",
+            "constraint_2_not"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "臀部无支撑",
+                    "phrases": [
+                      "person with support under hips"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 2
+              },
+              "elapsed_ms": 1078.5177999932785,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 2
+              },
+              "output_summary": {
+                "result": 2
+              },
+              "elapsed_ms": 0.008700008038431406,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 2
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.11750000703614205,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_not",
+              "operator": "logic.not@1.0",
+              "rule": "对每个条件 key 执行逻辑取反。",
+              "effective_params": {},
+              "input_summary": {
+                "condition": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.004799992893822491,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_3",
+          "kind": "pose",
+          "value": "both knees bent",
+          "source_span": "双膝弯曲",
+          "polarity": "required",
+          "carrier": "knees",
+          "phrases": [
+            "both knees bent"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "pose_group_1_objects",
+            "pose_group_1_objects_dedup",
+            "pose_group_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 2.2650000028079376,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "蹲着 + 双膝弯曲",
+                    "phrases": [
+                      "person squatting with both knees bent"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 7
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 3132.9326999984914,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 4
+              },
+              "elapsed_ms": 0.02239999594166875,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 4
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.0934000127017498,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_3",
+          "label": "squat_without_support",
+          "phrase": "person",
+          "bbox": [
+            0.22622622622622623,
+            0.42542542542542544,
+            0.3083083083083083,
+            0.6186186186186187
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><716>,<137><393><202><566>,<226><425><308><618>,<430><494><513><556>,<588><479><703><758>,<691><559><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_202748_a1810177",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_202748_a1810177\\annotated.jpg"
+    }
+  ]
+}

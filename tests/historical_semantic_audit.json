@@ -1,0 +1,608 @@
+{
+  "scope": "real_deepseek_v4_flash_thinking_semantic_only",
+  "case_count": 11,
+  "compiled": 8,
+  "needs_review": 3,
+  "exceptions": 0,
+  "cases": [
+    {
+      "case_id": "red_gray_1",
+      "instruction": "检测穿红色上衣、灰色裤子的人。",
+      "attempts": 1,
+      "strategy": "semantic_ir+deterministic_workflow",
+      "errors": [],
+      "raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"red\",\n      \"source\": \"检测穿红色上衣、灰色裤子的人。\",\n      \"source_span\": \"红色\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"上衣\",\n      \"phrases\": [\"red upper_body_clothing\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"gray\",\n      \"source\": \"检测穿红色上衣、灰色裤子的人。\",\n      \"source_span\": \"灰色\",\n      \"carrier\": \"lower_body_clothing\",\n      \"carrier_span\": \"裤子\",\n      \"phrases\": [\"gray lower_body_clothing\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "compiled",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "direct_grounding",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "red",
+            "source": "检测穿红色上衣、灰色裤子的人。",
+            "source_span": "红色",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "上衣",
+            "phrases": [
+              "red upper_body_clothing"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "color",
+            "value": "gray",
+            "source": "检测穿红色上衣、灰色裤子的人。",
+            "source_span": "灰色",
+            "polarity": "required",
+            "carrier": "lower_body_clothing",
+            "carrier_span": "裤子",
+            "phrases": [
+              "gray lower_body_clothing"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "74e2a275a56e37f4a97b9959a3832297738c760d1927fb56b8269f00443edcfc"
+      },
+      "workflow_operators": [
+        "media.image@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "visual.color_fraction@1.0",
+        "filter.apply@1.0",
+        "spatial.associate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "visual.color_fraction@1.0",
+        "filter.apply@1.0",
+        "spatial.associate@1.0",
+        "logic.all@1.0",
+        "filter.apply@1.0",
+        "output.draw@1.0"
+      ]
+    },
+    {
+      "case_id": "red_gray_2",
+      "instruction": "识别穿红色上衣、灰色长裤的人。",
+      "attempts": 1,
+      "strategy": "semantic_ir+deterministic_workflow",
+      "errors": [],
+      "raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"穿红色上衣、灰色长裤的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"red\",\n      \"source\": \"识别穿红色上衣、灰色长裤的人。\",\n      \"source_span\": \"红色上衣\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"上衣\",\n      \"phrases\": [\"red top\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"gray\",\n      \"source\": \"识别穿红色上衣、灰色长裤的人。\",\n      \"source_span\": \"灰色长裤\",\n      \"carrier\": \"lower_body_clothing\",\n      \"carrier_span\": \"长裤\",\n      \"phrases\": [\"gray trousers\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "compiled",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "direct_grounding",
+        "target": {
+          "concept": "person",
+          "source_span": "穿红色上衣、灰色长裤的人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "red",
+            "source": "识别穿红色上衣、灰色长裤的人。",
+            "source_span": "红色上衣",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "上衣",
+            "phrases": [
+              "red top"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "color",
+            "value": "gray",
+            "source": "识别穿红色上衣、灰色长裤的人。",
+            "source_span": "灰色长裤",
+            "polarity": "required",
+            "carrier": "lower_body_clothing",
+            "carrier_span": "长裤",
+            "phrases": [
+              "gray trousers"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "e12588a241e62a8250ede275ca10eefb6fd525db082c102d1b9d777b6e6b0c83"
+      },
+      "workflow_operators": [
+        "media.image@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "visual.color_fraction@1.0",
+        "filter.apply@1.0",
+        "spatial.associate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "visual.color_fraction@1.0",
+        "filter.apply@1.0",
+        "spatial.associate@1.0",
+        "logic.all@1.0",
+        "filter.apply@1.0",
+        "output.draw@1.0"
+      ]
+    },
+    {
+      "case_id": "squat_exclude",
+      "instruction": "检测图像中的在蹲下的人，姿态为双膝弯曲，排除正坐着的人。",
+      "attempts": 1,
+      "strategy": "semantic_ir+deterministic_workflow",
+      "errors": [],
+      "raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"在蹲下的人\",\n    \"phrases\": [\"crouching person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"knees bent\",\n      \"source\": \"姿态为双膝弯曲\",\n      \"source_span\": \"双膝弯曲\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"bent knees\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "compiled",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "direct_grounding",
+        "target": {
+          "concept": "person",
+          "source_span": "在蹲下的人",
+          "phrases": [
+            "crouching person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "pose",
+            "value": "knees bent",
+            "source": "姿态为双膝弯曲",
+            "source_span": "双膝弯曲",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "bent knees"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "8544e1a54f2a1cfa120f22c4dc0c2d32e8ab3522ba61cd1da9a51442055a5d01"
+      },
+      "workflow_operators": [
+        "media.image@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "spatial.associate@1.0",
+        "filter.apply@1.0",
+        "output.draw@1.0"
+      ]
+    },
+    {
+      "case_id": "squat_support",
+      "instruction": "识别蹲着的人，双膝弯曲、臀部无支撑。",
+      "attempts": 2,
+      "strategy": "semantic_ir+deterministic_workflow",
+      "errors": [
+        "grounding evidence must be affirmative"
+      ],
+      "raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"蹲着的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"squatting\",\n      \"source\": \"识别蹲着的人\",\n      \"source_span\": \"蹲着\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"person squatting\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"pose\",\n      \"value\": \"knees bent\",\n      \"source\": \"双膝弯曲、臀部无支撑\",\n      \"source_span\": \"双膝弯曲\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"knees bent\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"state\",\n      \"value\": \"hips unsupported\",\n      \"source\": \"双膝弯曲、臀部无支撑\",\n      \"source_span\": \"臀部无支撑\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"hips unsupported\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}",
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"蹲着的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"squatting\",\n      \"source\": \"识别蹲着的人\",\n      \"source_span\": \"蹲着\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"person squatting\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"pose\",\n      \"value\": \"knees bent\",\n      \"source\": \"双膝弯曲、臀部无支撑\",\n      \"source_span\": \"双膝弯曲\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"knees bent\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"state\",\n      \"value\": \"hips suspended\",\n      \"source\": \"双膝弯曲、臀部无支撑\",\n      \"source_span\": \"臀部无支撑\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"hips suspended\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "compiled",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "direct_grounding",
+        "target": {
+          "concept": "person",
+          "source_span": "蹲着的人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "state",
+            "value": "hips suspended",
+            "source": "双膝弯曲、臀部无支撑",
+            "source_span": "臀部无支撑",
+            "polarity": "absent",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "hips suspended"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "pose",
+            "value": "knees bent",
+            "source": "双膝弯曲、臀部无支撑",
+            "source_span": "双膝弯曲",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "knees bent"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_3",
+            "kind": "pose",
+            "value": "squatting",
+            "source": "识别蹲着的人",
+            "source_span": "蹲着",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person squatting"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "c632d2a42f9360a3d654d2bc3962be2222b31a5b52bbf1eeee051f4c1fa89619"
+      },
+      "workflow_operators": [
+        "media.image@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "spatial.associate@1.0",
+        "logic.not@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "spatial.associate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "spatial.associate@1.0",
+        "logic.all@1.0",
+        "filter.apply@1.0",
+        "output.draw@1.0"
+      ]
+    },
+    {
+      "case_id": "reflective",
+      "instruction": "识别穿反光衣的人。",
+      "attempts": 1,
+      "strategy": "semantic_ir+deterministic_workflow",
+      "errors": [],
+      "raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"reflective clothing\",\n      \"source\": \"识别穿反光衣的人\",\n      \"source_span\": \"穿反光衣\",\n      \"carrier\": \"person\",\n      \"carrier_span\": \"人\",\n      \"phrases\": [\"reflective vest\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "compiled",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "direct_grounding",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "wearable",
+            "value": "reflective clothing",
+            "source": "识别穿反光衣的人",
+            "source_span": "穿反光衣",
+            "polarity": "required",
+            "carrier": "person",
+            "carrier_span": "人",
+            "phrases": [
+              "reflective vest"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "63e2f0aad35ab9706e18fccfeb74481a9585174ed610402e31a63ae1b9764bea"
+      },
+      "workflow_operators": [
+        "media.image@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "spatial.associate@1.0",
+        "filter.apply@1.0",
+        "output.draw@1.0"
+      ]
+    },
+    {
+      "case_id": "yellow_reflective",
+      "instruction": "识别穿着黄色反光衣的人。",
+      "attempts": 2,
+      "strategy": "needs_review",
+      "errors": [
+        "unresolved semantics require review",
+        "Expecting property name enclosed in double quotes: line 8 column 2 (char 127)"
+      ],
+      "raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"yellow\",\n      \"source\": \"识别穿着黄色反光衣的人\",\n      \"source_span\": \"黄色反光衣\",\n      \"carrier\": \"reflective vest\",\n      \"carrier_span\": \"反光衣\",\n      \"phrases\": [\"yellow reflective vest\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"reflective vest\",\n      \"source\": \"识别穿着黄色反光衣的人\",\n      \"source_span\": \"穿着黄色反光衣\",\n      \"phrases\": [\"reflective vest\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}",
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n "
+      ],
+      "status": "needs_review",
+      "semantic_ir": null,
+      "workflow_operators": []
+    },
+    {
+      "case_id": "orange_no_helmet",
+      "instruction": "穿着橙色反光衣且未戴安全帽的人。",
+      "attempts": 2,
+      "strategy": "needs_review",
+      "errors": [
+        "Expecting value: line 1 column 1 (char 0)",
+        "unresolved semantics require review"
+      ],
+      "raw_outputs": [
+        "",
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"orange\",\n      \"source\": \"穿着橙色反光衣且未戴安全帽的人。\",\n      \"source_span\": \"橙色\",\n      \"carrier\": \"reflective clothing\",\n      \"carrier_span\": \"反光衣\",\n      \"phrases\": [\"orange reflective clothing\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"reflective clothing\",\n      \"source\": \"穿着橙色反光衣且未戴安全帽的人。\",\n      \"source_span\": \"穿着\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"reflective clothing\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"helmet\",\n      \"source\": \"穿着橙色反光衣且未戴安全帽的人。\",\n      \"source_span\": \"未戴安全帽\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"helmet\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "needs_review",
+      "semantic_ir": null,
+      "workflow_operators": []
+    },
+    {
+      "case_id": "orange_exclude_no_helmet",
+      "instruction": "穿着橙色反光衣的人，排除未戴安全帽的人。",
+      "attempts": 1,
+      "strategy": "semantic_ir+deterministic_workflow",
+      "errors": [],
+      "raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"orange\",\n      \"source\": \"穿着橙色反光衣的人\",\n      \"source_span\": \"橙色反光衣\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"反光衣\",\n      \"phrases\": [\"orange reflective vest\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"safety_helmet\",\n      \"source\": \"排除未戴安全帽的人\",\n      \"source_span\": \"未戴安全帽\",\n      \"phrases\": [\"safety helmet\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "compiled",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "direct_grounding",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "orange",
+            "source": "穿着橙色反光衣的人",
+            "source_span": "橙色反光衣",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "反光衣",
+            "phrases": [
+              "orange reflective vest"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "wearable",
+            "value": "safety_helmet",
+            "source": "排除未戴安全帽的人",
+            "source_span": "未戴安全帽",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "safety helmet"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "82ad671b8a337b05e54faf60b955672158884ff5a283cb52a9df6d013f71ab3c"
+      },
+      "workflow_operators": [
+        "media.image@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "visual.color_fraction@1.0",
+        "filter.apply@1.0",
+        "spatial.associate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "spatial.associate@1.0",
+        "logic.all@1.0",
+        "filter.apply@1.0",
+        "output.draw@1.0"
+      ]
+    },
+    {
+      "case_id": "white_cloth",
+      "instruction": "识别穿白衣的人。",
+      "attempts": 1,
+      "strategy": "semantic_ir+deterministic_workflow",
+      "errors": [],
+      "raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"clothing\",\n      \"source\": \"识别穿白衣的人。\",\n      \"source_span\": \"穿\",\n      \"phrases\": [\"wearing clothing\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别穿白衣的人。\",\n      \"source_span\": \"白\",\n      \"carrier\": \"clothing\",\n      \"carrier_span\": \"衣\",\n      \"phrases\": [\"white clothing\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "compiled",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "direct_grounding",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "white",
+            "source": "识别穿白衣的人。",
+            "source_span": "白",
+            "polarity": "required",
+            "carrier": "clothing",
+            "carrier_span": "衣",
+            "phrases": [
+              "white clothing"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "wearable",
+            "value": "clothing",
+            "source": "识别穿白衣的人。",
+            "source_span": "穿",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "wearing clothing"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "a80c225f5be0ee89daf43bbaeaef1cf8b77938117afc83f95c10169e9a67c6af"
+      },
+      "workflow_operators": [
+        "media.image@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "visual.color_fraction@1.0",
+        "filter.apply@1.0",
+        "spatial.associate@1.0",
+        "object.crop@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "spatial.associate@1.0",
+        "logic.all@1.0",
+        "filter.apply@1.0",
+        "output.draw@1.0"
+      ]
+    },
+    {
+      "case_id": "count_white_car",
+      "instruction": "识别白色车数量。",
+      "attempts": 2,
+      "strategy": "needs_review",
+      "errors": [
+        "unresolved semantics require review",
+        "unresolved semantics require review"
+      ],
+      "raw_outputs": [
+        "{\n  \"mode\": \"entity_query\",\n  \"target\": {\n    \"concept\": \"car\",\n    \"source_span\": \"白色车\",\n    \"phrases\": [\"white car\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"白色\",\n      \"carrier\": \"car\",\n      \"carrier_span\": \"车\",\n      \"phrases\": [\"white\"]\n    },\n    {\n      \"kind\": \"quantity\",\n      \"value\": {\"measure\": \"count\"},\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"数量\",\n      \"phrases\": [\"count\"]\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}",
+        "{\n  \"mode\": \"entity_query\",\n  \"target\": {\n    \"concept\": \"car\",\n    \"source_span\": \"白色车\",\n    \"phrases\": [\"white car\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"白色\",\n      \"phrases\": [\"white\"]\n    },\n    {\n      \"kind\": \"quantity\",\n      \"value\": {\"measure\": \"count\"},\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"数量\",\n      \"phrases\": [\"count\"]\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [\n    {\n      \"source_span\": \"识别\",\n      \"reason\": \"动词，表示执行识别/检测操作，已由 mode 体现，但未作为显式条件\"\n    }\n  ]\n}"
+      ],
+      "status": "needs_review",
+      "semantic_ir": null,
+      "workflow_operators": []
+    },
+    {
+      "case_id": "multi_entity_exclusion",
+      "instruction": "检测轿车、客车、人，排除货车、面包车。",
+      "attempts": 1,
+      "strategy": "semantic_ir+deterministic_workflow",
+      "errors": [],
+      "raw_outputs": [
+        "{\n  \"mode\": \"entity_query\",\n  \"target\": {\n    \"concept\": \"object\",\n    \"source_span\": \"轿车、客车、人\",\n    \"phrases\": [\"car\", \"bus\", \"person\"]\n  },\n  \"constraints\": [],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "compiled",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "object",
+          "source_span": "轿车、客车、人",
+          "phrases": [
+            "car",
+            "bus",
+            "person"
+          ]
+        },
+        "constraints": [],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "70d64311a0af4e8e971a279c35abf9132f901375520cd9d96eae950dc745dba3"
+      },
+      "workflow_operators": [
+        "media.image@1.0",
+        "image.resize@1.1",
+        "rex.ground@1.1",
+        "objects.deduplicate@1.0",
+        "output.draw@1.0"
+      ]
+    }
+  ]
+}

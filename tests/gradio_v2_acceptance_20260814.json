@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "review_date": "2026-08-14",
+  "method": "real_browser_clicks_with_playwright_cli_against_gradio_6122",
+  "status": "passed",
+  "cases": [
+    {
+      "case_id": "natural_language_white_car_count",
+      "source_ui": "自然语言生成",
+      "source_banner_verified": "未使用预置演示技能",
+      "instruction": "识别白色车数量。",
+      "skill_id": "ui_white_car_count",
+      "display_name": "界面白色车辆计数",
+      "variant": "image",
+      "media": "data/acceptance_media/generated/shared_normal_highway.png",
+      "original_size": [
+        1536,
+        1024
+      ],
+      "preprocessing": {
+        "resize": {
+          "operator": "image.resize@1.1",
+          "mode": "identity"
+        },
+        "semantic_ir_affected": false
+      },
+      "runtime_status": "executed_with_output",
+      "detections": 4,
+      "measurement": 4,
+      "run_dir": "data/runs/20260814_012317_4be052ce",
+      "annotated_media": "data/runs/20260814_012317_4be052ce/annotated.jpg",
+      "screenshot": "output/playwright/v2_acceptance/.playwright-cli/page-2026-08-13T17-26-01-291Z.png"
+    },
+    {
+      "case_id": "preset_p05_lane_wrong_way",
+      "source_ui": "预置演示技能",
+      "source_banner_verified": "自然语言输入未参与当前技能",
+      "preset_id": "P05_highway_wrong_way",
+      "instruction": "检测与多数车辆行驶方向相反并持续1秒的车辆。",
+      "variant": "video",
+      "default_media_auto_loaded": true,
+      "media": "data/acceptance_media/v2/P05_positive_short.mp4",
+      "original_metadata": {
+        "width": 960,
+        "height": 720,
+        "fps": 2.0,
+        "frame_count": 7,
+        "duration_seconds": 3.5
+      },
+      "sampled_frame_count": 7,
+      "runtime_status": "executed_with_output",
+      "tracks": 1,
+      "events": 1,
+      "regions": [
+        "lane_left",
+        "lane_right"
+      ],
+      "directions": [
+        "lane_left"
+      ],
+      "run_dir": "data/runs/20260814_012936_bd4b6243",
+      "annotated_media": "data/runs/20260814_012936_bd4b6243/annotated.mp4",
+      "annotated_video_probe": {
+        "readable": true,
+        "width": 960,
+        "height": 720,
+        "fps": 2.0,
+        "frame_count": 7
+      },
+      "screenshots": [
+        "output/playwright/v2_acceptance/.playwright-cli/page-2026-08-13T17-28-45-438Z.png",
+        "output/playwright/v2_acceptance/.playwright-cli/page-2026-08-13T17-32-47-787Z.png"
+      ]
+    }
+  ],
+  "console_observation": {
+    "blocking_errors": 0,
+    "non_blocking": [
+      "Gradio upload_progress?upload_id=undefined returned 404",
+      "Gradio frontend emitted Method not implemented warning"
+    ]
+  }
+}

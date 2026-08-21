@@ -1,0 +1,285 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "highway_person_dwell",
+  "version": 1,
+  "display_name": "车道人员逗留",
+  "original_instruction": "检测在手工标注车道区域内持续逗留1秒的人员。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "video"
+    ],
+    "accept": [
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "workflow",
+    "target": {
+      "concept": "person",
+      "source_span": "人员",
+      "phrases": [
+        "person"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "spatial_relation",
+        "value": {
+          "relation": "inside_roi",
+          "region": {
+            "source": "manual",
+            "semantic_role": "lane",
+            "shape": "polygon",
+            "allowed_shapes": [
+              "rectangle",
+              "polygon"
+            ]
+          }
+        },
+        "source": "检测在手工标注车道区域内持续逗留1秒的人员",
+        "source_span": "在手工标注车道区域内",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_2",
+        "kind": "temporal",
+        "value": {
+          "type": "persist",
+          "seconds": 1.0
+        },
+        "source": "检测在手工标注车道区域内持续逗留1秒的人员",
+        "source_span": "持续逗留1秒",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": true
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "0b2dee24397b51e763e0f23406771ae920d27801ffaea720601790a6087b4419"
+  },
+  "variants": {
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "people_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "人员",
+                "phrases": [
+                  "person"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "people",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$people_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$people"
+          },
+          "params": {
+            "iou_threshold": 0.25,
+            "max_missing_frames": 2,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "lane_region",
+          "op": "region.manual@1.0",
+          "inputs": {},
+          "params": {
+            "shape": "rectangle",
+            "points": [
+              [
+                0.05,
+                0.35
+              ],
+              [
+                0.95,
+                0.98
+              ]
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "inside_lane",
+          "op": "spatial.inside@1.0",
+          "inputs": {
+            "objects": "$tracks",
+            "region": "$lane_region"
+          },
+          "params": {
+            "mode": "center",
+            "overlap_threshold": 0.5
+          },
+          "enabled": true
+        },
+        {
+          "id": "events",
+          "op": "temporal.persist@1.0",
+          "inputs": {
+            "condition": "$inside_lane"
+          },
+          "params": {
+            "seconds": 10.0,
+            "scope": "track",
+            "gap_tolerance_seconds": 1.1
+          },
+          "enabled": true
+        },
+        {
+          "id": "alerts",
+          "op": "output.alert@1.0",
+          "inputs": {
+            "events": "$events"
+          },
+          "params": {
+            "label": "车道人员逗留"
+          },
+          "enabled": true
+        },
+        {
+          "id": "event_tracks",
+          "op": "tracks.filter_by_events@1.0",
+          "inputs": {
+            "tracks": "$tracks",
+            "events": "$alerts"
+          },
+          "params": {
+            "time_window": "whole_track"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$event_tracks",
+            "events": "$alerts",
+            "regions": "$lane_region"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$event_tracks",
+        "events": "$alerts",
+        "regions": "$lane_region"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "lane_region",
+          "inside_lane"
+        ],
+        "atom_2": [
+          "inside_lane",
+          "events",
+          "alerts"
+        ]
+      },
+      "configuration_slots": [
+        {
+          "slot_id": "lane_region",
+          "kind": "region",
+          "label": "车道区域",
+          "required": true,
+          "binding": {
+            "node_id": "lane_region",
+            "parameter": "points"
+          },
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "minimum_items": 1,
+          "source_atom_ids": [
+            "atom_1"
+          ],
+          "help_text": "在原图或视频标注帧上修改车道矩形或多边形",
+          "active_when_op": null,
+          "key_source_slot_id": null
+        }
+      ],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

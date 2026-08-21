@@ -1,0 +1,65 @@
+{
+  "version": "0.1",
+  "name": "road_debris",
+  "display_name": "道路抛洒物",
+  "original_instruction": "检测道路上的抛洒物、掉落货物或障碍物。",
+  "compile_status": "compiled",
+  "input": {
+    "accept": [
+      "image"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "image",
+      "op": "media.image@1.0",
+      "inputs": {
+        "media": "$input"
+      },
+      "params": {}
+    },
+    {
+      "id": "resized",
+      "op": "image.resize@1.0",
+      "inputs": {
+        "frames": "$image"
+      },
+      "params": {
+        "mode": "long_side",
+        "long_side": 1280
+      }
+    },
+    {
+      "id": "objects",
+      "op": "rex.ground@1.0",
+      "inputs": {
+        "frames": "$resized"
+      },
+      "params": {
+        "targets": [
+          {
+            "label": "道路抛洒物",
+            "phrases": [
+              "road debris",
+              "fallen cargo",
+              "road obstacle"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "draw",
+      "op": "output.draw@1.0",
+      "inputs": {
+        "frames": "$image",
+        "objects": "$objects"
+      },
+      "params": {}
+    }
+  ],
+  "outputs": {
+    "media": "$draw",
+    "objects": "$objects"
+  }
+}

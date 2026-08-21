@@ -1,0 +1,347 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "illegal_parking",
+  "version": 1,
+  "display_name": "车辆违停",
+  "original_instruction": "检测位于手工标注禁停区域内、像素速度低于2并持续10秒的车辆。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "video"
+    ],
+    "accept": [
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "workflow",
+    "target": {
+      "concept": "vehicle",
+      "source_span": "车辆",
+      "phrases": [
+        "vehicle"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "motion",
+        "value": {
+          "measure": "speed",
+          "operator": "<",
+          "threshold": 2.0,
+          "unit": "pixels_per_second",
+          "aggregation": "per_track"
+        },
+        "source": "像素速度低于2并持续10秒的车辆",
+        "source_span": "像素速度低于2",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_2",
+        "kind": "spatial_relation",
+        "value": {
+          "relation": "inside_roi",
+          "region": {
+            "source": "manual",
+            "semantic_role": "no_parking",
+            "shape": "polygon",
+            "allowed_shapes": [
+              "rectangle",
+              "polygon"
+            ]
+          }
+        },
+        "source": "检测位于手工标注禁停区域内",
+        "source_span": "位于手工标注禁停区域内",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_3",
+        "kind": "temporal",
+        "value": {
+          "type": "persist",
+          "seconds": 10.0
+        },
+        "source": "像素速度低于2并持续10秒的车辆",
+        "source_span": "持续10秒",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": true
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "fffaaefae10a22bff4538b4cc5c817c14ece40ba401156b23e1081c30c08196c"
+  },
+  "variants": {
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "vehicles_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "车辆",
+                "phrases": [
+                  "vehicle",
+                  "passenger car",
+                  "truck"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "vehicles",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$vehicles_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$vehicles"
+          },
+          "params": {
+            "iou_threshold": 0.25,
+            "max_missing_frames": 2,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "no_parking_region",
+          "op": "region.manual@1.0",
+          "inputs": {},
+          "params": {
+            "shape": "rectangle",
+            "points": [
+              [
+                0.05,
+                0.35
+              ],
+              [
+                0.95,
+                0.98
+              ]
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "inside_region",
+          "op": "spatial.inside@1.0",
+          "inputs": {
+            "objects": "$tracks",
+            "region": "$no_parking_region"
+          },
+          "params": {
+            "mode": "center",
+            "overlap_threshold": 0.5
+          },
+          "enabled": true
+        },
+        {
+          "id": "speed",
+          "op": "measure.speed@1.0",
+          "inputs": {
+            "tracks": "$tracks"
+          },
+          "params": {
+            "window_frames": 2,
+            "unit": "pixels_per_second",
+            "aggregation": "per_track"
+          },
+          "enabled": true
+        },
+        {
+          "id": "stationary",
+          "op": "logic.compare@1.0",
+          "inputs": {
+            "left": "$speed"
+          },
+          "params": {
+            "operator": "<",
+            "value": 2.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "violation_condition",
+          "op": "logic.all@1.0",
+          "inputs": {
+            "conditions": [
+              "$inside_region",
+              "$stationary"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "events",
+          "op": "temporal.persist@1.0",
+          "inputs": {
+            "condition": "$violation_condition"
+          },
+          "params": {
+            "seconds": 10.0,
+            "scope": "track",
+            "gap_tolerance_seconds": 1.1
+          },
+          "enabled": true
+        },
+        {
+          "id": "alerts",
+          "op": "output.alert@1.0",
+          "inputs": {
+            "events": "$events"
+          },
+          "params": {
+            "label": "车辆违停"
+          },
+          "enabled": true
+        },
+        {
+          "id": "event_tracks",
+          "op": "tracks.filter_by_events@1.0",
+          "inputs": {
+            "tracks": "$tracks",
+            "events": "$alerts"
+          },
+          "params": {
+            "time_window": "whole_track"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$event_tracks",
+            "events": "$alerts",
+            "regions": "$no_parking_region"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$event_tracks",
+        "events": "$alerts",
+        "regions": "$no_parking_region"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "tracks",
+          "speed",
+          "stationary"
+        ],
+        "atom_2": [
+          "no_parking_region",
+          "inside_region"
+        ],
+        "atom_3": [
+          "violation_condition",
+          "events",
+          "alerts"
+        ]
+      },
+      "configuration_slots": [
+        {
+          "slot_id": "no_parking_region",
+          "kind": "region",
+          "label": "禁停区域",
+          "required": true,
+          "binding": {
+            "node_id": "no_parking_region",
+            "parameter": "points"
+          },
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "minimum_items": 1,
+          "source_atom_ids": [
+            "atom_1"
+          ],
+          "help_text": "在原图或视频标注帧上修改禁停矩形或多边形",
+          "active_when_op": null,
+          "key_source_slot_id": null
+        }
+      ],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

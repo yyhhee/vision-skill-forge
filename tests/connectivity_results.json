@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "updated_date": "2026-08-11",
+  "deepseek": {
+    "provider": "deepseek",
+    "base_url": "https://api.deepseek.com",
+    "requested_model": "deepseek-v4-flash",
+    "returned_model": "deepseek-v4-flash",
+    "http_call": "passed",
+    "json_mode": "passed",
+    "thinking": "disabled",
+    "response_format": "json_object",
+    "parsed_result": {"status": "ok"},
+    "skill_compile": {
+      "status": "passed",
+      "instruction": "检测画面中没有佩戴安全帽的施工人员",
+      "media_type": "image",
+      "attempts": 1,
+      "degraded": false,
+      "generated_skill": "worker_without_helmet_detector",
+      "validation_errors": 0
+    },
+    "api_key": "loaded_from_env_not_recorded"
+  },
+  "rex": {
+    "connectivity": "passed",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "model": "rex-omni-awq",
+    "real_preset_runs": 13,
+    "passed_preset_runs": 13,
+    "result_file": "tests/preset_test_results.json"
+  },
+  "gradio": {"url": "http://127.0.0.1:6122", "http_status": 200, "status": "passed"},
+  "note": "Secrets are loaded from .env and are not recorded. Preset status is backed by saved real Rex artifacts."
+}

@@ -1,0 +1,477 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "special_vehicles",
+  "version": 1,
+  "display_name": "特种车辆检测",
+  "original_instruction": "检测画面中的特种车辆并标注具体类型。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "image",
+      "video"
+    ],
+    "accept": [
+      "image",
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "direct_grounding",
+    "target": {
+      "concept": "special_vehicle",
+      "source_span": "特种车辆",
+      "phrases": [
+        "fire truck",
+        "fire engine",
+        "ambulance",
+        "emergency medical vehicle",
+        "police car",
+        "police vehicle",
+        "engineering rescue vehicle",
+        "emergency repair truck",
+        "tow truck",
+        "road recovery vehicle",
+        "wrecker truck",
+        "sanitation vehicle",
+        "street sweeper",
+        "garbage truck",
+        "tanker truck",
+        "fuel tanker truck",
+        "concrete mixer truck",
+        "cement mixer truck",
+        "concrete pump truck",
+        "truck crane",
+        "mobile crane truck",
+        "aerial work platform truck",
+        "bucket truck",
+        "hazardous materials truck",
+        "hazmat transport vehicle"
+      ],
+      "classes": [
+        {
+          "label": "消防车",
+          "phrases": [
+            "fire truck",
+            "fire engine"
+          ]
+        },
+        {
+          "label": "救护车",
+          "phrases": [
+            "ambulance",
+            "emergency medical vehicle"
+          ]
+        },
+        {
+          "label": "警车",
+          "phrases": [
+            "police car",
+            "police vehicle"
+          ]
+        },
+        {
+          "label": "工程抢险车",
+          "phrases": [
+            "engineering rescue vehicle",
+            "emergency repair truck"
+          ]
+        },
+        {
+          "label": "道路清障车",
+          "phrases": [
+            "tow truck",
+            "road recovery vehicle",
+            "wrecker truck"
+          ]
+        },
+        {
+          "label": "环卫车",
+          "phrases": [
+            "sanitation vehicle",
+            "street sweeper",
+            "garbage truck"
+          ]
+        },
+        {
+          "label": "油罐车",
+          "phrases": [
+            "tanker truck",
+            "fuel tanker truck"
+          ]
+        },
+        {
+          "label": "混凝土搅拌车",
+          "phrases": [
+            "concrete mixer truck",
+            "cement mixer truck"
+          ]
+        },
+        {
+          "label": "混凝土泵车",
+          "phrases": [
+            "concrete pump truck"
+          ]
+        },
+        {
+          "label": "汽车吊",
+          "phrases": [
+            "truck crane",
+            "mobile crane truck"
+          ]
+        },
+        {
+          "label": "高空作业车",
+          "phrases": [
+            "aerial work platform truck",
+            "bucket truck"
+          ]
+        },
+        {
+          "label": "危险品运输车",
+          "phrases": [
+            "hazardous materials truck",
+            "hazmat transport vehicle"
+          ]
+        }
+      ]
+    },
+    "constraints": [],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "d9c71f5c4a314dccf0a52cec66fa7d6a27961a40e8cb61fbb2d6b3ae851ad15d"
+  },
+  "variants": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "special_vehicles_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "消防车",
+                "phrases": [
+                  "fire truck",
+                  "fire engine"
+                ]
+              },
+              {
+                "label": "救护车",
+                "phrases": [
+                  "ambulance",
+                  "emergency medical vehicle"
+                ]
+              },
+              {
+                "label": "警车",
+                "phrases": [
+                  "police car",
+                  "police vehicle"
+                ]
+              },
+              {
+                "label": "工程抢险车",
+                "phrases": [
+                  "engineering rescue vehicle",
+                  "emergency repair truck"
+                ]
+              },
+              {
+                "label": "道路清障车",
+                "phrases": [
+                  "tow truck",
+                  "road recovery vehicle",
+                  "wrecker truck"
+                ]
+              },
+              {
+                "label": "环卫车",
+                "phrases": [
+                  "sanitation vehicle",
+                  "street sweeper",
+                  "garbage truck"
+                ]
+              },
+              {
+                "label": "油罐车",
+                "phrases": [
+                  "tanker truck",
+                  "fuel tanker truck"
+                ]
+              },
+              {
+                "label": "混凝土搅拌车",
+                "phrases": [
+                  "concrete mixer truck",
+                  "cement mixer truck"
+                ]
+              },
+              {
+                "label": "混凝土泵车",
+                "phrases": [
+                  "concrete pump truck"
+                ]
+              },
+              {
+                "label": "汽车吊",
+                "phrases": [
+                  "truck crane",
+                  "mobile crane truck"
+                ]
+              },
+              {
+                "label": "高空作业车",
+                "phrases": [
+                  "aerial work platform truck",
+                  "bucket truck"
+                ]
+              },
+              {
+                "label": "危险品运输车",
+                "phrases": [
+                  "hazardous materials truck",
+                  "hazmat transport vehicle"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "special_vehicles",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$special_vehicles_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$special_vehicles"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$special_vehicles"
+      },
+      "atom_bindings": {},
+      "configuration_slots": [],
+      "issue": null
+    },
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "special_vehicles_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "消防车",
+                "phrases": [
+                  "fire truck",
+                  "fire engine"
+                ]
+              },
+              {
+                "label": "救护车",
+                "phrases": [
+                  "ambulance",
+                  "emergency medical vehicle"
+                ]
+              },
+              {
+                "label": "警车",
+                "phrases": [
+                  "police car",
+                  "police vehicle"
+                ]
+              },
+              {
+                "label": "工程抢险车",
+                "phrases": [
+                  "engineering rescue vehicle",
+                  "emergency repair truck"
+                ]
+              },
+              {
+                "label": "道路清障车",
+                "phrases": [
+                  "tow truck",
+                  "road recovery vehicle",
+                  "wrecker truck"
+                ]
+              },
+              {
+                "label": "环卫车",
+                "phrases": [
+                  "sanitation vehicle",
+                  "street sweeper",
+                  "garbage truck"
+                ]
+              },
+              {
+                "label": "油罐车",
+                "phrases": [
+                  "tanker truck",
+                  "fuel tanker truck"
+                ]
+              },
+              {
+                "label": "混凝土搅拌车",
+                "phrases": [
+                  "concrete mixer truck",
+                  "cement mixer truck"
+                ]
+              },
+              {
+                "label": "混凝土泵车",
+                "phrases": [
+                  "concrete pump truck"
+                ]
+              },
+              {
+                "label": "汽车吊",
+                "phrases": [
+                  "truck crane",
+                  "mobile crane truck"
+                ]
+              },
+              {
+                "label": "高空作业车",
+                "phrases": [
+                  "aerial work platform truck",
+                  "bucket truck"
+                ]
+              },
+              {
+                "label": "危险品运输车",
+                "phrases": [
+                  "hazardous materials truck",
+                  "hazmat transport vehicle"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "special_vehicles",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$special_vehicles_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$special_vehicles"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$special_vehicles"
+      },
+      "atom_bindings": {},
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

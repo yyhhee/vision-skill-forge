@@ -1,0 +1,33 @@
+{
+  "date": "2026-08-12",
+  "instruction": "识别穿黑色衣服的人",
+  "media": "C:/yhe_user/detection_project/ultralytics/03.png",
+  "root_cause": "v1 applied black pixel fraction to the whole person box, so shadows, harnesses, railings, shoes, and background caused false positives",
+  "generic_fix": {
+    "pipeline": "base entity -> attribute carrier -> dominant semantic color -> carrier/entity association",
+    "carrier": "clothing",
+    "color": "black",
+    "selection_mode": "dominant",
+    "min_fraction": 0.2,
+    "dominance_margin": 0.05,
+    "association": "overlap >= 0.1"
+  },
+  "before": {
+    "skill": "black_cloth/v1",
+    "person_candidates": 8,
+    "detected": 7,
+    "run": "data/runs/20260812_164453_8e9b24de"
+  },
+  "after": {
+    "skill": "black_cloth/v2",
+    "person_candidates": 8,
+    "clothing_candidates": 8,
+    "dominant_black_clothing": 2,
+    "detected": 2,
+    "run": "data/runs/20260812_173354_ec403068"
+  },
+  "automated_tests": {
+    "passed": 88,
+    "failed": 0
+  }
+}

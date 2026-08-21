@@ -1,0 +1,78 @@
+{
+  "date": "2026-08-12",
+  "scope": "generic natural-language visual skill compiler",
+  "llm": {
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled",
+    "reasoning_effort": "high"
+  },
+  "deterministic_suite": {
+    "command": "python -m pytest -q",
+    "passed": 85,
+    "failed": 0,
+    "coverage": [
+      "12 semantic colors",
+      "absolute screen position",
+      "relative and absolute size",
+      "inside/contains/near/overlap/directional relations",
+      "atomic attribute splitting",
+      "typed multi-entity workflows",
+      "count aggregation and negation"
+    ]
+  },
+  "generated_asset": {
+    "path": "tests/assets/generated_visual_attribute_scene.png",
+    "prompt": "Studio product photograph on a neutral light-gray background containing six separated objects: a small red metallic cube at lower left, a large cyan plastic sphere at upper left, an open purple glass bottle in the center, a closed brown wooden rectangular box at upper right, a pink ceramic bowl at lower right, and a blue rubber ball near the bottom center. No text or extra objects.",
+    "cases": [
+      {
+        "instruction": "识别左侧的小型红色金属方块",
+        "strategy": "llm_intent:entity_query",
+        "detected": 1,
+        "run": "data/runs/20260812_154738_963af1e4"
+      },
+      {
+        "instruction": "识别位于紫色瓶子左侧的青色球体",
+        "strategy": "llm_intent:workflow",
+        "detected": 1,
+        "run": "data/runs/20260812_154746_b7ac0168"
+      },
+      {
+        "instruction": "识别打开的紫色玻璃瓶",
+        "strategy": "llm_intent:entity_query",
+        "detected": 1,
+        "run": "data/runs/20260812_145444_70e8a519"
+      },
+      {
+        "instruction": "识别棕色木质长方形盒子",
+        "strategy": "llm_intent:entity_query",
+        "detected": 1,
+        "run": "data/runs/20260812_145453_38ecae41"
+      },
+      {
+        "instruction": "统计图像中的物体数量是否不少于6个",
+        "strategy": "llm_intent:workflow",
+        "detected": 6,
+        "run": "data/runs/20260812_150651_7c868233"
+      }
+    ]
+  },
+  "existing_asset": {
+    "path": "C:/yhe_user/detection_project/ultralytics/Codex 图像 2026年8月12日 09_14_00.png",
+    "cases": [
+      {
+        "instruction": "识别穿着黄色反光衣的人",
+        "compiled": true,
+        "detected": 2,
+        "run": "data/runs/20260812_154943_61466279"
+      },
+      {
+        "instruction": "识别穿白衣的人",
+        "compiled": true,
+        "detected": 0,
+        "expected_note": "the supplied construction image contains reflective vests and dark/blue workwear, not white clothing",
+        "run": "data/runs/20260812_162849_cad00938"
+      }
+    ]
+  },
+  "known_boundary": "Open-vocabulary shape/material/state evidence remains bounded by Rex visual recognition quality; compiler structure can pass while a specific model observation can still miss."
+}

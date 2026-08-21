@@ -1,0 +1,463 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "no_safety_rope",
+  "version": 1,
+  "display_name": "高处作业未系安全绳",
+  "original_instruction": "检测高处作业人员中没有连接安全绳或安全带的人。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "image",
+      "video"
+    ],
+    "accept": [
+      "image",
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "entity_query",
+    "target": {
+      "concept": "worker_at_height",
+      "source_span": "高处作业人员",
+      "phrases": [
+        "worker at height",
+        "person working at height"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "wearable",
+        "value": "connected_fall_arrest_lanyard",
+        "source": "检测高处作业人员中没有连接安全绳或安全带的人",
+        "source_span": "没有连接安全绳或安全带",
+        "polarity": "absent",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [
+          "lanyard hook",
+          "safety hook",
+          "safety carabiner"
+        ],
+        "temporal": false
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "2f3e47393d692073ba1c3df4a5ef3724b02f1bc81f2e49a3775d46b9159716b2"
+  },
+  "variants": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "workers_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "高处作业人员",
+                "phrases": [
+                  "worker at height",
+                  "person working at height"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "workers",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$workers_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_crops",
+          "op": "object.crop@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$workers"
+          },
+          "params": {
+            "padding_fraction": 0.05,
+            "subject_region": [
+              -0.6,
+              -0.6,
+              1.6,
+              1.2
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_crop_resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$equipment_crops"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 640,
+            "interpolation": "bicubic"
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$equipment_crop_resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "防坠挂绳钩",
+                "phrases": [
+                  "lanyard hook",
+                  "safety hook",
+                  "safety carabiner"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$equipment_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "has_equipment",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$workers",
+            "objects": "$equipment"
+          },
+          "params": {
+            "relation": "center_in_subject_region",
+            "threshold": 0.0,
+            "subject_region": [
+              -0.6,
+              -0.6,
+              1.6,
+              0.0
+            ],
+            "same_source_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "missing_equipment",
+          "op": "logic.not@1.0",
+          "inputs": {
+            "condition": "$has_equipment"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "violations",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$workers",
+            "condition": "$missing_equipment"
+          },
+          "params": {
+            "output_label": "未系安全绳人员"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$violations"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$violations"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "workers_raw",
+          "workers",
+          "equipment_crops",
+          "equipment_crop_resized",
+          "equipment_raw",
+          "equipment",
+          "has_equipment",
+          "missing_equipment",
+          "violations"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    },
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "workers_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "高处作业人员",
+                "phrases": [
+                  "worker at height",
+                  "person working at height"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "workers",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$workers_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_crops",
+          "op": "object.crop@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$workers"
+          },
+          "params": {
+            "padding_fraction": 0.05,
+            "subject_region": [
+              -0.6,
+              -0.6,
+              1.6,
+              1.2
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_crop_resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$equipment_crops"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 640,
+            "interpolation": "bicubic"
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$equipment_crop_resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "防坠挂绳钩",
+                "phrases": [
+                  "lanyard hook",
+                  "safety hook",
+                  "safety carabiner"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "equipment",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$equipment_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "has_equipment",
+          "op": "spatial.associate@1.0",
+          "inputs": {
+            "subjects": "$workers",
+            "objects": "$equipment"
+          },
+          "params": {
+            "relation": "center_in_subject_region",
+            "threshold": 0.0,
+            "subject_region": [
+              -0.6,
+              -0.6,
+              1.6,
+              0.0
+            ],
+            "same_source_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "missing_equipment",
+          "op": "logic.not@1.0",
+          "inputs": {
+            "condition": "$has_equipment"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "violations",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$workers",
+            "condition": "$missing_equipment"
+          },
+          "params": {
+            "output_label": "未系安全绳人员"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$violations"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$violations"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "workers_raw",
+          "workers",
+          "equipment_crops",
+          "equipment_crop_resized",
+          "equipment_raw",
+          "equipment",
+          "has_equipment",
+          "missing_equipment",
+          "violations"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

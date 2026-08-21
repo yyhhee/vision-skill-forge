@@ -1,0 +1,1765 @@
+{
+  "schema_version": "2.0",
+  "review_date": "2026-08-14",
+  "scope": "current_v2_real_deepseek_thinking_and_real_rex_historical_failures",
+  "case_count": 3,
+  "automatic_passed": 3,
+  "automatic_failed": 0,
+  "runtime_failed": 0,
+  "manual_review_pending": 3,
+  "cases": [
+    {
+      "case_id": "white_clothing_negative",
+      "instruction": "识别穿白衣的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 0,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "场景中没有白色衣物人员",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别穿白衣的人。\",\n      \"source_span\": \"穿白衣\",\n      \"carrier\": \"clothing\",\n      \"carrier_span\": \"衣\",\n      \"phrases\": [\"white clothing\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "white",
+            "source": "识别穿白衣的人。",
+            "source_span": "穿白衣",
+            "polarity": "required",
+            "carrier": "clothing",
+            "carrier_span": "衣",
+            "phrases": [
+              "white clothing"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "2245fe6fb6873ad0bdce13679bb9c4842bb3bf680465d3828452413f12c2a30b"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_white_clothing_negative",
+        "version": 1,
+        "display_name": "white_clothing_negative",
+        "original_instruction": "识别穿白衣的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "white",
+              "source": "识别穿白衣的人。",
+              "source_span": "穿白衣",
+              "polarity": "required",
+              "carrier": "clothing",
+              "carrier_span": "衣",
+              "phrases": [
+                "white clothing"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "2245fe6fb6873ad0bdce13679bb9c4842bb3bf680465d3828452413f12c2a30b"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "white_clothing_negative",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "clothing",
+                      "phrases": [
+                        "clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "white",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.2,
+                  "selection_mode": "dominant",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraint_1_matches"
+                },
+                "params": {
+                  "output_label": "white_clothing_negative"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 0,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "clothing"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "white",
+          "source_span": "穿白衣",
+          "polarity": "required",
+          "carrier": "clothing",
+          "phrases": [
+            "white clothing"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "clothing",
+                    "phrases": [
+                      "clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 1273.901599997771,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.02370000584051013,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "white",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.2,
+                "selection_mode": "dominant",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 157.30579999217298,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 6,
+                "condition": 6
+              },
+              "output_summary": {
+                "result": 0
+              },
+              "elapsed_ms": 0.00960000033956021,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 0
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.021900006686337292,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_010025_ed8ac0d8",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_010025_ed8ac0d8\\annotated.jpg"
+    },
+    {
+      "case_id": "car_bus_person_excluding_truck_van",
+      "instruction": "检测轿车、客车、人，排除货车、面包车。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\smoke.png",
+      "expected_count": null,
+      "expected_minimum": 1,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "最终结果不得包含左侧货车/面包车框；人工几何复核",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "Expecting value: line 1 column 1 (char 0)"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"object\",\n    \"source_span\": \"轿车、客车、人\",\n    \"phrases\": [\"car\", \"bus\", \"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"entity_exclusion\",\n      \"value\": \"truck, van\",\n      \"source\": \"排除货车、面包车。\",\n      \"source_span\": \"货车、面包车\",\n      \"phrases\": [\"truck\", \"van\"]\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "object",
+          "source_span": "轿车、客车、人",
+          "phrases": [
+            "car",
+            "bus",
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "entity_exclusion",
+            "value": "truck, van",
+            "source": "排除货车、面包车。",
+            "source_span": "货车、面包车",
+            "polarity": "absent",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "truck",
+              "van"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "4ad6dce39a55498ac3f2e0345915e73eb005aac1bfc98dbd5fd9c72f571b084c"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_car_bus_person_excluding_truck_van",
+        "version": 1,
+        "display_name": "car_bus_person_excluding_truck_van",
+        "original_instruction": "检测轿车、客车、人，排除货车、面包车。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "object",
+            "source_span": "轿车、客车、人",
+            "phrases": [
+              "car",
+              "bus",
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "entity_exclusion",
+              "value": "truck, van",
+              "source": "排除货车、面包车。",
+              "source_span": "货车、面包车",
+              "polarity": "absent",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "truck",
+                "van"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "4ad6dce39a55498ac3f2e0345915e73eb005aac1bfc98dbd5fd9c72f571b084c"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "car_bus_person_excluding_truck_van",
+                      "phrases": [
+                        "car",
+                        "bus",
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "货车、面包车",
+                      "phrases": [
+                        "truck",
+                        "van"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_not",
+                "op": "logic.not@1.0",
+                "inputs": {
+                  "condition": "$constraint_1_matches"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraint_1_not"
+                },
+                "params": {
+                  "output_label": "car_bus_person_excluding_truck_van"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_objects",
+                "constraint_1_objects_dedup",
+                "constraint_1_matches",
+                "constraint_1_not"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 17,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "car",
+        "bus",
+        "person",
+        "truck",
+        "van"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "entity_exclusion",
+          "value": "truck, van",
+          "source_span": "货车、面包车",
+          "polarity": "absent",
+          "carrier": null,
+          "phrases": [
+            "truck",
+            "van"
+          ],
+          "bound_nodes": [
+            "constraint_1_objects",
+            "constraint_1_objects_dedup",
+            "constraint_1_matches",
+            "constraint_1_not"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "货车、面包车",
+                    "phrases": [
+                      "truck",
+                      "van"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 750.8844999974826,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 7
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.02099999983329326,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 23,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 23
+              },
+              "elapsed_ms": 0.16060000052675605,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_not",
+              "operator": "logic.not@1.0",
+              "rule": "对每个条件 key 执行逻辑取反。",
+              "effective_params": {},
+              "input_summary": {
+                "condition": 23
+              },
+              "output_summary": {
+                "result": 23
+              },
+              "elapsed_ms": 0.012600008631125093,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_3",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.3383383383383383,
+            0.25725725725725723,
+            0.36436436436436437,
+            0.3123123123123123
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_4",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.3633633633633634,
+            0.24524524524524524,
+            0.40540540540540543,
+            0.3103103103103103
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_5",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.45545545545545546,
+            0.3993993993993994,
+            0.5235235235235235,
+            0.5215215215215215
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_7",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.5065065065065065,
+            0.3013013013013013,
+            0.5645645645645646,
+            0.41041041041041043
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_9",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.5515515515515516,
+            0.43743743743743746,
+            0.5975975975975976,
+            0.5415415415415415
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_10",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.5555555555555556,
+            0.22822822822822822,
+            0.6076076076076076,
+            0.3283283283283283
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_11",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.6406406406406406,
+            0.25125125125125125,
+            0.6946946946946947,
+            0.3333333333333333
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_14",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.6776776776776777,
+            0.1941941941941942,
+            0.7207207207207207,
+            0.26926926926926925
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_15",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.8098098098098098,
+            0.4034034034034034,
+            0.8698698698698699,
+            0.4954954954954955
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_16",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.8368368368368369,
+            0.1831831831831832,
+            0.8868868868868869,
+            0.24724724724724725
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_17",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.8498498498498499,
+            0.25425425425425424,
+            0.9029029029029029,
+            0.34734734734734735
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_19",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.8958958958958959,
+            0.6896896896896897,
+            0.994994994994995,
+            0.8518518518518519
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_20",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.9009009009009009,
+            0.01701701701701702,
+            0.938938938938939,
+            0.07707707707707707
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_21",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.9099099099099099,
+            0.14514514514514515,
+            0.9519519519519519,
+            0.2222222222222222
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_22",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.9419419419419419,
+            0.2672672672672673,
+            0.990990990990991,
+            0.36936936936936937
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_23",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "car",
+          "bbox": [
+            0.977977977977978,
+            0.015015015015015015,
+            1.0,
+            0.07207207207207207
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_25",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "person",
+          "bbox": [
+            0.30430430430430433,
+            0.2932932932932933,
+            0.3253253253253253,
+            0.3743743743743744
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><0><629><89><814>,<146><519><214><656>,<338><257><364><312>,<363><245><405><310>,<455><399><523><521>,<492><200><544><316>,<506><301><564><410>,<527><83><591><229>,<551><437><597><541>,<555><228><607><328>,<640><251><694><333>,<657><249><697><327>,<672><55><709><127>,<677><194><720><269>,<809><403><869><495>,<836><183><886><247>,<849><254><902><347>,<853><171><896><248>,<895><689><994><851>,<900><17><938><77>,<909><145><951><222>,<941><267><990><369>,<977><15><999><72><|box_end|>, <|object_ref_start|>bus<|object_ref_end|><|box_start|><280><430><416><729><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><304><293><325><374><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_010222_3e9e3e37",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_010222_3e9e3e37\\annotated.jpg"
+    },
+    {
+      "case_id": "white_car_count",
+      "instruction": "识别白色车数量。",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\acceptance_media\\generated\\shared_normal_highway.png",
+      "expected_count": null,
+      "expected_minimum": 1,
+      "expected_maximum": null,
+      "expected_measurement": 4,
+      "note": "白色车目标框与右上角计数应一致",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "quantity semantics are not covered"
+      ],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"car\",\n    \"source_span\": \"白色车\",\n    \"phrases\": [\"car\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别白色车数量\",\n      \"source_span\": \"白色\",\n      \"carrier\": \"car\",\n      \"carrier_span\": \"车\",\n      \"phrases\": [\"white car\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}",
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"car\",\n    \"source_span\": \"白色车\",\n    \"phrases\": [\"car\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"白色\",\n      \"carrier\": \"car\",\n      \"carrier_span\": \"车\",\n      \"phrases\": [\"white car\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"quantity\",\n      \"value\": {\"measure\": \"count\"},\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"数量\",\n      \"carrier\": \"car\",\n      \"carrier_span\": \"车\",\n      \"phrases\": [\"white cars\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "car",
+          "source_span": "白色车",
+          "phrases": [
+            "car"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "white",
+            "source": "识别白色车数量。",
+            "source_span": "白色",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": "车",
+            "phrases": [
+              "white car"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "quantity",
+            "value": {
+              "measure": "count"
+            },
+            "source": "识别白色车数量。",
+            "source_span": "数量",
+            "polarity": "required",
+            "carrier": "car",
+            "carrier_span": "车",
+            "phrases": [
+              "white cars"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "06b72c621bac9cf37ae4107c27aa25b504ca5b9e02d3d3d60857dca2db7e8e9b"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_white_car_count",
+        "version": 1,
+        "display_name": "white_car_count",
+        "original_instruction": "识别白色车数量。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "car",
+            "source_span": "白色车",
+            "phrases": [
+              "car"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "white",
+              "source": "识别白色车数量。",
+              "source_span": "白色",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": "车",
+              "phrases": [
+                "white car"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "quantity",
+              "value": {
+                "measure": "count"
+              },
+              "source": "识别白色车数量。",
+              "source_span": "数量",
+              "polarity": "required",
+              "carrier": "car",
+              "carrier_span": "车",
+              "phrases": [
+                "white cars"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "06b72c621bac9cf37ae4107c27aa25b504ca5b9e02d3d3d60857dca2db7e8e9b"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "white_car_count",
+                      "phrases": [
+                        "car"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$candidates"
+                },
+                "params": {
+                  "color": "white",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.2,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color_entity",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "白色",
+                      "phrases": [
+                        "white car"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color_entity_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_color_entity"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color_entity_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_color_entity_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_color",
+                    "$constraint_1_color_entity_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraint_1_color_all"
+                },
+                "params": {
+                  "output_label": "white_car_count"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_count",
+                "op": "measure.count@1.0",
+                "inputs": {
+                  "entities": "$filtered"
+                },
+                "params": {
+                  "scope": "frame"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered",
+              "measurements": "$constraint_2_count"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_color",
+                "constraint_1_color_entity",
+                "constraint_1_color_entity_dedup",
+                "constraint_1_color_entity_matches",
+                "constraint_1_color_all"
+              ],
+              "atom_2": [
+                "constraint_2_count"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 4,
+      "actual_measurement": 4,
+      "actual_rex_phrases": [
+        "car",
+        "white car"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "white",
+          "source_span": "白色",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "white car"
+          ],
+          "bound_nodes": [
+            "constraint_1_color",
+            "constraint_1_color_entity",
+            "constraint_1_color_entity_dedup",
+            "constraint_1_color_entity_matches",
+            "constraint_1_color_all"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "white",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.2,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 15
+              },
+              "output_summary": {
+                "result": 15
+              },
+              "elapsed_ms": 89.68710000044666,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color_entity",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "白色",
+                    "phrases": [
+                      "white car"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 4
+              },
+              "elapsed_ms": 1122.4780000047758,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color_entity_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 4
+              },
+              "output_summary": {
+                "result": 4
+              },
+              "elapsed_ms": 0.012600008631125093,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color_entity_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 15,
+                "objects": 4
+              },
+              "output_summary": {
+                "result": 15
+              },
+              "elapsed_ms": 0.07040001219138503,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color_all",
+              "operator": "logic.all@1.0",
+              "rule": "按相同 key 对多个条件执行逻辑与。",
+              "effective_params": {},
+              "input_summary": {
+                "conditions": 2
+              },
+              "output_summary": {
+                "result": 15
+              },
+              "elapsed_ms": 0.039399994420818985,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "quantity",
+          "value": {
+            "measure": "count"
+          },
+          "source_span": "数量",
+          "polarity": "required",
+          "carrier": "car",
+          "phrases": [
+            "white cars"
+          ],
+          "bound_nodes": [
+            "constraint_2_count"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_count",
+              "operator": "measure.count@1.0",
+              "rule": "按显式作用域统计对象帧数、唯一轨迹或唯一事件；不把视频逐帧框累计成目标数量。",
+              "effective_params": {
+                "scope": "frame"
+              },
+              "input_summary": {
+                "entities": 4
+              },
+              "output_summary": {
+                "result": 1
+              },
+              "elapsed_ms": 0.00790000194683671,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.0890890890890891,
+            0.2062062062062062,
+            0.16116116116116116,
+            0.27927927927927926
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><206><161><279>,<204><385><309><485>,<425><88><463><130>,<465><536><577><673>,<509><275><580><364>,<556><50><584><84>,<644><163><692><222>,<667><10><685><32>,<731><0><744><15>,<758><38><778><64>,<783><98><814><138>,<836><32><855><57>,<856><51><878><80>,<872><0><884><13>,<889><0><901><8><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_2",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.2042042042042042,
+            0.38538538538538536,
+            0.30930930930930933,
+            0.4854854854854855
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><206><161><279>,<204><385><309><485>,<425><88><463><130>,<465><536><577><673>,<509><275><580><364>,<556><50><584><84>,<644><163><692><222>,<667><10><685><32>,<731><0><744><15>,<758><38><778><64>,<783><98><814><138>,<836><32><855><57>,<856><51><878><80>,<872><0><884><13>,<889><0><901><8><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_5",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.5095095095095095,
+            0.2752752752752753,
+            0.5805805805805806,
+            0.36436436436436437
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><206><161><279>,<204><385><309><485>,<425><88><463><130>,<465><536><577><673>,<509><275><580><364>,<556><50><584><84>,<644><163><692><222>,<667><10><685><32>,<731><0><744><15>,<758><38><778><64>,<783><98><814><138>,<836><32><855><57>,<856><51><878><80>,<872><0><884><13>,<889><0><901><8><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_6",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.5565565565565566,
+            0.05005005005005005,
+            0.5845845845845846,
+            0.08408408408408409
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><206><161><279>,<204><385><309><485>,<425><88><463><130>,<465><536><577><673>,<509><275><580><364>,<556><50><584><84>,<644><163><692><222>,<667><10><685><32>,<731><0><744><15>,<758><38><778><64>,<783><98><814><138>,<836><32><855><57>,<856><51><878><80>,<872><0><884><13>,<889><0><901><8><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_010251_4f4ac6f6",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_010251_4f4ac6f6\\annotated.jpg"
+    }
+  ]
+}

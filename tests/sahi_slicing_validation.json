@@ -1,0 +1,27 @@
+{
+  "updated_date": "2026-08-12",
+  "implementation": "SAHI-inspired sliced Rex inference",
+  "scope": "full-frame prediction plus overlapping tiles, original-coordinate remapping, same-label IoS/IoU suppression",
+  "limitation": "Rex does not return confidence scores, so this demo cannot reproduce score-based SAHI NMS/NMM exactly.",
+  "skill": "person_bus_car/v1",
+  "media": "C:\\yhe_user\\detection_project\\ultralytics\\smoke.png",
+  "baseline": {
+    "phrases": ["bus", "car", "person"],
+    "object_count": 25,
+    "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_094101_b6be9f35"
+  },
+  "sliced": {
+    "tile_width": 320,
+    "tile_height": 320,
+    "overlap": 0.2,
+    "include_full_frame": true,
+    "deduplicate_metric": "ios",
+    "deduplicate_threshold": 0.5,
+    "rex_calls": 7,
+    "object_count": 27,
+    "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_095915_901187d5"
+  },
+  "result": "no_accuracy_improvement_on_this_image",
+  "assessment": "No clear new correct small-object detections; one extra car false positive appears inside the large coach, while truck-versus-car/bus class confusion remains.",
+  "recommendation": "Keep the option off for smoke.png. Enable it selectively for high-resolution images where standard inference visibly misses small distant objects."
+}

@@ -1,0 +1,494 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "road_debris",
+  "version": 1,
+  "display_name": "道路抛洒物",
+  "original_instruction": "检测道路上的抛洒物、掉落货物或障碍物。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "image",
+      "video"
+    ],
+    "accept": [
+      "image",
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "entity_query",
+    "target": {
+      "concept": "road_debris",
+      "source_span": "抛洒物、掉落货物或障碍物",
+      "phrases": [
+        "road debris",
+        "fallen cargo",
+        "road obstacle"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "spatial_relation",
+        "value": {
+          "relation": "inside_roi",
+          "region": {
+            "source": "grounding",
+            "phrases": [
+              "road surface",
+              "roadway"
+            ],
+            "mode": "all"
+          }
+        },
+        "source": "检测道路上的抛洒物",
+        "source_span": "道路上的",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "7af43c5a9ea23b9f2b4fd4ea3073f0c3679f5439e06f08d7a84fb4accdaf304d"
+  },
+  "variants": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "roads_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "道路",
+                "phrases": [
+                  "road surface",
+                  "roadway"
+                ]
+              }
+            ]
+          },
+          "enabled": false
+        },
+        {
+          "id": "roads",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$roads_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": false
+        },
+        {
+          "id": "debris_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "道路抛洒物",
+                "phrases": [
+                  "road debris",
+                  "fallen cargo",
+                  "road obstacle"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "debris",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$debris_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "road_regions_auto",
+          "op": "region.from_objects@1.0",
+          "inputs": {
+            "objects": "$roads"
+          },
+          "params": {
+            "mode": "all"
+          },
+          "enabled": false
+        },
+        {
+          "id": "road_regions",
+          "op": "region.manual_set@1.0",
+          "inputs": {},
+          "params": {
+            "regions": []
+          },
+          "enabled": true
+        },
+        {
+          "id": "inside_road",
+          "op": "spatial.inside@1.0",
+          "inputs": {
+            "objects": "$debris",
+            "region": "$road_regions"
+          },
+          "params": {
+            "mode": "center",
+            "overlap_threshold": 0.5
+          },
+          "enabled": true
+        },
+        {
+          "id": "violations",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$debris",
+            "condition": "$inside_road"
+          },
+          "params": {
+            "output_label": "道路抛洒物"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$violations",
+            "regions": "$road_regions"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$violations",
+        "regions": "$road_regions"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "debris_raw",
+          "debris",
+          "road_regions",
+          "inside_road",
+          "violations"
+        ]
+      },
+      "configuration_slots": [
+        {
+          "slot_id": "road_regions",
+          "kind": "region_set",
+          "label": "道路检测区域",
+          "required": true,
+          "binding": {
+            "node_id": "road_regions",
+            "parameter": "regions"
+          },
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "minimum_items": 1,
+          "source_atom_ids": [
+            "atom_1"
+          ],
+          "help_text": "请在 02 标注中手工圈出需要检测抛洒物的道路区域，可添加多个区域。",
+          "active_when_op": null,
+          "key_source_slot_id": null
+        }
+      ],
+      "issue": null
+    },
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "roads_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "道路",
+                "phrases": [
+                  "road surface",
+                  "roadway"
+                ]
+              }
+            ]
+          },
+          "enabled": false
+        },
+        {
+          "id": "roads",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$roads_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": false
+        },
+        {
+          "id": "debris_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "道路抛洒物",
+                "phrases": [
+                  "road debris",
+                  "fallen cargo",
+                  "road obstacle"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "debris",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$debris_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "road_regions_auto",
+          "op": "region.from_objects@1.0",
+          "inputs": {
+            "objects": "$roads"
+          },
+          "params": {
+            "mode": "all"
+          },
+          "enabled": false
+        },
+        {
+          "id": "road_regions",
+          "op": "region.manual_set@1.0",
+          "inputs": {},
+          "params": {
+            "regions": []
+          },
+          "enabled": true
+        },
+        {
+          "id": "inside_road",
+          "op": "spatial.inside@1.0",
+          "inputs": {
+            "objects": "$debris",
+            "region": "$road_regions"
+          },
+          "params": {
+            "mode": "center",
+            "overlap_threshold": 0.5
+          },
+          "enabled": true
+        },
+        {
+          "id": "violations",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$debris",
+            "condition": "$inside_road"
+          },
+          "params": {
+            "output_label": "道路抛洒物"
+          },
+          "enabled": true
+        },
+        {
+          "id": "result_tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$violations"
+          },
+          "params": {
+            "iou_threshold": 0.2,
+            "max_missing_frames": 1,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "confirmed_tracks",
+          "op": "track.confirm@1.0",
+          "inputs": {
+            "tracks": "$result_tracks"
+          },
+          "params": {
+            "min_hits": 2,
+            "min_span_seconds": 0.5
+          },
+          "enabled": true
+        },
+        {
+          "id": "confirmed_objects",
+          "op": "objects.from_tracks@1.0",
+          "inputs": {
+            "tracks": "$confirmed_tracks"
+          },
+          "params": {
+            "selection": "all"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$confirmed_tracks",
+            "regions": "$road_regions"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true,
+            "show_trajectory": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$confirmed_objects",
+        "regions": "$road_regions",
+        "tracks": "$confirmed_tracks"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "debris_raw",
+          "debris",
+          "road_regions",
+          "inside_road",
+          "violations"
+        ]
+      },
+      "configuration_slots": [
+        {
+          "slot_id": "road_regions",
+          "kind": "region_set",
+          "label": "道路检测区域",
+          "required": true,
+          "binding": {
+            "node_id": "road_regions",
+            "parameter": "regions"
+          },
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "minimum_items": 1,
+          "source_atom_ids": [
+            "atom_1"
+          ],
+          "help_text": "请在 02 标注中手工圈出需要检测抛洒物的道路区域，可添加多个区域。",
+          "active_when_op": null,
+          "key_source_slot_id": null
+        }
+      ],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

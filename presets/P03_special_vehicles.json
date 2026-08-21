@@ -1,0 +1,142 @@
+{
+  "version": "0.1",
+  "name": "special_vehicles",
+  "display_name": "特种车辆检测",
+  "original_instruction": "检测所有特种车辆并标注具体类型。",
+  "compile_status": "compiled",
+  "input": {
+    "accept": [
+      "image"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "image",
+      "op": "media.image@1.0",
+      "inputs": {
+        "media": "$input"
+      },
+      "params": {}
+    },
+    {
+      "id": "resized",
+      "op": "image.resize@1.0",
+      "inputs": {
+        "frames": "$image"
+      },
+      "params": {
+        "mode": "long_side",
+        "long_side": 1280
+      }
+    },
+    {
+      "id": "objects",
+      "op": "rex.ground@1.0",
+      "inputs": {
+        "frames": "$resized"
+      },
+      "params": {
+        "targets": [
+          {
+            "label": "消防车",
+            "phrases": [
+              "fire truck",
+              "fire engine"
+            ]
+          },
+          {
+            "label": "救护车",
+            "phrases": [
+              "ambulance",
+              "emergency medical vehicle"
+            ]
+          },
+          {
+            "label": "警车",
+            "phrases": [
+              "police car",
+              "police vehicle"
+            ]
+          },
+          {
+            "label": "工程抢险车",
+            "phrases": [
+              "engineering rescue vehicle",
+              "emergency repair truck"
+            ]
+          },
+          {
+            "label": "道路清障车",
+            "phrases": [
+              "tow truck",
+              "road recovery vehicle",
+              "wrecker truck"
+            ]
+          },
+          {
+            "label": "环卫车",
+            "phrases": [
+              "sanitation vehicle",
+              "street sweeper",
+              "garbage truck"
+            ]
+          },
+          {
+            "label": "油罐车",
+            "phrases": [
+              "tanker truck",
+              "fuel tanker truck"
+            ]
+          },
+          {
+            "label": "混凝土搅拌车",
+            "phrases": [
+              "concrete mixer truck",
+              "cement mixer truck"
+            ]
+          },
+          {
+            "label": "混凝土泵车",
+            "phrases": [
+              "concrete pump truck"
+            ]
+          },
+          {
+            "label": "汽车吊",
+            "phrases": [
+              "truck crane",
+              "mobile crane truck"
+            ]
+          },
+          {
+            "label": "高空作业车",
+            "phrases": [
+              "aerial work platform truck",
+              "bucket truck"
+            ]
+          },
+          {
+            "label": "危险品运输车",
+            "phrases": [
+              "hazardous materials truck",
+              "hazmat transport vehicle"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "draw",
+      "op": "output.draw@1.0",
+      "inputs": {
+        "frames": "$image",
+        "objects": "$objects"
+      },
+      "params": {}
+    }
+  ],
+  "outputs": {
+    "media": "$draw",
+    "objects": "$objects"
+  }
+}

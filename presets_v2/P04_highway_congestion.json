@@ -1,0 +1,365 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "highway_congestion",
+  "version": 1,
+  "display_name": "高速车辆拥堵",
+  "original_instruction": "按每条车道检测车辆数量不少于4辆、平均像素速度低于10且持续1秒的拥堵事件。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "video"
+    ],
+    "accept": [
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "workflow",
+    "target": {
+      "concept": "vehicle",
+      "source_span": "车辆",
+      "phrases": [
+        "vehicle"
+      ],
+      "classes": []
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "quantity",
+        "value": {
+          "measure": "count",
+          "operator": ">=",
+          "value": 4,
+          "group_by": "named_region",
+          "region_role": "lane"
+        },
+        "source": "按每条车道检测车辆数量不少于4辆",
+        "source_span": "车辆数量不少于4辆",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_2",
+        "kind": "motion",
+        "value": {
+          "measure": "speed",
+          "operator": "<",
+          "threshold": 10.0,
+          "unit": "pixels_per_second",
+          "aggregation": "region_median",
+          "group_by": "named_region",
+          "region_role": "lane"
+        },
+        "source": "平均像素速度低于10且持续1秒的拥堵事件",
+        "source_span": "平均像素速度低于10",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_3",
+        "kind": "region_requirement",
+        "value": {
+          "source": "manual",
+          "cardinality": "many",
+          "semantic_role": "lane",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ]
+        },
+        "source": "按每条车道检测车辆数量不少于4辆",
+        "source_span": "每条车道",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_4",
+        "kind": "temporal",
+        "value": {
+          "type": "persist",
+          "seconds": 1.0
+        },
+        "source": "平均像素速度低于10且持续1秒的拥堵事件",
+        "source_span": "持续1秒",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [],
+        "temporal": true
+      }
+    ],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "287a48e2c8c8356f3f0f5543f4ff22bbe8a0a3d76a40d50a93c3886777244295"
+  },
+  "variants": {
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "vehicles_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "车辆",
+                "phrases": [
+                  "vehicle",
+                  "passenger car",
+                  "truck"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "vehicles",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$vehicles_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "tracks",
+          "op": "track.iou@1.0",
+          "inputs": {
+            "objects": "$vehicles"
+          },
+          "params": {
+            "iou_threshold": 0.25,
+            "max_missing_frames": 2,
+            "same_label_only": true
+          },
+          "enabled": true
+        },
+        {
+          "id": "lane_regions",
+          "op": "region.manual_set@1.0",
+          "inputs": {},
+          "params": {
+            "regions": []
+          },
+          "enabled": true
+        },
+        {
+          "id": "lane_count",
+          "op": "measure.region_count@1.0",
+          "inputs": {
+            "objects": "$vehicles",
+            "regions": "$lane_regions",
+            "frames": "$resized"
+          },
+          "params": {
+            "membership_mode": "center"
+          },
+          "enabled": true
+        },
+        {
+          "id": "many",
+          "op": "logic.compare@1.0",
+          "inputs": {
+            "left": "$lane_count"
+          },
+          "params": {
+            "operator": ">=",
+            "value": 4
+          },
+          "enabled": true
+        },
+        {
+          "id": "lane_speed",
+          "op": "measure.region_speed@1.0",
+          "inputs": {
+            "tracks": "$tracks",
+            "regions": "$lane_regions"
+          },
+          "params": {
+            "window_frames": 2,
+            "unit": "pixels_per_second",
+            "aggregation": "median",
+            "membership_mode": "sample_center"
+          },
+          "enabled": true
+        },
+        {
+          "id": "slow",
+          "op": "logic.compare@1.0",
+          "inputs": {
+            "left": "$lane_speed"
+          },
+          "params": {
+            "operator": "<",
+            "value": 10.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "congested",
+          "op": "logic.all@1.0",
+          "inputs": {
+            "conditions": [
+              "$many",
+              "$slow"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "events",
+          "op": "temporal.persist@1.0",
+          "inputs": {
+            "condition": "$congested"
+          },
+          "params": {
+            "seconds": 1.0,
+            "scope": "region",
+            "gap_tolerance_seconds": 0.6
+          },
+          "enabled": true
+        },
+        {
+          "id": "alerts",
+          "op": "output.alert@1.0",
+          "inputs": {
+            "events": "$events"
+          },
+          "params": {
+            "label": "高速车辆拥堵"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$vehicles",
+            "events": "$alerts",
+            "regions": "$lane_regions",
+            "measurements": "$lane_count"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$vehicles",
+        "events": "$alerts",
+        "regions": "$lane_regions",
+        "tracks": "$tracks",
+        "measurements_1": "$lane_count",
+        "measurements_2": "$lane_speed"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "lane_regions",
+          "lane_count",
+          "many"
+        ],
+        "atom_2": [
+          "tracks",
+          "lane_regions",
+          "lane_speed",
+          "slow"
+        ],
+        "atom_3": [
+          "lane_regions"
+        ],
+        "atom_4": [
+          "congested",
+          "events",
+          "alerts"
+        ]
+      },
+      "configuration_slots": [
+        {
+          "slot_id": "lane_regions",
+          "kind": "region_set",
+          "label": "命名车道区域",
+          "required": true,
+          "binding": {
+            "node_id": "lane_regions",
+            "parameter": "regions"
+          },
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "minimum_items": 1,
+          "source_atom_ids": [
+            "atom_1"
+          ],
+          "help_text": "请按视频实际车道逐条绘制；初始为空，可添加任意多个区域。区域只决定拥堵判断范围，不会裁掉全画面的车辆检测框；拥堵只按每个区域的车辆数和速度判断，不需要方向箭头。",
+          "active_when_op": null,
+          "key_source_slot_id": null
+        }
+      ],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

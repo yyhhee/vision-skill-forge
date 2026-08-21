@@ -1,0 +1,5096 @@
+{
+  "cases": [
+    {
+      "case_id": "red_top_gray_pants_1",
+      "instruction": "检测穿红色上衣、灰色裤子的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\03.png",
+      "expected_count": 1,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "中央悬吊人员，红色上衣且灰色长裤",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"red\",\n      \"source\": \"检测穿红色上衣、灰色裤子的人。\",\n      \"source_span\": \"红色上衣\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"上衣\",\n      \"phrases\": [\"red upper body clothing\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"gray\",\n      \"source\": \"检测穿红色上衣、灰色裤子的人。\",\n      \"source_span\": \"灰色裤子\",\n      \"carrier\": \"lower_body_clothing\",\n      \"carrier_span\": \"裤子\",\n      \"phrases\": [\"gray lower body clothing\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "red",
+            "source": "检测穿红色上衣、灰色裤子的人。",
+            "source_span": "红色上衣",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "上衣",
+            "phrases": [
+              "red upper body clothing"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "color",
+            "value": "gray",
+            "source": "检测穿红色上衣、灰色裤子的人。",
+            "source_span": "灰色裤子",
+            "polarity": "required",
+            "carrier": "lower_body_clothing",
+            "carrier_span": "裤子",
+            "phrases": [
+              "gray lower body clothing"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "e291ac55dca6d48eaf0ef07541740c9b12794fa29bcf716735e08eb496ba6fca"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_red_top_gray_pants_1",
+        "version": 1,
+        "display_name": "red_top_gray_pants_1",
+        "original_instruction": "检测穿红色上衣、灰色裤子的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "red",
+              "source": "检测穿红色上衣、灰色裤子的人。",
+              "source_span": "红色上衣",
+              "polarity": "required",
+              "carrier": "upper_body_clothing",
+              "carrier_span": "上衣",
+              "phrases": [
+                "red upper body clothing"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "color",
+              "value": "gray",
+              "source": "检测穿红色上衣、灰色裤子的人。",
+              "source_span": "灰色裤子",
+              "polarity": "required",
+              "carrier": "lower_body_clothing",
+              "carrier_span": "裤子",
+              "phrases": [
+                "gray lower body clothing"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "e291ac55dca6d48eaf0ef07541740c9b12794fa29bcf716735e08eb496ba6fca"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "red_top_gray_pants_1",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "upper body clothing",
+                      "phrases": [
+                        "upper body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "red",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.1,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "lower body clothing",
+                      "phrases": [
+                        "lower body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_2_carriers"
+                },
+                "params": {
+                  "color": "gray",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.2,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_carriers",
+                  "condition": "$constraint_2_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "red_top_gray_pants_1"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "constraint_2_carriers_raw",
+                "constraint_2_carriers",
+                "constraint_2_color",
+                "constraint_2_colored_carriers",
+                "constraint_2_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 1,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "upper body clothing",
+        "lower body clothing"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "red",
+          "source_span": "红色上衣",
+          "polarity": "required",
+          "carrier": "upper_body_clothing",
+          "phrases": [
+            "red upper body clothing"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "upper body clothing",
+                    "phrases": [
+                      "upper body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 811.8091000069398,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.021500003640539944,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "red",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.1,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 111.52279999805614,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 8,
+                "condition": 8
+              },
+              "output_summary": {
+                "result": 1
+              },
+              "elapsed_ms": 0.005599998985417187,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 7,
+                "objects": 1
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 0.04680000711232424,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "color",
+          "value": "gray",
+          "source_span": "灰色裤子",
+          "polarity": "required",
+          "carrier": "lower_body_clothing",
+          "phrases": [
+            "gray lower body clothing"
+          ],
+          "bound_nodes": [
+            "constraint_2_carriers_raw",
+            "constraint_2_carriers",
+            "constraint_2_color",
+            "constraint_2_colored_carriers",
+            "constraint_2_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "lower body clothing",
+                    "phrases": [
+                      "lower body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 996.4189000020269,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.06350000330712646,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "gray",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.2,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 155.204099995899,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 8,
+                "condition": 8
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.01239999255631119,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 7,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 0.19520000205375254,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "red_top_gray_pants_1",
+          "phrase": "person",
+          "bbox": [
+            0.2672672672672673,
+            0.3353353353353353,
+            0.5305305305305306,
+            0.8348348348348348
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><267><335><530><834>,<369><44><528><414>,<500><341><556><532>,<558><291><629><534>,<594><248><656><481>,<626><226><697><461>,<667><504><868><999>,<707><143><814><357><|box_end|>",
+          "original_size": [
+            1105,
+            739
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003413_243fa53b",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003413_243fa53b\\annotated.jpg"
+    },
+    {
+      "case_id": "red_top_gray_pants_2",
+      "instruction": "识别穿红色上衣、灰色长裤的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\03.png",
+      "expected_count": 1,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "同义改写应得到同一目标框",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"red\",\n      \"source\": \"识别穿红色上衣、灰色长裤的人。\",\n      \"source_span\": \"红色上衣\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"上衣\",\n      \"phrases\": [\"red upper body clothing\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"gray\",\n      \"source\": \"识别穿红色上衣、灰色长裤的人。\",\n      \"source_span\": \"灰色长裤\",\n      \"carrier\": \"lower_body_clothing\",\n      \"carrier_span\": \"长裤\",\n      \"phrases\": [\"gray lower body clothing\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "red",
+            "source": "识别穿红色上衣、灰色长裤的人。",
+            "source_span": "红色上衣",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "上衣",
+            "phrases": [
+              "red upper body clothing"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "color",
+            "value": "gray",
+            "source": "识别穿红色上衣、灰色长裤的人。",
+            "source_span": "灰色长裤",
+            "polarity": "required",
+            "carrier": "lower_body_clothing",
+            "carrier_span": "长裤",
+            "phrases": [
+              "gray lower body clothing"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "e291ac55dca6d48eaf0ef07541740c9b12794fa29bcf716735e08eb496ba6fca"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_red_top_gray_pants_2",
+        "version": 1,
+        "display_name": "red_top_gray_pants_2",
+        "original_instruction": "识别穿红色上衣、灰色长裤的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "red",
+              "source": "识别穿红色上衣、灰色长裤的人。",
+              "source_span": "红色上衣",
+              "polarity": "required",
+              "carrier": "upper_body_clothing",
+              "carrier_span": "上衣",
+              "phrases": [
+                "red upper body clothing"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "color",
+              "value": "gray",
+              "source": "识别穿红色上衣、灰色长裤的人。",
+              "source_span": "灰色长裤",
+              "polarity": "required",
+              "carrier": "lower_body_clothing",
+              "carrier_span": "长裤",
+              "phrases": [
+                "gray lower body clothing"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "e291ac55dca6d48eaf0ef07541740c9b12794fa29bcf716735e08eb496ba6fca"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "red_top_gray_pants_2",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "upper body clothing",
+                      "phrases": [
+                        "upper body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "red",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.1,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "lower body clothing",
+                      "phrases": [
+                        "lower body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_2_carriers"
+                },
+                "params": {
+                  "color": "gray",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.2,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_carriers",
+                  "condition": "$constraint_2_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "red_top_gray_pants_2"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "constraint_2_carriers_raw",
+                "constraint_2_carriers",
+                "constraint_2_color",
+                "constraint_2_colored_carriers",
+                "constraint_2_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 1,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "upper body clothing",
+        "lower body clothing"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "red",
+          "source_span": "红色上衣",
+          "polarity": "required",
+          "carrier": "upper_body_clothing",
+          "phrases": [
+            "red upper body clothing"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "upper body clothing",
+                    "phrases": [
+                      "upper body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 804.0303000016138,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.029999995604157448,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "red",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.1,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 116.05229999986477,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 8,
+                "condition": 8
+              },
+              "output_summary": {
+                "result": 1
+              },
+              "elapsed_ms": 0.0033999967854470015,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 7,
+                "objects": 1
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 0.04549999721348286,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "color",
+          "value": "gray",
+          "source_span": "灰色长裤",
+          "polarity": "required",
+          "carrier": "lower_body_clothing",
+          "phrases": [
+            "gray lower body clothing"
+          ],
+          "bound_nodes": [
+            "constraint_2_carriers_raw",
+            "constraint_2_carriers",
+            "constraint_2_color",
+            "constraint_2_colored_carriers",
+            "constraint_2_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "lower body clothing",
+                    "phrases": [
+                      "lower body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 933.315300004324,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.04289999196771532,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "gray",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.2,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 124.13949999609031,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 8,
+                "condition": 8
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.009499999578110874,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 7,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 0.182400006451644,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "red_top_gray_pants_2",
+          "phrase": "person",
+          "bbox": [
+            0.2672672672672673,
+            0.3353353353353353,
+            0.5305305305305306,
+            0.8348348348348348
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><267><335><530><834>,<369><44><528><414>,<500><341><556><532>,<558><291><629><534>,<594><248><656><481>,<626><226><697><461>,<667><504><868><999>,<707><143><814><357><|box_end|>",
+          "original_size": [
+            1105,
+            739
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003448_e593edeb",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003448_e593edeb\\annotated.jpg"
+    },
+    {
+      "case_id": "reflective_vest",
+      "instruction": "识别穿反光衣的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 6,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "六名穿反光衣人员，含站立和蹲姿",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"穿反光衣的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"reflective vest\",\n      \"source\": \"识别穿反光衣的人。\",\n      \"source_span\": \"穿反光衣\",\n      \"phrases\": [\"person wearing reflective vest\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "穿反光衣的人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "wearable",
+            "value": "reflective vest",
+            "source": "识别穿反光衣的人。",
+            "source_span": "穿反光衣",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person wearing reflective vest"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "ca49edd1c24832401035a245fc2b1819ced83052b4b76351321c7cdaee83e2d9"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_reflective_vest",
+        "version": 1,
+        "display_name": "reflective_vest",
+        "original_instruction": "识别穿反光衣的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "穿反光衣的人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "wearable",
+              "value": "reflective vest",
+              "source": "识别穿反光衣的人。",
+              "source_span": "穿反光衣",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person wearing reflective vest"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "ca49edd1c24832401035a245fc2b1819ced83052b4b76351321c7cdaee83e2d9"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "reflective_vest",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "evidence_frames",
+                "op": "image.tile@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "tile_width": 640,
+                  "tile_height": 640,
+                  "overlap_x": 0.2,
+                  "overlap_y": 0.2,
+                  "include_full_frame": true
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "穿反光衣",
+                      "phrases": [
+                        "person wearing reflective vest"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraint_1_matches"
+                },
+                "params": {
+                  "output_label": "reflective_vest"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "evidence_frames",
+                "constraint_1_objects",
+                "constraint_1_objects_dedup",
+                "constraint_1_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 6,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "person wearing reflective vest"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "wearable",
+          "value": "reflective vest",
+          "source_span": "穿反光衣",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "person wearing reflective vest"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "constraint_1_objects",
+            "constraint_1_objects_dedup",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 10
+              },
+              "elapsed_ms": 3.6699999909615144,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "穿反光衣",
+                    "phrases": [
+                      "person wearing reflective vest"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 10
+              },
+              "output_summary": {
+                "result": 22
+              },
+              "elapsed_ms": 4435.130099998787,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 22
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.0864000030560419,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.03509999078232795,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.08008008008008008,
+            0.5395395395395396,
+            0.1871871871871872,
+            0.7177177177177178
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_2",
+          "label": "reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.13713713713713713,
+            0.3933933933933934,
+            0.2032032032032032,
+            0.5645645645645646
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_3",
+          "label": "reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.22622622622622623,
+            0.42542542542542544,
+            0.3063063063063063,
+            0.6206206206206206
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_4",
+          "label": "reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.4344344344344344,
+            0.4924924924924925,
+            0.5095095095095095,
+            0.5555555555555556
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_5",
+          "label": "reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.5885885885885885,
+            0.4774774774774775,
+            0.7027027027027027,
+            0.7577577577577578
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_6",
+          "label": "reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.6926926926926927,
+            0.5565565565565566,
+            0.7937937937937938,
+            0.7047047047047047
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003503_0a8ce472",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003503_0a8ce472\\annotated.jpg"
+    },
+    {
+      "case_id": "yellow_reflective_vest",
+      "instruction": "识别穿着黄色反光衣的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 2,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "仅左侧两名荧光黄色反光衣人员",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"yellow\",\n      \"source\": \"识别穿着黄色反光衣的人。\",\n      \"source_span\": \"黄色\",\n      \"carrier\": \"reflective vest\",\n      \"carrier_span\": \"反光衣\",\n      \"phrases\": [\"yellow reflective vest\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"reflective vest\",\n      \"source\": \"识别穿着黄色反光衣的人。\",\n      \"source_span\": \"穿着\",\n      \"phrases\": [\"person wearing reflective vest\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "yellow",
+            "source": "识别穿着黄色反光衣的人。",
+            "source_span": "黄色",
+            "polarity": "required",
+            "carrier": "reflective vest",
+            "carrier_span": "反光衣",
+            "phrases": [
+              "yellow reflective vest"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "wearable",
+            "value": "reflective vest",
+            "source": "识别穿着黄色反光衣的人。",
+            "source_span": "穿着",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person wearing reflective vest"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "9a287fd5d578761880f43005999d35b240d12d29b40850671951d2472c702fb2"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_yellow_reflective_vest",
+        "version": 1,
+        "display_name": "yellow_reflective_vest",
+        "original_instruction": "识别穿着黄色反光衣的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "yellow",
+              "source": "识别穿着黄色反光衣的人。",
+              "source_span": "黄色",
+              "polarity": "required",
+              "carrier": "reflective vest",
+              "carrier_span": "反光衣",
+              "phrases": [
+                "yellow reflective vest"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "wearable",
+              "value": "reflective vest",
+              "source": "识别穿着黄色反光衣的人。",
+              "source_span": "穿着",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person wearing reflective vest"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "9a287fd5d578761880f43005999d35b240d12d29b40850671951d2472c702fb2"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "yellow_reflective_vest",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "evidence_frames",
+                "op": "image.tile@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "tile_width": 640,
+                  "tile_height": 640,
+                  "overlap_x": 0.2,
+                  "overlap_y": 0.2,
+                  "include_full_frame": true
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "reflective vest",
+                      "phrases": [
+                        "reflective vest"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "yellow",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.1,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "穿着",
+                      "phrases": [
+                        "person wearing reflective vest"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "yellow_reflective_vest"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "evidence_frames",
+                "constraint_2_objects",
+                "constraint_2_objects_dedup",
+                "constraint_2_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 2,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "reflective vest",
+        "person wearing reflective vest"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "yellow",
+          "source_span": "黄色",
+          "polarity": "required",
+          "carrier": "reflective vest",
+          "phrases": [
+            "yellow reflective vest"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "reflective vest",
+                    "phrases": [
+                      "reflective vest"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 1047.2230000013951,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 5
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 0.01309999788645655,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "yellow",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.1,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 5
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 48.25089999940246,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 5,
+                "condition": 5
+              },
+              "output_summary": {
+                "result": 2
+              },
+              "elapsed_ms": 0.006400005077011883,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 2
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.06249999569263309,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "wearable",
+          "value": "reflective vest",
+          "source_span": "穿着",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "person wearing reflective vest"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "constraint_2_objects",
+            "constraint_2_objects_dedup",
+            "constraint_2_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 10
+              },
+              "elapsed_ms": 3.184400004101917,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "穿着",
+                    "phrases": [
+                      "person wearing reflective vest"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 10
+              },
+              "output_summary": {
+                "result": 22
+              },
+              "elapsed_ms": 4457.372300006682,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 22
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.0678999931551516,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.039699996705166996,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "yellow_reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.08008008008008008,
+            0.5395395395395396,
+            0.1871871871871872,
+            0.7177177177177178
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_2",
+          "label": "yellow_reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.13713713713713713,
+            0.3933933933933934,
+            0.2032032032032032,
+            0.5645645645645646
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003545_c789cfe3",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003545_c789cfe3\\annotated.jpg"
+    },
+    {
+      "case_id": "squat_without_support",
+      "instruction": "识别蹲着的人，双膝弯曲、臀部无支撑。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 1,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "中央蹲姿人员；排除站立与有支撑坐姿",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"squatting\",\n      \"source\": \"识别蹲着的人\",\n      \"source_span\": \"蹲着\",\n      \"phrases\": [\"person squatting\"]\n    },\n    {\n      \"kind\": \"pose\",\n      \"value\": \"bent knees\",\n      \"source\": \"双膝弯曲\",\n      \"source_span\": \"双膝弯曲\",\n      \"phrases\": [\"person with bent knees\"]\n    },\n    {\n      \"kind\": \"state\",\n      \"value\": \"support under hips\",\n      \"source\": \"臀部无支撑\",\n      \"source_span\": \"臀部无支撑\",\n      \"phrases\": [\"person with support under hips\"]\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "pose",
+            "value": "bent knees",
+            "source": "双膝弯曲",
+            "source_span": "双膝弯曲",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person with bent knees"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "pose",
+            "value": "squatting",
+            "source": "识别蹲着的人",
+            "source_span": "蹲着",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person squatting"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_3",
+            "kind": "state",
+            "value": "support under hips",
+            "source": "臀部无支撑",
+            "source_span": "臀部无支撑",
+            "polarity": "absent",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person with support under hips"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "4b4c1009c0e8bc974469a7b0fff26909da5f7433ca7abcbdafe361974669aaf8"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_squat_without_support",
+        "version": 1,
+        "display_name": "squat_without_support",
+        "original_instruction": "识别蹲着的人，双膝弯曲、臀部无支撑。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "pose",
+              "value": "bent knees",
+              "source": "双膝弯曲",
+              "source_span": "双膝弯曲",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person with bent knees"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "pose",
+              "value": "squatting",
+              "source": "识别蹲着的人",
+              "source_span": "蹲着",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person squatting"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_3",
+              "kind": "state",
+              "value": "support under hips",
+              "source": "臀部无支撑",
+              "source_span": "臀部无支撑",
+              "polarity": "absent",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person with support under hips"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "4b4c1009c0e8bc974469a7b0fff26909da5f7433ca7abcbdafe361974669aaf8"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "squat_without_support",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "evidence_frames",
+                "op": "image.tile@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "tile_width": 640,
+                  "tile_height": 640,
+                  "overlap_x": 0.2,
+                  "overlap_y": 0.2,
+                  "include_full_frame": true
+                },
+                "enabled": true
+              },
+              {
+                "id": "pose_group_1_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "双膝弯曲 + 蹲着",
+                      "phrases": [
+                        "person squatting with with bent knees"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "pose_group_1_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$pose_group_1_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "pose_group_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$pose_group_1_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "臀部无支撑",
+                      "phrases": [
+                        "person with support under hips"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_3_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_3_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_not",
+                "op": "logic.not@1.0",
+                "inputs": {
+                  "condition": "$constraint_3_matches"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$pose_group_1_matches",
+                    "$constraint_3_not"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "squat_without_support"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "evidence_frames",
+                "pose_group_1_objects",
+                "pose_group_1_objects_dedup",
+                "pose_group_1_matches"
+              ],
+              "atom_2": [
+                "evidence_frames",
+                "pose_group_1_objects",
+                "pose_group_1_objects_dedup",
+                "pose_group_1_matches"
+              ],
+              "atom_3": [
+                "constraint_3_objects",
+                "constraint_3_objects_dedup",
+                "constraint_3_matches",
+                "constraint_3_not"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 1,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "person squatting with with bent knees",
+        "person with support under hips"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "pose",
+          "value": "bent knees",
+          "source_span": "双膝弯曲",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "person with bent knees"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "pose_group_1_objects",
+            "pose_group_1_objects_dedup",
+            "pose_group_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 10
+              },
+              "elapsed_ms": 3.603999997721985,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "双膝弯曲 + 蹲着",
+                    "phrases": [
+                      "person squatting with with bent knees"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 10
+              },
+              "output_summary": {
+                "result": 11
+              },
+              "elapsed_ms": 4320.785700008855,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 11
+              },
+              "output_summary": {
+                "result": 4
+              },
+              "elapsed_ms": 0.02099999983329326,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 4
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.020899999071843922,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "pose",
+          "value": "squatting",
+          "source_span": "蹲着",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "person squatting"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "pose_group_1_objects",
+            "pose_group_1_objects_dedup",
+            "pose_group_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 10
+              },
+              "elapsed_ms": 3.603999997721985,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "双膝弯曲 + 蹲着",
+                    "phrases": [
+                      "person squatting with with bent knees"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 10
+              },
+              "output_summary": {
+                "result": 11
+              },
+              "elapsed_ms": 4320.785700008855,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 11
+              },
+              "output_summary": {
+                "result": 4
+              },
+              "elapsed_ms": 0.02099999983329326,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "pose_group_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 4
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.020899999071843922,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_3",
+          "kind": "state",
+          "value": "support under hips",
+          "source_span": "臀部无支撑",
+          "polarity": "absent",
+          "carrier": null,
+          "phrases": [
+            "person with support under hips"
+          ],
+          "bound_nodes": [
+            "constraint_3_objects",
+            "constraint_3_objects_dedup",
+            "constraint_3_matches",
+            "constraint_3_not"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_3_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "臀部无支撑",
+                    "phrases": [
+                      "person with support under hips"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 2
+              },
+              "elapsed_ms": 1137.3325000022305,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 2
+              },
+              "output_summary": {
+                "result": 2
+              },
+              "elapsed_ms": 0.006599992047995329,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 2
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.022199994418770075,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_not",
+              "operator": "logic.not@1.0",
+              "rule": "对每个条件 key 执行逻辑取反。",
+              "effective_params": {},
+              "input_summary": {
+                "condition": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.0052000104915350676,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_4",
+          "label": "squat_without_support",
+          "phrase": "person",
+          "bbox": [
+            0.4344344344344344,
+            0.4924924924924925,
+            0.5095095095095095,
+            0.5555555555555556
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003630_d6404455",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003630_d6404455\\annotated.jpg"
+    },
+    {
+      "case_id": "orange_vest_no_helmet",
+      "instruction": "穿着橙色反光衣且未戴安全帽的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 1,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "橙色反光衣且无头戴安全帽",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"orange\",\n      \"source\": \"穿着橙色反光衣\",\n      \"source_span\": \"橙色反光衣\",\n      \"carrier\": \"reflective vest\",\n      \"carrier_span\": \"反光衣\",\n      \"phrases\": [\"orange reflective vest\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"reflective vest\",\n      \"source\": \"穿着橙色反光衣\",\n      \"source_span\": \"穿着橙色反光衣\",\n      \"phrases\": [\"person wearing reflective vest\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"entity_exclusion\",\n      \"value\": \"safety helmet\",\n      \"source\": \"未戴安全帽\",\n      \"source_span\": \"未戴安全帽\",\n      \"phrases\": [\"safety helmet\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_failed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "orange",
+            "source": "穿着橙色反光衣",
+            "source_span": "橙色反光衣",
+            "polarity": "required",
+            "carrier": "reflective vest",
+            "carrier_span": "反光衣",
+            "phrases": [
+              "orange reflective vest"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "wearable",
+            "value": "reflective vest",
+            "source": "穿着橙色反光衣",
+            "source_span": "穿着橙色反光衣",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person wearing reflective vest"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_3",
+            "kind": "entity_exclusion",
+            "value": "safety helmet",
+            "source": "未戴安全帽",
+            "source_span": "未戴安全帽",
+            "polarity": "absent",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "safety helmet"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "a9a09c632e098687959828cfea97e6e96d860ba84ad3dd6e12432e7139d5cced"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_orange_vest_no_helmet",
+        "version": 1,
+        "display_name": "orange_vest_no_helmet",
+        "original_instruction": "穿着橙色反光衣且未戴安全帽的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "orange",
+              "source": "穿着橙色反光衣",
+              "source_span": "橙色反光衣",
+              "polarity": "required",
+              "carrier": "reflective vest",
+              "carrier_span": "反光衣",
+              "phrases": [
+                "orange reflective vest"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "wearable",
+              "value": "reflective vest",
+              "source": "穿着橙色反光衣",
+              "source_span": "穿着橙色反光衣",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person wearing reflective vest"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_3",
+              "kind": "entity_exclusion",
+              "value": "safety helmet",
+              "source": "未戴安全帽",
+              "source_span": "未戴安全帽",
+              "polarity": "absent",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "safety helmet"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "a9a09c632e098687959828cfea97e6e96d860ba84ad3dd6e12432e7139d5cced"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "orange_vest_no_helmet",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "evidence_frames",
+                "op": "image.tile@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "tile_width": 640,
+                  "tile_height": 640,
+                  "overlap_x": 0.2,
+                  "overlap_y": 0.2,
+                  "include_full_frame": true
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "reflective vest",
+                      "phrases": [
+                        "reflective vest"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "orange",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.1,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "穿着橙色反光衣",
+                      "phrases": [
+                        "person wearing reflective vest"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "未戴安全帽",
+                      "phrases": [
+                        "safety helmet"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_3_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_3_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_not",
+                "op": "logic.not@1.0",
+                "inputs": {
+                  "condition": "$constraint_3_matches"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_matches",
+                    "$constraint_3_not"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "orange_vest_no_helmet"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "evidence_frames",
+                "constraint_2_objects",
+                "constraint_2_objects_dedup",
+                "constraint_2_matches"
+              ],
+              "atom_3": [
+                "constraint_3_objects",
+                "constraint_3_objects_dedup",
+                "constraint_3_matches",
+                "constraint_3_not"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 3,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "reflective vest",
+        "person wearing reflective vest",
+        "safety helmet"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "orange",
+          "source_span": "橙色反光衣",
+          "polarity": "required",
+          "carrier": "reflective vest",
+          "phrases": [
+            "orange reflective vest"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "reflective vest",
+                    "phrases": [
+                      "reflective vest"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 1020.9185999992769,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 5
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 0.011600001016631722,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "orange",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.1,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 5
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 48.12730000412557,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 5,
+                "condition": 5
+              },
+              "output_summary": {
+                "result": 3
+              },
+              "elapsed_ms": 0.005599998985417187,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 3
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.08100000559352338,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "wearable",
+          "value": "reflective vest",
+          "source_span": "穿着橙色反光衣",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "person wearing reflective vest"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "constraint_2_objects",
+            "constraint_2_objects_dedup",
+            "constraint_2_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 10
+              },
+              "elapsed_ms": 3.479699997114949,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "穿着橙色反光衣",
+                    "phrases": [
+                      "person wearing reflective vest"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 10
+              },
+              "output_summary": {
+                "result": 22
+              },
+              "elapsed_ms": 4453.09680000355,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 22
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.06210000719875097,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.03749999450519681,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_3",
+          "kind": "entity_exclusion",
+          "value": "safety helmet",
+          "source_span": "未戴安全帽",
+          "polarity": "absent",
+          "carrier": null,
+          "phrases": [
+            "safety helmet"
+          ],
+          "bound_nodes": [
+            "constraint_3_objects",
+            "constraint_3_objects_dedup",
+            "constraint_3_matches",
+            "constraint_3_not"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_3_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "未戴安全帽",
+                    "phrases": [
+                      "safety helmet"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 1161.0973999922862,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 5
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 0.01679999695625156,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 5
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.033899996196851134,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_not",
+              "operator": "logic.not@1.0",
+              "rule": "对每个条件 key 执行逻辑取反。",
+              "effective_params": {},
+              "input_summary": {
+                "condition": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.006000002031214535,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_3",
+          "label": "orange_vest_no_helmet",
+          "phrase": "person",
+          "bbox": [
+            0.22622622622622623,
+            0.42542542542542544,
+            0.3063063063063063,
+            0.6206206206206206
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_5",
+          "label": "orange_vest_no_helmet",
+          "phrase": "person",
+          "bbox": [
+            0.5885885885885885,
+            0.4774774774774775,
+            0.7027027027027027,
+            0.7577577577577578
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_6",
+          "label": "orange_vest_no_helmet",
+          "phrase": "person",
+          "bbox": [
+            0.6926926926926927,
+            0.5565565565565566,
+            0.7937937937937938,
+            0.7047047047047047
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": false,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003744_f38611f4",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003744_f38611f4\\annotated.jpg"
+    },
+    {
+      "case_id": "orange_vest_exclude_no_helmet",
+      "instruction": "穿着橙色反光衣的人，排除未戴安全帽的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 3,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "双重否定后保留三名戴安全帽的橙色反光衣人员",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"穿着橙色反光衣的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"reflective vest\",\n      \"source\": \"穿着橙色反光衣的人\",\n      \"source_span\": \"穿着橙色反光衣\",\n      \"phrases\": [\"person wearing reflective vest\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"orange\",\n      \"source\": \"穿着橙色反光衣的人\",\n      \"source_span\": \"橙色\",\n      \"carrier\": \"reflective vest\",\n      \"carrier_span\": \"反光衣\",\n      \"phrases\": [\"orange\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"safety helmet\",\n      \"source\": \"排除未戴安全帽的人。\",\n      \"source_span\": \"未戴安全帽\",\n      \"phrases\": [\"person wearing safety helmet\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_failed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "穿着橙色反光衣的人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "orange",
+            "source": "穿着橙色反光衣的人",
+            "source_span": "橙色",
+            "polarity": "required",
+            "carrier": "reflective vest",
+            "carrier_span": "反光衣",
+            "phrases": [
+              "orange"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "wearable",
+            "value": "reflective vest",
+            "source": "穿着橙色反光衣的人",
+            "source_span": "穿着橙色反光衣",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person wearing reflective vest"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_3",
+            "kind": "wearable",
+            "value": "safety helmet",
+            "source": "排除未戴安全帽的人。",
+            "source_span": "未戴安全帽",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "person wearing safety helmet"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "5fb8f865e478b532400d6617d846773a6cabb0dbd1c14d504747d4f76476fc71"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_orange_vest_exclude_no_helmet",
+        "version": 1,
+        "display_name": "orange_vest_exclude_no_helmet",
+        "original_instruction": "穿着橙色反光衣的人，排除未戴安全帽的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "穿着橙色反光衣的人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "orange",
+              "source": "穿着橙色反光衣的人",
+              "source_span": "橙色",
+              "polarity": "required",
+              "carrier": "reflective vest",
+              "carrier_span": "反光衣",
+              "phrases": [
+                "orange"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "wearable",
+              "value": "reflective vest",
+              "source": "穿着橙色反光衣的人",
+              "source_span": "穿着橙色反光衣",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person wearing reflective vest"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_3",
+              "kind": "wearable",
+              "value": "safety helmet",
+              "source": "排除未戴安全帽的人。",
+              "source_span": "未戴安全帽",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "person wearing safety helmet"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "5fb8f865e478b532400d6617d846773a6cabb0dbd1c14d504747d4f76476fc71"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "identity"
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "orange_vest_exclude_no_helmet",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "evidence_frames",
+                "op": "image.tile@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "tile_width": 640,
+                  "tile_height": 640,
+                  "overlap_x": 0.2,
+                  "overlap_y": 0.2,
+                  "include_full_frame": true
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "reflective vest",
+                      "phrases": [
+                        "reflective vest"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "orange",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.1,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "穿着橙色反光衣",
+                      "phrases": [
+                        "person wearing reflective vest"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "未戴安全帽",
+                      "phrases": [
+                        "person wearing safety helmet"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_3_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_3_objects_dedup"
+                },
+                "params": {
+                  "relation": "mutual_match",
+                  "threshold": 0.5
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_matches",
+                    "$constraint_3_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "orange_vest_exclude_no_helmet"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "evidence_frames",
+                "constraint_2_objects",
+                "constraint_2_objects_dedup",
+                "constraint_2_matches"
+              ],
+              "atom_3": [
+                "evidence_frames",
+                "constraint_3_objects",
+                "constraint_3_objects_dedup",
+                "constraint_3_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 2,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "reflective vest",
+        "person wearing reflective vest",
+        "person wearing safety helmet"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "orange",
+          "source_span": "橙色",
+          "polarity": "required",
+          "carrier": "reflective vest",
+          "phrases": [
+            "orange"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "reflective vest",
+                    "phrases": [
+                      "reflective vest"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 1026.058000003104,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 5
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 0.011199997970834374,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "orange",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.1,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 5
+              },
+              "output_summary": {
+                "result": 5
+              },
+              "elapsed_ms": 49.48470000817906,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 5,
+                "condition": 5
+              },
+              "output_summary": {
+                "result": 3
+              },
+              "elapsed_ms": 0.005800000508315861,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 3
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.08090000483207405,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "wearable",
+          "value": "reflective vest",
+          "source_span": "穿着橙色反光衣",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "person wearing reflective vest"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "constraint_2_objects",
+            "constraint_2_objects_dedup",
+            "constraint_2_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 10
+              },
+              "elapsed_ms": 3.2269000075757504,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "穿着橙色反光衣",
+                    "phrases": [
+                      "person wearing reflective vest"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 10
+              },
+              "output_summary": {
+                "result": 22
+              },
+              "elapsed_ms": 4454.608700005338,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 22
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.10520000068936497,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.029799994081258774,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_3",
+          "kind": "wearable",
+          "value": "safety helmet",
+          "source_span": "未戴安全帽",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "person wearing safety helmet"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "constraint_3_objects",
+            "constraint_3_objects_dedup",
+            "constraint_3_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 10
+              },
+              "elapsed_ms": 3.2269000075757504,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "未戴安全帽",
+                    "phrases": [
+                      "person wearing safety helmet"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 10
+              },
+              "output_summary": {
+                "result": 20
+              },
+              "elapsed_ms": 4357.428300005267,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 20
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.05560000136028975,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "mutual_match",
+                "threshold": 0.5,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.036299999919719994,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_5",
+          "label": "orange_vest_exclude_no_helmet",
+          "phrase": "person",
+          "bbox": [
+            0.5885885885885885,
+            0.4774774774774775,
+            0.7027027027027027,
+            0.7577577577577578
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_6",
+          "label": "orange_vest_exclude_no_helmet",
+          "phrase": "person",
+          "bbox": [
+            0.6926926926926927,
+            0.5565565565565566,
+            0.7937937937937938,
+            0.7047047047047047
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><717>,<137><393><203><564>,<226><425><306><620>,<434><492><509><555>,<588><477><702><757>,<692><556><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": false,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003832_55261686",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260814_003832_55261686\\annotated.jpg"
+    }
+  ]
+}

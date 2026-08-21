@@ -1,0 +1,267 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "traffic_accident",
+  "version": 1,
+  "display_name": "交通事故检测",
+  "original_instruction": "检测车辆碰撞、侧翻或受损车辆形成的可见事故外观。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "image",
+      "video"
+    ],
+    "accept": [
+      "image",
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "direct_grounding",
+    "target": {
+      "concept": "visible_traffic_accident",
+      "source_span": "可见事故外观",
+      "phrases": [
+        "vehicle collision",
+        "overturned vehicle",
+        "crashed vehicle",
+        "visible traffic accident scene"
+      ],
+      "classes": []
+    },
+    "constraints": [],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "227b5fff712ede214a5b161678c554901576b9fb8ccb7d82875646d88cf04bcb"
+  },
+  "variants": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "traffic_accident_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "交通事故",
+                "phrases": [
+                  "vehicle collision",
+                  "overturned vehicle",
+                  "crashed vehicle",
+                  "visible traffic accident scene"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "traffic_accident",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$traffic_accident_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$traffic_accident"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$traffic_accident"
+      },
+      "atom_bindings": {},
+      "configuration_slots": [],
+      "issue": null
+    },
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "traffic_accident_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "交通事故",
+                "phrases": [
+                  "vehicle collision",
+                  "overturned vehicle",
+                  "crashed vehicle",
+                  "visible traffic accident scene"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "traffic_accident",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$traffic_accident_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "count",
+          "op": "measure.count@1.0",
+          "inputs": {
+            "entities": "$traffic_accident"
+          },
+          "params": {
+            "scope": "frame"
+          },
+          "enabled": true
+        },
+        {
+          "id": "present",
+          "op": "logic.compare@1.0",
+          "inputs": {
+            "left": "$count"
+          },
+          "params": {
+            "operator": ">",
+            "value": 0
+          },
+          "enabled": true
+        },
+        {
+          "id": "events",
+          "op": "temporal.persist@1.0",
+          "inputs": {
+            "condition": "$present"
+          },
+          "params": {
+            "seconds": 1.0,
+            "scope": "global",
+            "gap_tolerance_seconds": 0.6
+          },
+          "enabled": true
+        },
+        {
+          "id": "alerts",
+          "op": "output.alert@1.0",
+          "inputs": {
+            "events": "$events"
+          },
+          "params": {
+            "label": "交通事故检测"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$traffic_accident",
+            "events": "$alerts"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$traffic_accident",
+        "events": "$alerts"
+      },
+      "atom_bindings": {},
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

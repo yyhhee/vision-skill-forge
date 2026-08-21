@@ -1,0 +1,29 @@
+{
+  "date": "2026-08-12",
+  "instruction": "检测穿着反光背心的工作人员",
+  "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+  "root_cause": "单一复合提示词 worker wearing reflective vest 只检测到 5 人，漏掉中央蹲姿工作人员；该人员可被显式蹲姿提示词稳定召回。",
+  "baseline": {
+    "phrases": ["worker wearing reflective vest"],
+    "objects": 5
+  },
+  "fixed_policy": {
+    "strategy": "fixed_policy:reflective_vest_pose",
+    "llm_calls": 0,
+    "label": "穿着反光背心的工作人员",
+    "phrases": [
+      "worker wearing reflective vest",
+      "crouching worker wearing reflective vest"
+    ],
+    "deduplicate_metric": "ios",
+    "deduplicate_threshold": 0.7
+  },
+  "result": {
+    "status": "passed",
+    "objects": 6,
+    "visual_check": "6 名反光背心工作人员全部标注，中央蹲姿人员已召回且无重复框。",
+    "run_dir": "data/runs/20260812_104001_d6976427",
+    "annotated": "data/runs/20260812_104001_d6976427/annotated.jpg"
+  },
+  "sahi_required": false
+}

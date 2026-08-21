@@ -1,0 +1,115 @@
+{
+  "version": "0.1",
+  "name": "highway_person_dwell",
+  "display_name": "车道人员逗留",
+  "original_instruction": "检测在车道范围持续逗留超过1秒的人员。",
+  "compile_status": "compiled",
+  "input": {
+    "accept": [
+      "video"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "video",
+      "op": "media.video@1.0",
+      "inputs": {
+        "media": "$input"
+      },
+      "params": {}
+    },
+    {
+      "id": "frames",
+      "op": "video.sample@1.0",
+      "inputs": {
+        "video": "$video"
+      },
+      "params": {
+        "mode": "fps",
+        "fps": 2.0
+      }
+    },
+    {
+      "id": "people",
+      "op": "rex.ground@1.0",
+      "inputs": {
+        "frames": "$frames"
+      },
+      "params": {
+        "targets": [
+          {
+            "label": "人员",
+            "phrases": [
+              "person"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "tracks",
+      "op": "track.iou@1.0",
+      "inputs": {
+        "objects": "$people"
+      },
+      "params": {}
+    },
+    {
+      "id": "road",
+      "op": "region.full_frame@1.0",
+      "inputs": {
+        "frames": "$frames"
+      },
+      "params": {}
+    },
+    {
+      "id": "inside",
+      "op": "spatial.inside@1.0",
+      "inputs": {
+        "objects": "$tracks",
+        "region": "$road"
+      },
+      "params": {
+        "mode": "center"
+      }
+    },
+    {
+      "id": "events",
+      "op": "temporal.persist@1.0",
+      "inputs": {
+        "condition": "$inside"
+      },
+      "params": {
+        "seconds": 1.0,
+        "scope": "track",
+        "gap_tolerance_seconds": 0.6
+      }
+    },
+    {
+      "id": "alerts",
+      "op": "output.alert@1.0",
+      "inputs": {
+        "events": "$events"
+      },
+      "params": {
+        "label": "车道人员逗留"
+      }
+    },
+    {
+      "id": "draw",
+      "op": "output.draw@1.0",
+      "inputs": {
+        "frames": "$frames",
+        "objects": "$people",
+        "events": "$alerts",
+        "regions": "$road"
+      },
+      "params": {}
+    }
+  ],
+  "outputs": {
+    "media": "$draw",
+    "events": "$alerts",
+    "objects": "$people"
+  }
+}

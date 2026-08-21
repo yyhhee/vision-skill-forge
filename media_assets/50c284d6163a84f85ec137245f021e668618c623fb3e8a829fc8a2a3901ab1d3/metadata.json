@@ -1,0 +1,14 @@
+{
+  "asset_id": "50c284d6163a84f85ec137245f021e668618c623fb3e8a829fc8a2a3901ab1d3",
+  "media_type": "video",
+  "original_name": "P09_positive.mp4",
+  "original_path": "C:\\yhe_user\\detection_project\\vision_skill\\data\\acceptance_media\\v2\\P09_positive.mp4",
+  "stored_path": "C:\\yhe_user\\detection_project\\vision_skill\\media_assets\\50c284d6163a84f85ec137245f021e668618c623fb3e8a829fc8a2a3901ab1d3\\original.mp4",
+  "width": 960,
+  "height": 720,
+  "fps": 2.0,
+  "frame_count": 5,
+  "duration_seconds": 2.5,
+  "byte_size": 177094,
+  "ingested_at": "2026-08-14T10:56:34.247961+00:00"
+}

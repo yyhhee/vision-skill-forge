@@ -1,0 +1,121 @@
+{
+  "version": "0.1",
+  "name": "traffic_accident",
+  "display_name": "交通事故检测",
+  "original_instruction": "检测车辆碰撞、侧翻或事故车辆，持续1秒后报警。",
+  "compile_status": "compiled",
+  "input": {
+    "accept": [
+      "video"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "video",
+      "op": "media.video@1.0",
+      "inputs": {
+        "media": "$input"
+      },
+      "params": {}
+    },
+    {
+      "id": "frames",
+      "op": "video.sample@1.0",
+      "inputs": {
+        "video": "$video"
+      },
+      "params": {
+        "mode": "fps",
+        "fps": 2.0
+      }
+    },
+    {
+      "id": "resized",
+      "op": "image.resize@1.0",
+      "inputs": {
+        "frames": "$frames"
+      },
+      "params": {
+        "mode": "long_side",
+        "long_side": 1280
+      }
+    },
+    {
+      "id": "objects",
+      "op": "rex.ground@1.0",
+      "inputs": {
+        "frames": "$resized"
+      },
+      "params": {
+        "targets": [
+          {
+            "label": "交通事故",
+            "phrases": [
+              "vehicle collision",
+              "overturned vehicle",
+              "crashed vehicle",
+              "traffic accident"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "count",
+      "op": "measure.count@1.0",
+      "inputs": {
+        "objects": "$objects"
+      },
+      "params": {}
+    },
+    {
+      "id": "present",
+      "op": "logic.compare@1.0",
+      "inputs": {
+        "left": "$count"
+      },
+      "params": {
+        "operator": ">",
+        "value": 0
+      }
+    },
+    {
+      "id": "events",
+      "op": "temporal.persist@1.0",
+      "inputs": {
+        "condition": "$present"
+      },
+      "params": {
+        "seconds": 1.0,
+        "scope": "global",
+        "gap_tolerance_seconds": 0.6,
+        "trigger_mode": "once"
+      }
+    },
+    {
+      "id": "alerts",
+      "op": "output.alert@1.0",
+      "inputs": {
+        "events": "$events"
+      },
+      "params": {
+        "label": "交通事故检测"
+      }
+    },
+    {
+      "id": "draw",
+      "op": "output.draw@1.0",
+      "inputs": {
+        "frames": "$frames",
+        "objects": "$objects",
+        "events": "$alerts"
+      },
+      "params": {}
+    }
+  ],
+  "outputs": {
+    "media": "$draw",
+    "events": "$alerts",
+    "objects": "$objects"
+  }
+}

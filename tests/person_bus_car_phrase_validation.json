@@ -1,0 +1,37 @@
+{
+  "updated_date": "2026-08-12",
+  "skill": "person_bus_car/v1",
+  "media": "C:\\yhe_user\\detection_project\\ultralytics\\smoke.png",
+  "conclusion": "Specific English phrases improve class semantics but do not make this image fully accurate.",
+  "variants": [
+    {
+      "name": "baseline",
+      "phrases": ["bus", "car", "person"],
+      "object_count": 25,
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_094101_b6be9f35",
+      "assessment": "High recall; truck is mislabeled as bus and some distant vehicles have duplicate boxes."
+    },
+    {
+      "name": "multiple_specific_aliases",
+      "phrases": ["passenger bus", "coach bus", "passenger car", "sedan", "person", "pedestrian"],
+      "object_count": 19,
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_094337_48d1b2a6",
+      "assessment": "Fewer boxes, but aliases add overlaps; truck and an extra weak person candidate remain."
+    },
+    {
+      "name": "coach_bus_with_broad_car",
+      "phrases": ["coach bus", "car", "person"],
+      "object_count": 23,
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_094443_b60d3aa6",
+      "assessment": "Coach is classified correctly; the truck is still mislabeled as car."
+    },
+    {
+      "name": "strict_single_phrases",
+      "phrases": ["coach bus", "passenger car", "person"],
+      "object_count": 18,
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260812_094530_9652580f",
+      "assessment": "Best semantic precision of the tested variants, but the truck is still mislabeled as passenger car and two near non-sedan vehicles are omitted."
+    }
+  ],
+  "recommendation": "Keep v1 unchanged. If strict category semantics are preferred, create a new version using coach bus, passenger car, and person; do not claim full accuracy without an explicit truck exclusion rule."
+}

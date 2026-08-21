@@ -1,0 +1,4166 @@
+{
+  "schema_version": "2.0",
+  "review_date": "2026-08-13",
+  "scope": "current_v2_real_deepseek_thinking_and_real_rex_historical_failures",
+  "case_count": 6,
+  "automatic_passed": 4,
+  "automatic_failed": 2,
+  "runtime_failed": 0,
+  "manual_review_pending": 6,
+  "cases": [
+    {
+      "case_id": "red_top_gray_pants_1",
+      "instruction": "检测穿红色上衣、灰色裤子的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\03.png",
+      "expected_count": 1,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "中央悬吊人员，红色上衣且灰色长裤",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"red\",\n      \"source\": \"穿红色上衣、灰色裤子的人\",\n      \"source_span\": \"红色上衣\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"上衣\",\n      \"phrases\": [\"red upper body clothing\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"gray\",\n      \"source\": \"穿红色上衣、灰色裤子的人\",\n      \"source_span\": \"灰色裤子\",\n      \"carrier\": \"lower_body_clothing\",\n      \"carrier_span\": \"裤子\",\n      \"phrases\": [\"gray lower body clothing\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "red",
+            "source": "穿红色上衣、灰色裤子的人",
+            "source_span": "红色上衣",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "上衣",
+            "phrases": [
+              "red upper body clothing"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "color",
+            "value": "gray",
+            "source": "穿红色上衣、灰色裤子的人",
+            "source_span": "灰色裤子",
+            "polarity": "required",
+            "carrier": "lower_body_clothing",
+            "carrier_span": "裤子",
+            "phrases": [
+              "gray lower body clothing"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "e291ac55dca6d48eaf0ef07541740c9b12794fa29bcf716735e08eb496ba6fca"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_red_top_gray_pants_1",
+        "version": 1,
+        "display_name": "red_top_gray_pants_1",
+        "original_instruction": "检测穿红色上衣、灰色裤子的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "red",
+              "source": "穿红色上衣、灰色裤子的人",
+              "source_span": "红色上衣",
+              "polarity": "required",
+              "carrier": "upper_body_clothing",
+              "carrier_span": "上衣",
+              "phrases": [
+                "red upper body clothing"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "color",
+              "value": "gray",
+              "source": "穿红色上衣、灰色裤子的人",
+              "source_span": "灰色裤子",
+              "polarity": "required",
+              "carrier": "lower_body_clothing",
+              "carrier_span": "裤子",
+              "phrases": [
+                "gray lower body clothing"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "e291ac55dca6d48eaf0ef07541740c9b12794fa29bcf716735e08eb496ba6fca"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "long_side",
+                  "long_side": 1280
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "red_top_gray_pants_1",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "upper body clothing",
+                      "phrases": [
+                        "upper body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "red",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.1,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "lower body clothing",
+                      "phrases": [
+                        "lower body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_2_carriers"
+                },
+                "params": {
+                  "color": "gray",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.2,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_carriers",
+                  "condition": "$constraint_2_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "red_top_gray_pants_1"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "constraint_2_carriers_raw",
+                "constraint_2_carriers",
+                "constraint_2_color",
+                "constraint_2_colored_carriers",
+                "constraint_2_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 1,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "upper body clothing",
+        "lower body clothing"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "red",
+          "source_span": "红色上衣",
+          "polarity": "required",
+          "carrier": "upper_body_clothing",
+          "phrases": [
+            "red upper body clothing"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "upper body clothing",
+                    "phrases": [
+                      "upper body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 1136.1095999891404,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 0.03460000152699649,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "red",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.1,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 7
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 201.61920000100508,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 7,
+                "condition": 7
+              },
+              "output_summary": {
+                "result": 1
+              },
+              "elapsed_ms": 0.012499993317760527,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 1
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.06409999332390726,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "color",
+          "value": "gray",
+          "source_span": "灰色裤子",
+          "polarity": "required",
+          "carrier": "lower_body_clothing",
+          "phrases": [
+            "gray lower body clothing"
+          ],
+          "bound_nodes": [
+            "constraint_2_carriers_raw",
+            "constraint_2_carriers",
+            "constraint_2_color",
+            "constraint_2_colored_carriers",
+            "constraint_2_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "lower body clothing",
+                    "phrases": [
+                      "lower body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 956.10690000467,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.021500003640539944,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "gray",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.2,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 140.38679999066517,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 8,
+                "condition": 8
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.007599999662488699,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.12939999578520656,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "red_top_gray_pants_1",
+          "phrase": "person",
+          "bbox": [
+            0.26626626626626626,
+            0.33733733733733734,
+            0.5325325325325325,
+            0.8348348348348348
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><266><337><532><834>,<378><48><524><366>,<497><343><555><551>,<559><290><629><531>,<597><245><675><501>,<628><224><701><469>,<666><499><867><999>,<706><145><823><449><|box_end|>",
+          "original_size": [
+            1105,
+            739
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200040_a17b5b13",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200040_a17b5b13\\annotated.jpg"
+    },
+    {
+      "case_id": "red_top_gray_pants_2",
+      "instruction": "识别穿红色上衣、灰色长裤的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\03.png",
+      "expected_count": 1,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "同义改写应得到同一目标框",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"穿红色上衣、灰色长裤的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"red\",\n      \"source\": \"识别穿红色上衣、灰色长裤的人。\",\n      \"source_span\": \"红色上衣\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"上衣\",\n      \"phrases\": [\"red upper body clothing\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"gray\",\n      \"source\": \"识别穿红色上衣、灰色长裤的人。\",\n      \"source_span\": \"灰色长裤\",\n      \"carrier\": \"lower_body_clothing\",\n      \"carrier_span\": \"长裤\",\n      \"phrases\": [\"gray lower body clothing\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "穿红色上衣、灰色长裤的人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "red",
+            "source": "识别穿红色上衣、灰色长裤的人。",
+            "source_span": "红色上衣",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "上衣",
+            "phrases": [
+              "red upper body clothing"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "color",
+            "value": "gray",
+            "source": "识别穿红色上衣、灰色长裤的人。",
+            "source_span": "灰色长裤",
+            "polarity": "required",
+            "carrier": "lower_body_clothing",
+            "carrier_span": "长裤",
+            "phrases": [
+              "gray lower body clothing"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "e291ac55dca6d48eaf0ef07541740c9b12794fa29bcf716735e08eb496ba6fca"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_red_top_gray_pants_2",
+        "version": 1,
+        "display_name": "red_top_gray_pants_2",
+        "original_instruction": "识别穿红色上衣、灰色长裤的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "穿红色上衣、灰色长裤的人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "red",
+              "source": "识别穿红色上衣、灰色长裤的人。",
+              "source_span": "红色上衣",
+              "polarity": "required",
+              "carrier": "upper_body_clothing",
+              "carrier_span": "上衣",
+              "phrases": [
+                "red upper body clothing"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "color",
+              "value": "gray",
+              "source": "识别穿红色上衣、灰色长裤的人。",
+              "source_span": "灰色长裤",
+              "polarity": "required",
+              "carrier": "lower_body_clothing",
+              "carrier_span": "长裤",
+              "phrases": [
+                "gray lower body clothing"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "e291ac55dca6d48eaf0ef07541740c9b12794fa29bcf716735e08eb496ba6fca"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "long_side",
+                  "long_side": 1280
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "red_top_gray_pants_2",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "upper body clothing",
+                      "phrases": [
+                        "upper body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "red",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.1,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "lower body clothing",
+                      "phrases": [
+                        "lower body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_2_carriers"
+                },
+                "params": {
+                  "color": "gray",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.2,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_carriers",
+                  "condition": "$constraint_2_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "red_top_gray_pants_2"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "constraint_2_carriers_raw",
+                "constraint_2_carriers",
+                "constraint_2_color",
+                "constraint_2_colored_carriers",
+                "constraint_2_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 1,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "upper body clothing",
+        "lower body clothing"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "red",
+          "source_span": "红色上衣",
+          "polarity": "required",
+          "carrier": "upper_body_clothing",
+          "phrases": [
+            "red upper body clothing"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "upper body clothing",
+                    "phrases": [
+                      "upper body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 1118.1282000034116,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 0.027000001864507794,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "red",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.1,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 7
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 167.0270999893546,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 7,
+                "condition": 7
+              },
+              "output_summary": {
+                "result": 1
+              },
+              "elapsed_ms": 0.00960000033956021,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 1
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.045599997974932194,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "color",
+          "value": "gray",
+          "source_span": "灰色长裤",
+          "polarity": "required",
+          "carrier": "lower_body_clothing",
+          "phrases": [
+            "gray lower body clothing"
+          ],
+          "bound_nodes": [
+            "constraint_2_carriers_raw",
+            "constraint_2_carriers",
+            "constraint_2_color",
+            "constraint_2_colored_carriers",
+            "constraint_2_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "lower body clothing",
+                    "phrases": [
+                      "lower body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 956.6865999950096,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 0.02130000211764127,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "gray",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.2,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 8
+              },
+              "output_summary": {
+                "result": 8
+              },
+              "elapsed_ms": 143.42860000033397,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 8,
+                "condition": 8
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.004299989086575806,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.12419999984558672,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "red_top_gray_pants_2",
+          "phrase": "person",
+          "bbox": [
+            0.26626626626626626,
+            0.33733733733733734,
+            0.5325325325325325,
+            0.8348348348348348
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><266><337><532><834>,<378><48><524><366>,<497><343><555><551>,<559><290><629><531>,<597><245><675><501>,<628><224><701><469>,<666><499><867><999>,<706><145><823><449><|box_end|>",
+          "original_size": [
+            1105,
+            739
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200102_c6f06dc6",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200102_c6f06dc6\\annotated.jpg"
+    },
+    {
+      "case_id": "yellow_reflective_vest",
+      "instruction": "识别穿着黄色反光衣的人。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 2,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "仅左侧两名荧光黄色反光衣人员",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"穿着黄色反光衣的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"wearing upper_body_clothing\",\n      \"source\": \"识别穿着黄色反光衣的人。\",\n      \"source_span\": \"穿着\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"反光衣\",\n      \"phrases\": [\"clothing worn on body\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"color\",\n      \"value\": \"yellow\",\n      \"source\": \"识别穿着黄色反光衣的人。\",\n      \"source_span\": \"黄色\",\n      \"carrier\": \"upper_body_clothing\",\n      \"carrier_span\": \"反光衣\",\n      \"phrases\": [\"yellow reflective vest\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "穿着黄色反光衣的人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "yellow",
+            "source": "识别穿着黄色反光衣的人。",
+            "source_span": "黄色",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "反光衣",
+            "phrases": [
+              "yellow reflective vest"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "wearable",
+            "value": "wearing upper_body_clothing",
+            "source": "识别穿着黄色反光衣的人。",
+            "source_span": "穿着",
+            "polarity": "required",
+            "carrier": "upper_body_clothing",
+            "carrier_span": "反光衣",
+            "phrases": [
+              "clothing worn on body"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "3f3a75046189d178a29280c056d1a35574f866207142145603d6ad03f67747b1"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_yellow_reflective_vest",
+        "version": 1,
+        "display_name": "yellow_reflective_vest",
+        "original_instruction": "识别穿着黄色反光衣的人。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "穿着黄色反光衣的人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "yellow",
+              "source": "识别穿着黄色反光衣的人。",
+              "source_span": "黄色",
+              "polarity": "required",
+              "carrier": "upper_body_clothing",
+              "carrier_span": "反光衣",
+              "phrases": [
+                "yellow reflective vest"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "wearable",
+              "value": "wearing upper_body_clothing",
+              "source": "识别穿着黄色反光衣的人。",
+              "source_span": "穿着",
+              "polarity": "required",
+              "carrier": "upper_body_clothing",
+              "carrier_span": "反光衣",
+              "phrases": [
+                "clothing worn on body"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "3f3a75046189d178a29280c056d1a35574f866207142145603d6ad03f67747b1"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "long_side",
+                  "long_side": 1280
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "yellow_reflective_vest",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "evidence_frames",
+                "op": "image.tile@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "tile_width": 640,
+                  "tile_height": 640,
+                  "overlap_x": 0.2,
+                  "overlap_y": 0.2,
+                  "include_full_frame": true
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "upper body clothing",
+                      "phrases": [
+                        "upper body clothing"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_carriers",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$constraint_1_carriers"
+                },
+                "params": {
+                  "color": "yellow",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.1,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_colored_carriers",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_carriers",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_colored_carriers"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "穿着",
+                      "phrases": [
+                        "clothing worn on body"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_objects_dedup"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "yellow_reflective_vest"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_carriers_raw",
+                "constraint_1_carriers",
+                "constraint_1_color",
+                "constraint_1_colored_carriers",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "evidence_frames",
+                "constraint_2_objects",
+                "constraint_2_objects_dedup",
+                "constraint_2_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 2,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "upper body clothing",
+        "clothing worn on body"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "yellow",
+          "source_span": "黄色",
+          "polarity": "required",
+          "carrier": "upper_body_clothing",
+          "phrases": [
+            "yellow reflective vest"
+          ],
+          "bound_nodes": [
+            "constraint_1_carriers_raw",
+            "constraint_1_carriers",
+            "constraint_1_color",
+            "constraint_1_colored_carriers",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_carriers_raw",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "upper body clothing",
+                    "phrases": [
+                      "upper body clothing"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 1196.4888000075007,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_carriers",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.020499996026046574,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "yellow",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.1,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 60.454100006609224,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_colored_carriers",
+              "operator": "filter.apply@1.0",
+              "rule": "仅保留对应 key 条件为真的实体。",
+              "effective_params": {
+                "output_label": null
+              },
+              "input_summary": {
+                "objects": 6,
+                "condition": 6
+              },
+              "output_summary": {
+                "result": 2
+              },
+              "elapsed_ms": 0.007800001185387373,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 2
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.057600002037361264,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "wearable",
+          "value": "wearing upper_body_clothing",
+          "source_span": "穿着",
+          "polarity": "required",
+          "carrier": "upper_body_clothing",
+          "phrases": [
+            "clothing worn on body"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "constraint_2_objects",
+            "constraint_2_objects_dedup",
+            "constraint_2_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 2.6171999925281852,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "穿着",
+                    "phrases": [
+                      "clothing worn on body"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 7
+              },
+              "output_summary": {
+                "result": 22
+              },
+              "elapsed_ms": 3670.457100000931,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 22
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.06540000322274864,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.1117999927373603,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "yellow_reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.08008008008008008,
+            0.5395395395395396,
+            0.1871871871871872,
+            0.7167167167167167
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><716>,<137><393><202><566>,<226><425><308><618>,<430><494><513><556>,<588><479><703><758>,<691><559><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_2",
+          "label": "yellow_reflective_vest",
+          "phrase": "person",
+          "bbox": [
+            0.13713713713713713,
+            0.3933933933933934,
+            0.2022022022022022,
+            0.5665665665665666
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>person<|object_ref_end|><|box_start|><80><539><187><716>,<137><393><202><566>,<226><425><308><618>,<430><494><513><556>,<588><479><703><758>,<691><559><793><704><|box_end|>",
+          "original_size": [
+            1168,
+            1347
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200131_3875377c",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200131_3875377c\\annotated.jpg"
+    },
+    {
+      "case_id": "squat_without_support",
+      "instruction": "识别蹲着的人，双膝弯曲、臀部无支撑。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+      "expected_count": 1,
+      "expected_minimum": null,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "中央蹲姿人员；排除站立与有支撑坐姿",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"蹲着的人\",\n    \"phrases\": [\"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"squatting\",\n      \"source\": \"识别蹲着的人\",\n      \"source_span\": \"蹲着\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"squatting\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"pose\",\n      \"value\": \"knees bent\",\n      \"source\": \"双膝弯曲\",\n      \"source_span\": \"双膝弯曲\",\n      \"carrier\": \"knees\",\n      \"carrier_span\": \"双膝\",\n      \"phrases\": [\"knees bent\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"state\",\n      \"value\": \"support under hips\",\n      \"source\": \"臀部无支撑\",\n      \"source_span\": \"臀部无支撑\",\n      \"carrier\": \"hips\",\n      \"carrier_span\": \"臀部\",\n      \"phrases\": [\"support under hips\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_failed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "person",
+          "source_span": "蹲着的人",
+          "phrases": [
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "pose",
+            "value": "squatting",
+            "source": "识别蹲着的人",
+            "source_span": "蹲着",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "squatting"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "state",
+            "value": "support under hips",
+            "source": "臀部无支撑",
+            "source_span": "臀部无支撑",
+            "polarity": "absent",
+            "carrier": "hips",
+            "carrier_span": "臀部",
+            "phrases": [
+              "support under hips"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_3",
+            "kind": "pose",
+            "value": "knees bent",
+            "source": "双膝弯曲",
+            "source_span": "双膝弯曲",
+            "polarity": "required",
+            "carrier": "knees",
+            "carrier_span": "双膝",
+            "phrases": [
+              "knees bent"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "79c5daa5888552a65aa56b972ce9e9a1405b3d7c73a5362785bfdf356d7c347e"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_squat_without_support",
+        "version": 1,
+        "display_name": "squat_without_support",
+        "original_instruction": "识别蹲着的人，双膝弯曲、臀部无支撑。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "person",
+            "source_span": "蹲着的人",
+            "phrases": [
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "pose",
+              "value": "squatting",
+              "source": "识别蹲着的人",
+              "source_span": "蹲着",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "squatting"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "state",
+              "value": "support under hips",
+              "source": "臀部无支撑",
+              "source_span": "臀部无支撑",
+              "polarity": "absent",
+              "carrier": "hips",
+              "carrier_span": "臀部",
+              "phrases": [
+                "support under hips"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_3",
+              "kind": "pose",
+              "value": "knees bent",
+              "source": "双膝弯曲",
+              "source_span": "双膝弯曲",
+              "polarity": "required",
+              "carrier": "knees",
+              "carrier_span": "双膝",
+              "phrases": [
+                "knees bent"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "79c5daa5888552a65aa56b972ce9e9a1405b3d7c73a5362785bfdf356d7c347e"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "long_side",
+                  "long_side": 1280
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "squat_without_support",
+                      "phrases": [
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "evidence_frames",
+                "op": "image.tile@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "tile_width": 640,
+                  "tile_height": 640,
+                  "overlap_x": 0.2,
+                  "overlap_y": 0.2,
+                  "include_full_frame": true
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "蹲着",
+                      "phrases": [
+                        "squatting"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_objects_dedup"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "臀部无支撑",
+                      "phrases": [
+                        "support under hips"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_2_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_2_objects_dedup"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_not",
+                "op": "logic.not@1.0",
+                "inputs": {
+                  "condition": "$constraint_2_matches"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$evidence_frames"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "双膝弯曲",
+                      "phrases": [
+                        "knees bent"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_3_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_3_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_3_objects_dedup"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraints_all",
+                "op": "logic.all@1.0",
+                "inputs": {
+                  "conditions": [
+                    "$constraint_1_matches",
+                    "$constraint_2_not",
+                    "$constraint_3_matches"
+                  ]
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraints_all"
+                },
+                "params": {
+                  "output_label": "squat_without_support"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "evidence_frames",
+                "constraint_1_objects",
+                "constraint_1_objects_dedup",
+                "constraint_1_matches"
+              ],
+              "atom_2": [
+                "constraint_2_objects",
+                "constraint_2_objects_dedup",
+                "constraint_2_matches",
+                "constraint_2_not"
+              ],
+              "atom_3": [
+                "evidence_frames",
+                "constraint_3_objects",
+                "constraint_3_objects_dedup",
+                "constraint_3_matches"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 0,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "person",
+        "squatting",
+        "support under hips",
+        "knees bent"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "pose",
+          "value": "squatting",
+          "source_span": "蹲着",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "squatting"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "constraint_1_objects",
+            "constraint_1_objects_dedup",
+            "constraint_1_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 2.376200005528517,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "蹲着",
+                    "phrases": [
+                      "squatting"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 7
+              },
+              "output_summary": {
+                "result": 14
+              },
+              "elapsed_ms": 3053.9239999925485,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 14
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 0.029400005587376654,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 7
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.10590000601951033,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "state",
+          "value": "support under hips",
+          "source_span": "臀部无支撑",
+          "polarity": "absent",
+          "carrier": "hips",
+          "phrases": [
+            "support under hips"
+          ],
+          "bound_nodes": [
+            "constraint_2_objects",
+            "constraint_2_objects_dedup",
+            "constraint_2_matches",
+            "constraint_2_not"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "臀部无支撑",
+                    "phrases": [
+                      "support under hips"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 1014.8691999929724,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.01930000144056976,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.11399999493733048,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_2_not",
+              "operator": "logic.not@1.0",
+              "rule": "对每个条件 key 执行逻辑取反。",
+              "effective_params": {},
+              "input_summary": {
+                "condition": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.0052000104915350676,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_3",
+          "kind": "pose",
+          "value": "knees bent",
+          "source_span": "双膝弯曲",
+          "polarity": "required",
+          "carrier": "knees",
+          "phrases": [
+            "knees bent"
+          ],
+          "bound_nodes": [
+            "evidence_frames",
+            "constraint_3_objects",
+            "constraint_3_objects_dedup",
+            "constraint_3_matches"
+          ],
+          "trace": [
+            {
+              "node_id": "evidence_frames",
+              "operator": "image.tile@1.1",
+              "rule": "按独立 x/y 重叠率切片，可同时保留全图；来源顺序固定为 full-frame 后 tiles，坐标经 TransformChain 回映。",
+              "effective_params": {
+                "tile_width": 640,
+                "tile_height": 640,
+                "overlap_x": 0.2,
+                "overlap_y": 0.2,
+                "include_full_frame": true
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 7
+              },
+              "elapsed_ms": 2.376200005528517,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "双膝弯曲",
+                    "phrases": [
+                      "knees bent"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 7
+              },
+              "output_summary": {
+                "result": 13
+              },
+              "elapsed_ms": 3016.944099988905,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 13
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.028599999495781958,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_3_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 6,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.10279999696649611,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": false,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200201_249171ce",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200201_249171ce\\annotated.jpg"
+    },
+    {
+      "case_id": "car_bus_person_excluding_truck_van",
+      "instruction": "检测轿车、客车、人，排除货车、面包车。",
+      "media": "C:\\yhe_user\\detection_project\\ultralytics\\smoke.png",
+      "expected_count": null,
+      "expected_minimum": 1,
+      "expected_maximum": null,
+      "expected_measurement": null,
+      "note": "最终结果不得包含左侧货车/面包车框；人工几何复核",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"road user\",\n    \"source_span\": \"轿车、客车、人\",\n    \"phrases\": [\"passenger vehicle\", \"person\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"entity_exclusion\",\n      \"value\": \"truck, van\",\n      \"source\": \"排除货车、面包车\",\n      \"source_span\": \"排除货车、面包车\",\n      \"phrases\": [\"truck\", \"van\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_passed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "road user",
+          "source_span": "轿车、客车、人",
+          "phrases": [
+            "passenger vehicle",
+            "person"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "entity_exclusion",
+            "value": "truck, van",
+            "source": "排除货车、面包车",
+            "source_span": "排除货车、面包车",
+            "polarity": "absent",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "truck",
+              "van"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "4919a86f5e3f6d468b429c1fdd306ab404fbcfc7560510b1f41bf68b21de8e80"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_car_bus_person_excluding_truck_van",
+        "version": 1,
+        "display_name": "car_bus_person_excluding_truck_van",
+        "original_instruction": "检测轿车、客车、人，排除货车、面包车。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "road user",
+            "source_span": "轿车、客车、人",
+            "phrases": [
+              "passenger vehicle",
+              "person"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "entity_exclusion",
+              "value": "truck, van",
+              "source": "排除货车、面包车",
+              "source_span": "排除货车、面包车",
+              "polarity": "absent",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "truck",
+                "van"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "4919a86f5e3f6d468b429c1fdd306ab404fbcfc7560510b1f41bf68b21de8e80"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "long_side",
+                  "long_side": 1280
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "car_bus_person_excluding_truck_van",
+                      "phrases": [
+                        "passenger vehicle",
+                        "person"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_objects",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "排除货车、面包车",
+                      "phrases": [
+                        "truck",
+                        "van"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_objects_dedup",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$constraint_1_objects"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_matches",
+                "op": "spatial.associate@1.0",
+                "inputs": {
+                  "subjects": "$candidates",
+                  "objects": "$constraint_1_objects_dedup"
+                },
+                "params": {
+                  "relation": "best_owner",
+                  "threshold": 0.1
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_not",
+                "op": "logic.not@1.0",
+                "inputs": {
+                  "condition": "$constraint_1_matches"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraint_1_not"
+                },
+                "params": {
+                  "output_label": "car_bus_person_excluding_truck_van"
+                },
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_objects",
+                "constraint_1_objects_dedup",
+                "constraint_1_matches",
+                "constraint_1_not"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 16,
+      "actual_measurement": null,
+      "actual_rex_phrases": [
+        "passenger vehicle",
+        "person",
+        "truck",
+        "van"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "entity_exclusion",
+          "value": "truck, van",
+          "source_span": "排除货车、面包车",
+          "polarity": "absent",
+          "carrier": null,
+          "phrases": [
+            "truck",
+            "van"
+          ],
+          "bound_nodes": [
+            "constraint_1_objects",
+            "constraint_1_objects_dedup",
+            "constraint_1_matches",
+            "constraint_1_not"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_objects",
+              "operator": "rex.ground@1.1",
+              "rule": "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+              "effective_params": {
+                "targets": [
+                  {
+                    "label": "排除货车、面包车",
+                    "phrases": [
+                      "truck",
+                      "van"
+                    ]
+                  }
+                ]
+              },
+              "input_summary": {
+                "frames": 1
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 994.9979000084568,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_objects_dedup",
+              "operator": "objects.deduplicate@1.0",
+              "rule": "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+              "effective_params": {
+                "metric": "ios",
+                "threshold": 0.5,
+                "keep": "first"
+              },
+              "input_summary": {
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 6
+              },
+              "elapsed_ms": 0.018499995348975062,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_matches",
+              "operator": "spatial.associate@1.0",
+              "rule": "按来源实体 ID、overlap、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+              "effective_params": {
+                "relation": "best_owner",
+                "threshold": 0.1,
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.35
+                ],
+                "same_source_only": false
+              },
+              "input_summary": {
+                "subjects": 19,
+                "objects": 6
+              },
+              "output_summary": {
+                "result": 19
+              },
+              "elapsed_ms": 1.4838999923085794,
+              "status": "success",
+              "error": null
+            },
+            {
+              "node_id": "constraint_1_not",
+              "operator": "logic.not@1.0",
+              "rule": "对每个条件 key 执行逻辑取反。",
+              "effective_params": {},
+              "input_summary": {
+                "condition": 19
+              },
+              "output_summary": {
+                "result": 19
+              },
+              "elapsed_ms": 0.0092999980552122,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.003003003003003003,
+            0.6356356356356356,
+            0.0890890890890891,
+            0.8158158158158159
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_4",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.4574574574574575,
+            0.4074074074074074,
+            0.5225225225225225,
+            0.5265265265265265
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_6",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.5085085085085085,
+            0.3053053053053053,
+            0.5655655655655656,
+            0.4084084084084084
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_7",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.5515515515515516,
+            0.44144144144144143,
+            0.5985985985985987,
+            0.5475475475475475
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_8",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.5585585585585585,
+            0.23123123123123124,
+            0.6076076076076076,
+            0.3283283283283283
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_9",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.6436436436436437,
+            0.25425425425425424,
+            0.6936936936936937,
+            0.33433433433433435
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_10",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.6726726726726727,
+            0.057057057057057055,
+            0.7107107107107107,
+            0.12612612612612611
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_11",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.6756756756756757,
+            0.1941941941941942,
+            0.7207207207207207,
+            0.26926926926926925
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_12",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.8078078078078078,
+            0.4034034034034034,
+            0.8698698698698699,
+            0.4954954954954955
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_13",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.8488488488488488,
+            0.2502502502502503,
+            0.9009009009009009,
+            0.3483483483483483
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_14",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.8508508508508509,
+            0.17117117117117117,
+            0.8958958958958959,
+            0.25325325325325326
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_15",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.9019019019019019,
+            0.6956956956956957,
+            0.993993993993994,
+            0.8458458458458459
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_16",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.9059059059059059,
+            0.01901901901901902,
+            0.9379379379379379,
+            0.08108108108108109
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_17",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.9069069069069069,
+            0.14814814814814814,
+            0.9529529529529529,
+            0.2222222222222222
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_18",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "passenger vehicle",
+          "bbox": [
+            0.9409409409409409,
+            0.2702702702702703,
+            0.991991991991992,
+            0.36936936936936937
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_19",
+          "label": "car_bus_person_excluding_truck_van",
+          "phrase": "person",
+          "bbox": [
+            0.3033033033033033,
+            0.2922922922922923,
+            0.3213213213213213,
+            0.3783783783783784
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>passenger vehicle<|object_ref_end|><|box_start|><3><635><89><815>,<146><525><214><659>,<276><434><414><729>,<457><407><522><526>,<490><208><541><318>,<508><305><565><408>,<551><441><598><547>,<558><231><607><328>,<643><254><693><334>,<672><57><710><126>,<675><194><720><269>,<807><403><869><495>,<848><250><900><348>,<850><171><895><253>,<901><695><993><845>,<905><19><937><81>,<906><148><952><222>,<940><270><991><369><|box_end|>, <|object_ref_start|>person<|object_ref_end|><|box_start|><303><292><321><378>,<306><293><323><376><|box_end|>",
+          "original_size": [
+            710,
+            338
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": true,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200320_f1427eb0",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200320_f1427eb0\\annotated.jpg"
+    },
+    {
+      "case_id": "white_car_count",
+      "instruction": "识别白色车数量。",
+      "media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\acceptance_media\\generated\\shared_normal_highway.png",
+      "expected_count": null,
+      "expected_minimum": 1,
+      "expected_maximum": null,
+      "expected_measurement": 4,
+      "note": "白色车目标框与右上角计数应一致",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "quantity semantics are not covered"
+      ],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"car\",\n    \"source_span\": \"白色车\",\n    \"phrases\": [\"car\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"白色\",\n      \"phrases\": [\"white\"]\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}",
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"car\",\n    \"source_span\": \"白色车\",\n    \"phrases\": [\"car\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"color\",\n      \"value\": \"white\",\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"白色\",\n      \"phrases\": [\"white\"]\n    },\n    {\n      \"kind\": \"quantity\",\n      \"value\": {\"measure\": \"count\"},\n      \"source\": \"识别白色车数量。\",\n      \"source_span\": \"数量\",\n      \"phrases\": [\"white cars\"]\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": []\n}"
+      ],
+      "status": "automatic_failed",
+      "semantic_ir": {
+        "schema_version": "1.0",
+        "mode": "entity_query",
+        "target": {
+          "concept": "car",
+          "source_span": "白色车",
+          "phrases": [
+            "car"
+          ]
+        },
+        "constraints": [
+          {
+            "atom_id": "atom_1",
+            "kind": "color",
+            "value": "white",
+            "source": "识别白色车数量。",
+            "source_span": "白色",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "white"
+            ],
+            "temporal": false
+          },
+          {
+            "atom_id": "atom_2",
+            "kind": "quantity",
+            "value": {
+              "measure": "count"
+            },
+            "source": "识别白色车数量。",
+            "source_span": "数量",
+            "polarity": "required",
+            "carrier": null,
+            "carrier_span": null,
+            "phrases": [
+              "white cars"
+            ],
+            "temporal": false
+          }
+        ],
+        "logic": "all",
+        "unresolved": [],
+        "semantic_hash": "9c57a9193f20e585ceb5aeb6c8a86ae2b0806344c1b3a3eb9737ceb3b23ba82d"
+      },
+      "package": {
+        "schema_version": "2.0",
+        "skill_id": "historical_white_car_count",
+        "version": 1,
+        "display_name": "white_car_count",
+        "original_instruction": "识别白色车数量。",
+        "compile_status": "compiled",
+        "input": {
+          "requested_accept": [
+            "image"
+          ],
+          "accept": [
+            "image"
+          ],
+          "video_guidance": {
+            "recommended_max_duration_seconds": 30.0,
+            "enforcement": "warn_only"
+          }
+        },
+        "semantic_ir": {
+          "schema_version": "1.0",
+          "mode": "entity_query",
+          "target": {
+            "concept": "car",
+            "source_span": "白色车",
+            "phrases": [
+              "car"
+            ]
+          },
+          "constraints": [
+            {
+              "atom_id": "atom_1",
+              "kind": "color",
+              "value": "white",
+              "source": "识别白色车数量。",
+              "source_span": "白色",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "white"
+              ],
+              "temporal": false
+            },
+            {
+              "atom_id": "atom_2",
+              "kind": "quantity",
+              "value": {
+                "measure": "count"
+              },
+              "source": "识别白色车数量。",
+              "source_span": "数量",
+              "polarity": "required",
+              "carrier": null,
+              "carrier_span": null,
+              "phrases": [
+                "white cars"
+              ],
+              "temporal": false
+            }
+          ],
+          "logic": "all",
+          "unresolved": [],
+          "semantic_hash": "9c57a9193f20e585ceb5aeb6c8a86ae2b0806344c1b3a3eb9737ceb3b23ba82d"
+        },
+        "variants": {
+          "image": {
+            "media_type": "image",
+            "status": "executable",
+            "nodes": [
+              {
+                "id": "media",
+                "op": "media.image@1.0",
+                "inputs": {
+                  "media": "$input"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "resized",
+                "op": "image.resize@1.1",
+                "inputs": {
+                  "frames": "$media"
+                },
+                "params": {
+                  "mode": "long_side",
+                  "long_side": 1280
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates_raw",
+                "op": "rex.ground@1.1",
+                "inputs": {
+                  "frames": "$resized"
+                },
+                "params": {
+                  "targets": [
+                    {
+                      "label": "white_car_count",
+                      "phrases": [
+                        "car"
+                      ]
+                    }
+                  ]
+                },
+                "enabled": true
+              },
+              {
+                "id": "candidates",
+                "op": "objects.deduplicate@1.0",
+                "inputs": {
+                  "objects": "$candidates_raw"
+                },
+                "params": {
+                  "metric": "ios",
+                  "threshold": 0.5,
+                  "keep": "first"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_1_color",
+                "op": "visual.color_fraction@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$candidates"
+                },
+                "params": {
+                  "color": "white",
+                  "subject_region": [
+                    0.0,
+                    0.0,
+                    1.0,
+                    1.0
+                  ],
+                  "min_fraction": 0.2,
+                  "selection_mode": "fraction",
+                  "dominance_margin": 0.05
+                },
+                "enabled": true
+              },
+              {
+                "id": "filtered",
+                "op": "filter.apply@1.0",
+                "inputs": {
+                  "objects": "$candidates",
+                  "condition": "$constraint_1_color"
+                },
+                "params": {
+                  "output_label": "white_car_count"
+                },
+                "enabled": true
+              },
+              {
+                "id": "constraint_2_count",
+                "op": "measure.count@1.0",
+                "inputs": {
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              },
+              {
+                "id": "draw",
+                "op": "output.draw@1.0",
+                "inputs": {
+                  "frames": "$resized",
+                  "objects": "$filtered"
+                },
+                "params": {},
+                "enabled": true
+              }
+            ],
+            "outputs": {
+              "media": "$draw",
+              "objects": "$filtered",
+              "measurements": "$constraint_2_count"
+            },
+            "atom_bindings": {
+              "atom_1": [
+                "constraint_1_color"
+              ],
+              "atom_2": [
+                "constraint_2_count"
+              ]
+            },
+            "configuration_slots": [],
+            "issue": null
+          }
+        },
+        "compatibility_issues": []
+      },
+      "actual_count": 11,
+      "actual_measurement": 11,
+      "actual_rex_phrases": [
+        "car"
+      ],
+      "constraint_summary": [
+        {
+          "atom_id": "atom_1",
+          "kind": "color",
+          "value": "white",
+          "source_span": "白色",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "white"
+          ],
+          "bound_nodes": [
+            "constraint_1_color"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_1_color",
+              "operator": "visual.color_fraction@1.0",
+              "rule": "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
+              "effective_params": {
+                "color": "white",
+                "subject_region": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  1.0
+                ],
+                "min_fraction": 0.2,
+                "selection_mode": "fraction",
+                "dominance_margin": 0.05
+              },
+              "input_summary": {
+                "frames": 1,
+                "objects": 15
+              },
+              "output_summary": {
+                "result": 15
+              },
+              "elapsed_ms": 61.080800005584024,
+              "status": "success",
+              "error": null
+            }
+          ]
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "quantity",
+          "value": {
+            "measure": "count"
+          },
+          "source_span": "数量",
+          "polarity": "required",
+          "carrier": null,
+          "phrases": [
+            "white cars"
+          ],
+          "bound_nodes": [
+            "constraint_2_count"
+          ],
+          "trace": [
+            {
+              "node_id": "constraint_2_count",
+              "operator": "measure.count@1.0",
+              "rule": "返回当前有效实体数量。",
+              "effective_params": {},
+              "input_summary": {
+                "objects": 11
+              },
+              "output_summary": {
+                "result": 1
+              },
+              "elapsed_ms": 0.013299999409355223,
+              "status": "success",
+              "error": null
+            }
+          ]
+        }
+      ],
+      "detections": [
+        {
+          "id": "frame_0_candidates_raw_1",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.0890890890890891,
+            0.21021021021021022,
+            0.16116116116116116,
+            0.2782782782782783
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_2",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.2042042042042042,
+            0.3893893893893894,
+            0.3063063063063063,
+            0.4864864864864865
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_3",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.4244244244244244,
+            0.09009009009009009,
+            0.4624624624624625,
+            0.13013013013013014
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_5",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.5085085085085085,
+            0.28128128128128127,
+            0.5785785785785785,
+            0.3663663663663664
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_6",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.5555555555555556,
+            0.057057057057057055,
+            0.5815815815815816,
+            0.08608608608608609
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_8",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.6696696696696697,
+            0.012012012012012012,
+            0.6856856856856857,
+            0.02902902902902903
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_9",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.7307307307307307,
+            0.0,
+            0.7437437437437437,
+            0.013013013013013013
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_10",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.7577577577577578,
+            0.03803803803803804,
+            0.7767767767767768,
+            0.06306306306306306
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_12",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.8348348348348348,
+            0.03403403403403404,
+            0.8538538538538538,
+            0.055055055055055056
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_13",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.8568568568568569,
+            0.05405405405405406,
+            0.8778778778778779,
+            0.08108108108108109
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        },
+        {
+          "id": "frame_0_candidates_raw_14",
+          "label": "white_car_count",
+          "phrase": "car",
+          "bbox": [
+            0.8678678678678678,
+            0.0,
+            0.8808808808808809,
+            0.011011011011011011
+          ],
+          "frame_index": 0,
+          "timestamp": 0.0,
+          "source_node": "candidates_raw",
+          "track_id": null,
+          "source_entity_id": null,
+          "raw_output": "<|object_ref_start|>car<|object_ref_end|><|box_start|><89><210><161><278>,<204><389><306><486>,<424><90><462><130>,<463><534><574><673>,<508><281><578><366>,<555><57><581><86>,<645><168><689><223>,<669><12><685><29>,<730><0><743><13>,<757><38><776><63>,<780><101><814><141>,<834><34><853><55>,<856><54><877><81>,<867><0><880><11>,<889><0><899><10><|box_end|>",
+          "original_size": [
+            1536,
+            1024
+          ]
+        }
+      ],
+      "checks": {
+        "annotated_media_exists": true,
+        "expected_count_passed": true,
+        "minimum_passed": true,
+        "maximum_passed": true,
+        "measurement_passed": false,
+        "manual_visual_review": "pending"
+      },
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200349_1f68bac9",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\historical_runs_v2\\20260813_200349_1f68bac9\\annotated.jpg"
+    }
+  ]
+}

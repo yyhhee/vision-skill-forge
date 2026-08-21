@@ -1,0 +1,530 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "fire_smoke",
+  "version": 1,
+  "display_name": "烟火检测",
+  "original_instruction": "检测画面中的烟雾或明火。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "image",
+      "video"
+    ],
+    "accept": [
+      "image",
+      "video"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "direct_grounding",
+    "target": {
+      "concept": "fire_smoke",
+      "source_span": "烟雾或明火",
+      "phrases": [
+        "smoke",
+        "visible smoke",
+        "fire",
+        "flame",
+        "open flame"
+      ],
+      "classes": []
+    },
+    "constraints": [],
+    "logic": "all",
+    "unresolved": [],
+    "semantic_hash": "dd7d2f0dd14ff53bf5686a133671fcef9785c8614c3a16bdc105e48a9f0212c1"
+  },
+  "variants": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "烟火",
+                "phrases": [
+                  "smoke",
+                  "visible smoke",
+                  "fire",
+                  "flame",
+                  "open flame"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$fire_smoke_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_black_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "black",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.12,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_gray_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "gray",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.2,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_red_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "red",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.02,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_orange_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "orange",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.02,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_yellow_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "yellow",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.02,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_evidence",
+          "op": "logic.any@1.0",
+          "inputs": {
+            "conditions": [
+              "$fire_smoke_black_evidence",
+              "$fire_smoke_gray_evidence",
+              "$fire_smoke_red_evidence",
+              "$fire_smoke_orange_evidence",
+              "$fire_smoke_yellow_evidence"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_validated",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$fire_smoke",
+            "condition": "$fire_smoke_evidence"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke_validated"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$fire_smoke_validated"
+      },
+      "atom_bindings": {},
+      "configuration_slots": [],
+      "issue": null
+    },
+    "video": {
+      "media_type": "video",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.video@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "frames",
+          "op": "video.sample@1.1",
+          "inputs": {
+            "video": "$media"
+          },
+          "params": {
+            "mode": "fps",
+            "fps": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$frames"
+          },
+          "params": {
+            "mode": "long_side",
+            "long_side": 1280
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "烟火",
+                "phrases": [
+                  "smoke",
+                  "visible smoke",
+                  "fire",
+                  "flame",
+                  "open flame"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$fire_smoke_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_black_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "black",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.12,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_gray_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "gray",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.2,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_red_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "red",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.02,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_orange_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "orange",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.02,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_yellow_evidence",
+          "op": "visual.color_fraction@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke"
+          },
+          "params": {
+            "color": "yellow",
+            "subject_region": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "min_fraction": 0.02,
+            "selection_mode": "dominant",
+            "dominance_margin": 0.03
+          },
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_evidence",
+          "op": "logic.any@1.0",
+          "inputs": {
+            "conditions": [
+              "$fire_smoke_black_evidence",
+              "$fire_smoke_gray_evidence",
+              "$fire_smoke_red_evidence",
+              "$fire_smoke_orange_evidence",
+              "$fire_smoke_yellow_evidence"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "fire_smoke_validated",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$fire_smoke",
+            "condition": "$fire_smoke_evidence"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "count",
+          "op": "measure.count@1.0",
+          "inputs": {
+            "entities": "$fire_smoke_validated"
+          },
+          "params": {
+            "scope": "frame"
+          },
+          "enabled": true
+        },
+        {
+          "id": "present",
+          "op": "logic.compare@1.0",
+          "inputs": {
+            "left": "$count"
+          },
+          "params": {
+            "operator": ">",
+            "value": 0
+          },
+          "enabled": true
+        },
+        {
+          "id": "events",
+          "op": "temporal.persist@1.0",
+          "inputs": {
+            "condition": "$present"
+          },
+          "params": {
+            "seconds": 1.0,
+            "scope": "global",
+            "gap_tolerance_seconds": 0.6
+          },
+          "enabled": true
+        },
+        {
+          "id": "alerts",
+          "op": "output.alert@1.0",
+          "inputs": {
+            "events": "$events"
+          },
+          "params": {
+            "label": "烟火检测"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$fire_smoke_validated",
+            "events": "$alerts"
+          },
+          "params": {
+            "show_labels": true,
+            "show_track_id": true
+          },
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$fire_smoke_validated",
+        "events": "$alerts"
+      },
+      "atom_bindings": {},
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

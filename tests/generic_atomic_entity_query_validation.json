@@ -1,0 +1,56 @@
+{
+  "validated_at": "2026-08-12T12:30:00+08:00",
+  "media": "C:\\yhe_user\\detection_project\\ultralytics\\Codex 图像 2026年8月12日 09_14_00.png",
+  "architecture": {
+    "planner": "LLM atomic constraint ledger only",
+    "compiler": "fixed generic operator graph",
+    "positive_evidence": "640x640 tiles, 20% overlap, include full frame",
+    "negative_evidence": "full frame only (conservative exclusion)",
+    "color": "fixed HSV fraction operator",
+    "task_specific_branches": []
+  },
+  "results": [
+    {
+      "instruction": "识别穿反光衣的人",
+      "object_count": 6,
+      "run": "data/runs/20260812_122759_65efb394"
+    },
+    {
+      "instruction": "识别穿白衣的人",
+      "object_count": 0,
+      "run": "data/runs/20260812_124629_cdd08a20"
+    },
+    {
+      "instruction": "识别穿着黄色反光衣的人",
+      "object_count": 2,
+      "run": "data/runs/20260812_124621_45f63795"
+    },
+    {
+      "instruction": "识别蹲着的人，双膝弯曲、臀部无支撑",
+      "object_count": 1,
+      "run": "data/runs/20260812_122938_3ec40b8f"
+    },
+    {
+      "instruction": "穿着橙色反光衣且未带安全帽的人",
+      "normalized_logic": "orange_vest AND NOT helmet",
+      "object_count": 1,
+      "run": "data/runs/20260812_140841_3e69d4e8"
+    },
+    {
+      "instruction": "排除/去除/负样本是未带安全帽的人",
+      "normalized_logic": "orange_vest AND helmet",
+      "equivalent_result_count": 3,
+      "runs": [
+        "data/runs/20260812_140850_8882159b",
+        "data/runs/20260812_140903_55749015",
+        "data/runs/20260812_141325_0de82d1e"
+      ]
+    }
+  ],
+  "automated_tests": {
+    "passed": 58,
+    "skipped": 0,
+    "failed": 0,
+    "legacy_contracts_removed": 9
+  }
+}
