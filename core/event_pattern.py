@@ -25,17 +25,21 @@ def compile_event_patterns(
     outputs: dict[str, str],
     patterns: list[EventPattern],
     registry: OperatorRegistry,
+    business_sources: dict[str, str] | None = None,
 ):
     compiled_nodes = deepcopy(nodes)
     compiled_outputs = dict(outputs)
     output_types = {
         node["id"]: registry.require(node["op"]).output_type for node in compiled_nodes
     }
+    business_sources = business_sources or {}
 
     for pattern in patterns:
         stage_refs = {}
         for stage in pattern.stages:
-            source_id = stage.source_rule_id
+            source_id = business_sources.get(
+                stage.source_ref or "", stage.source_rule_id
+            )
             source_type = output_types.get(source_id)
             if source_type not in {"ConditionSet", "EventSet"}:
                 raise EventPatternCompileError(
@@ -83,7 +87,65 @@ def compile_event_patterns(
                 stage_refs[stage.stage_id] = f"${source_id}"
 
         final_refs = []
-        if pattern.transitions:
+        if pattern.pattern_type == "absence":
+            if len(pattern.stages) != 2:
+                raise EventPatternCompileError(
+                    f"pattern {pattern.pattern_id}: absence requires anchor and forbidden stages"
+                )
+            node_id = f"pattern_{pattern.pattern_id}_absence"
+            window = float(pattern.parameters.get("window_seconds") or 0.0)
+            compiled_nodes.append(
+                {
+                    "id": node_id,
+                    "op": "temporal.absence@1.0",
+                    "inputs": {
+                        "anchors": stage_refs[pattern.stages[0].stage_id],
+                        "forbidden": stage_refs[pattern.stages[1].stage_id],
+                    },
+                    "params": {
+                        "before_seconds": float(
+                            pattern.parameters.get("before_seconds") or 0.0
+                        ),
+                        "after_seconds": float(
+                            pattern.parameters.get("after_seconds")
+                            if pattern.parameters.get("after_seconds") is not None
+                            else window
+                        ),
+                        "same_key": pattern.correlation.scope != "global",
+                        "label": pattern.display_name,
+                    },
+                }
+            )
+            output_types[node_id] = "EventSet"
+            final_refs.append(f"${node_id}")
+        elif pattern.pattern_type == "repeat":
+            if len(pattern.stages) != 1:
+                raise EventPatternCompileError(
+                    f"pattern {pattern.pattern_id}: repeat requires exactly one stage"
+                )
+            node_id = f"pattern_{pattern.pattern_id}_repeat"
+            compiled_nodes.append(
+                {
+                    "id": node_id,
+                    "op": "temporal.repeat@1.0",
+                    "inputs": {
+                        "events": stage_refs[pattern.stages[0].stage_id]
+                    },
+                    "params": {
+                        "window_seconds": float(
+                            pattern.parameters.get("window_seconds") or 0.0
+                        ),
+                        "minimum_count": int(
+                            pattern.parameters.get("minimum_count") or 2
+                        ),
+                        "same_key": pattern.correlation.scope != "global",
+                        "label": pattern.display_name,
+                    },
+                }
+            )
+            output_types[node_id] = "EventSet"
+            final_refs.append(f"${node_id}")
+        if pattern.pattern_type not in {"absence", "repeat"} and pattern.transitions:
             transitions = []
             ordered_stage_ids = [pattern.stages[0].stage_id]
             current = ordered_stage_ids[0]
@@ -130,7 +192,11 @@ def compile_event_patterns(
             output_types[node_id] = "EventSet"
             final_refs.append(f"${node_id}")
 
-        for gateway in pattern.gateways:
+        for gateway in (
+            pattern.gateways
+            if pattern.pattern_type not in {"absence", "repeat"}
+            else []
+        ):
             node_id = f"pattern_{pattern.pattern_id}_{gateway.gateway_id}"
             compiled_nodes.append(
                 {

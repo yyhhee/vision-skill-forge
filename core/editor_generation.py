@@ -13,6 +13,8 @@ from .editor_schema import (
     SkillEditorDocument,
     UserOverride,
 )
+from .document_hashes import refresh_document_hashes
+from .editor_migrations import migrate_editor_document
 from .legacy_importer import import_skill_package
 from .schema import SkillPackage
 from .semantic import find_incomplete_count_comparisons
@@ -25,7 +27,7 @@ def build_editor_document(
     *,
     source_type: str = "natural_language",
 ) -> SkillEditorDocument:
-    document = import_skill_package(package)
+    document = migrate_editor_document(import_skill_package(package))
     template = document.skill_template.model_copy(deep=True)
     template.source_type = source_type
     if source_type == "natural_language":
@@ -231,7 +233,7 @@ def build_editor_document(
         "pending_decisions": [item.model_dump(mode="json") for item in decisions],
         "issues": issues,
     })
-    return document.model_copy(
+    return refresh_document_hashes(document.model_copy(
         update={
             "skill_template": template,
             "validation_report": validation_report,
@@ -240,7 +242,7 @@ def build_editor_document(
                 issues=[] if source_type != "legacy" else document.compatibility.issues,
             ),
         }
-    )
+    ))
 
 
 def resolve_pending_decision(
@@ -264,6 +266,58 @@ def resolve_pending_decision(
         "duration": ("duration_seconds", "minimum_seconds"),
         "time_window": ("window_seconds",),
     }.get(decision.parameter_kind, ())
+    business_parameter_names = {
+        "comparison_operator": ("operator",),
+        "count_threshold": ("threshold",),
+        "duration": ("duration", "duration_seconds"),
+        "time_window": ("window", "window_seconds"),
+        "direction_reference": ("reference",),
+        "correlation": ("correlation_scope",),
+    }.get(decision.parameter_kind, ())
+
+    def walk(expression):
+        if expression is None:
+            return
+        yield expression
+        for child in expression.children:
+            yield from walk(child)
+
+    for branch in updated.skill_template.business_branches:
+        for expression in walk(branch.condition_root):
+            if expression.expression_id not in decision.affected_ids:
+                continue
+            parameter = next(
+                (
+                    name
+                    for name in business_parameter_names
+                    if name in expression.parameters
+                ),
+                business_parameter_names[0] if business_parameter_names else None,
+            )
+            if parameter:
+                expression.parameters[parameter] = value
+                expression.parameter_sources[parameter] = ResolvableValue(
+                    state="explicit",
+                    value=value,
+                    source="user",
+                    required_before="never",
+                )
+        if branch.branch_id in decision.affected_ids and decision.parameter_kind == "duration":
+            for qualifier in branch.temporal_qualifiers:
+                qualifier.duration_seconds = qualifier.duration_seconds.resolved(
+                    value
+                )
+    if decision.parameter_kind == "time_window":
+        for pattern in updated.skill_template.event_patterns:
+            if pattern.pattern_id not in decision.affected_ids:
+                continue
+            for gateway in pattern.gateways:
+                gateway.window_seconds = gateway.window_seconds.resolved(value)
+            for transition in pattern.transitions:
+                transition.maximum_delay_seconds = (
+                    transition.maximum_delay_seconds.resolved(value)
+                )
+            pattern.parameters["window_seconds"] = value
     for node_id in decision.affected_ids:
         node = next(
             (
@@ -303,7 +357,7 @@ def resolve_pending_decision(
         item.resolution.blocks("compile")
         for item in updated.skill_template.pending_decisions
     )
-    return updated
+    return refresh_document_hashes(updated)
 
 
 __all__ = ["build_editor_document", "resolve_pending_decision"]

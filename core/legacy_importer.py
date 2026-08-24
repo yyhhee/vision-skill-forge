@@ -7,6 +7,7 @@ from .editor_schema import (
     BusinessBranch,
     CardinalitySpec,
     CompatibilityInfo,
+    FinalDecisionSpec,
     ResourceCollection,
     ResourceInstance,
     ResourceRequirement,
@@ -18,6 +19,7 @@ from .editor_schema import (
     SceneProfile,
     SkillEditorDocument,
     SkillTemplate,
+    TriggerPolicy,
 )
 from .schema import ConfigurationSlot, SkillPackage
 
@@ -37,20 +39,54 @@ def _stable_resource_id(*parts: object) -> str:
     return "res_" + sha1(value.encode("utf-8")).hexdigest()[:24]
 
 
+def _result_display_name(package: SkillPackage, name: str) -> str:
+    fixed = {
+        "media": "标注结果",
+        "objects": "目标框",
+        "tracks": "目标轨迹",
+        "events": f"{package.display_name}事件",
+        "regions": "场景区域",
+        "directions": "参考方向",
+    }
+    if name in fixed:
+        return fixed[name]
+    if name.startswith("measurements"):
+        for variant in package.variants.values():
+            reference = variant.outputs.get(name, "")
+            node = next(
+                (item for item in variant.nodes if reference == f"${item.id}"),
+                None,
+            )
+            if node is None:
+                continue
+            if node.op == "measure.region_count@1.0":
+                return "各区域目标数量"
+            if node.op == "measure.region_speed@1.0":
+                return "各区域平均速度"
+            if node.op in {"measure.count@1.0", "reduce.count@1.0"}:
+                return "目标数量"
+            if node.op == "measure.heading@1.0":
+                return "运动方向"
+        return "测量结果"
+    return name.replace("_", " ")
+
+
 def _result_specs(package: SkillPackage) -> list[ResultSpec]:
-    names: OrderedDict[str, None] = OrderedDict()
-    for variant in package.variants.values():
+    names: OrderedDict[str, list[str]] = OrderedDict()
+    for media_type, variant in package.variants.items():
         for name in variant.outputs:
-            names.setdefault(name, None)
+            names.setdefault(name, []).append(media_type)
     return [
         ResultSpec(
             result_id=f"result_{name}",
             result_type=_RESULT_TYPES.get(name, "measurement"),
-            display_name=name,
+            display_name=_result_display_name(package, name),
+            source_ref=f"output:{name}",
+            media_types=media_types,
             required_outputs=[name],
             evidence_policy="required" if name == "events" else "optional",
         )
-        for name in names
+        for name, media_types in names.items()
     ]
 
 
@@ -194,10 +230,13 @@ def _node_kind(operator: str) -> str:
 
 def _rule_graph(package: SkillPackage, media_type: str) -> RuleGraph:
     variant = package.variants[media_type]
-    output_names = {}
+    slots_by_node: dict[str, list] = {}
+    for slot in variant.configuration_slots:
+        slots_by_node.setdefault(slot.binding.node_id, []).append(slot)
+    output_names: dict[str, list[str]] = {}
     for name, reference in variant.outputs.items():
         if reference.startswith("$"):
-            output_names.setdefault(reference[1:], name)
+            output_names.setdefault(reference[1:], []).append(name)
     atom_ids = {}
     for atom_id, node_ids in variant.atom_bindings.items():
         for node_id in node_ids:
@@ -225,7 +264,8 @@ def _rule_graph(package: SkillPackage, media_type: str) -> RuleGraph:
                 operator=node.op,
                 input_bindings=bindings,
                 semantic_atom_ids=atom_ids.get(node.id, []),
-                output_name=output_names.get(node.id),
+                output_name=(output_names.get(node.id) or [None])[0],
+                output_names=output_names.get(node.id, [])[1:],
                 params=node.params,
                 parameter_sources={
                     name: ResolvableValue(
@@ -237,38 +277,121 @@ def _rule_graph(package: SkillPackage, media_type: str) -> RuleGraph:
                     for name, value in node.params.items()
                     if value is not None
                 },
+                configuration_slots=slots_by_node.get(node.id, []),
                 enabled=node.enabled,
             )
         )
     return RuleGraph(nodes=rule_nodes, edges=edges)
 
 
-def _business_branches(graphs: dict[str, RuleGraph]) -> list[BusinessBranch]:
+def _primary_output_node(graph: RuleGraph) -> RuleNode | None:
+    output_nodes = [node for node in graph.nodes if node.output_name]
+    for preferred in ("events", "objects", "tracks"):
+        match = next(
+            (
+                node
+                for node in output_nodes
+                if preferred in [node.output_name, *node.output_names]
+            ),
+            None,
+        )
+        if match is not None:
+            return match
+    measurement = next(
+        (
+            node
+            for node in output_nodes
+            if any(
+                name and name.startswith("measurements")
+                for name in [node.output_name, *node.output_names]
+            )
+        ),
+        None,
+    )
+    if measurement is not None:
+        return measurement
+    if output_nodes:
+        return output_nodes[0]
+    if graph.nodes:
+        sources = {edge.source for edge in graph.edges}
+        return next(
+            (node for node in graph.nodes if node.node_id not in sources),
+            graph.nodes[-1],
+        )
+    return None
+
+
+def _business_branches(
+    package: SkillPackage, graphs: dict[str, RuleGraph]
+) -> list[BusinessBranch]:
     branches = []
     for media_type, graph in graphs.items():
-        output_nodes = [node for node in graph.nodes if node.output_name]
-        if not output_nodes and graph.nodes:
-            sources = {edge.source for edge in graph.edges}
-            output_nodes = [node for node in graph.nodes if node.node_id not in sources]
-        for index, root in enumerate(output_nodes, start=1):
-            ancestors = {root.node_id}
-            changed = True
-            while changed:
-                changed = False
-                for edge in graph.edges:
-                    if edge.target in ancestors and edge.source not in ancestors:
-                        ancestors.add(edge.source)
-                        changed = True
-            branches.append(
-                BusinessBranch(
-                    branch_id=f"{media_type}_branch_{index}",
-                    display_name=root.output_name or root.display_name,
-                    media_type=media_type,
-                    node_ids=[node.node_id for node in graph.nodes if node.node_id in ancestors],
-                    root_node_id=root.node_id,
-                )
+        root = _primary_output_node(graph)
+        if root is None:
+            continue
+        ancestors = {root.node_id}
+        changed = True
+        while changed:
+            changed = False
+            for edge in graph.edges:
+                if edge.target in ancestors and edge.source not in ancestors:
+                    ancestors.add(edge.source)
+                    changed = True
+        branches.append(
+            BusinessBranch(
+                branch_id=f"{media_type}_main",
+                display_name=package.display_name,
+                description=(
+                    "由当前已验证执行流程导入；可调整组成步骤参数，"
+                    "也可继续添加通用业务条件进行组合。"
+                ),
+                media_type=media_type,
+                node_ids=[node.node_id for node in graph.nodes if node.node_id in ancestors],
+                root_node_id=root.node_id,
+                evidence_policy="required",
             )
+        )
     return branches
+
+
+def _final_decision(
+    package: SkillPackage, result_specs: list[ResultSpec]
+) -> FinalDecisionSpec | None:
+    by_output = {
+        output: spec
+        for spec in result_specs
+        for output in spec.required_outputs
+    }
+    media_sources: dict[str, list[str]] = {}
+    for media_type, variant in package.variants.items():
+        selected = next(
+            (
+                output
+                for output in ("events", "objects", "tracks")
+                if output in variant.outputs
+            ),
+            None,
+        )
+        if selected is None:
+            selected = next(iter(variant.outputs), None)
+        if selected and selected in by_output:
+            media_sources[media_type] = [f"result:{by_output[selected].result_id}"]
+    sources = list(dict.fromkeys(
+        source for items in media_sources.values() for source in items
+    ))
+    if not sources:
+        return None
+    all_events = all(
+        source == "result:result_events" for source in sources
+    )
+    return FinalDecisionSpec(
+        display_name=f"{package.display_name}结果",
+        decision_type="event_decision" if all_events else "detection_summary",
+        source_ref=sources[0],
+        source_refs=sources,
+        media_source_refs=media_sources,
+        combination="AND",
+    )
 
 
 def import_skill_package(package: SkillPackage) -> SkillEditorDocument:
@@ -282,6 +405,7 @@ def import_skill_package(package: SkillPackage) -> SkillEditorDocument:
         media_type: _rule_graph(package, media_type)
         for media_type in package.input.accept
     }
+    result_specs = _result_specs(package)
     preferred_media = "video" if "video" in graphs else next(iter(graphs))
     template = SkillTemplate(
         skill_id=package.skill_id,
@@ -289,13 +413,19 @@ def import_skill_package(package: SkillPackage) -> SkillEditorDocument:
         original_instruction=package.original_instruction,
         source_type="legacy",
         semantic_ir=package.semantic_ir,
-        result_specs=_result_specs(package),
+        result_specs=result_specs,
+        final_decision=_final_decision(package, result_specs),
+        trigger_policy=TriggerPolicy(
+            mode="once" if any("events" in item.outputs for item in package.variants.values()) else "none",
+            outputs=["event_record", "annotated_media"],
+        ),
         rule_graph=graphs[preferred_media],
         rule_graphs=graphs,
-        business_branches=_business_branches(graphs),
+        business_branches=_business_branches(package, graphs),
         resource_requirements=requirements,
     )
     return SkillEditorDocument(
+        schema_version="3.0",
         version=package.version,
         skill_template=template,
         scene_profiles=[profile] if profile else [],

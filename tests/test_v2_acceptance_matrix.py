@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from core.runtime import detect_media_type
+import pytest
+
+from core.runtime import detect_media_type, require_single_media_source
 from core.schema import SkillPackage
 from scripts.run_v2_semantic_acceptance import CASES, PRESETS
 
@@ -52,3 +54,8 @@ def test_acceptance_matrix_media_and_expectations_match_declared_variants():
         package_path = next(PRESETS.glob(f"{case.preset_id}_*.json"))
         package = SkillPackage.model_validate_json(package_path.read_text("utf-8"))
         assert case.variant in package.input.accept
+
+
+def test_v3_runtime_rejects_multiple_media_sources_before_variant_selection():
+    with pytest.raises(ValueError, match="一次运行只接受一个"):
+        require_single_media_source(["a.jpg", "b.jpg"])  # type: ignore[arg-type]

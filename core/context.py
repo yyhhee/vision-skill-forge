@@ -319,6 +319,8 @@ class ExecutionResult:
     outputs: dict[str, Any]
     trace: list[TraceEntry]
     run_dir: Path
+    value_envelopes: list[Any] = field(default_factory=list)
+    evidence_records: list[Any] = field(default_factory=list)
 
 
 @dataclass

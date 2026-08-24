@@ -10,6 +10,7 @@ from core.editor_schema import (
     RuleEdge,
     RuleGraph,
     RuleNode,
+    TriggerPolicy,
     UserOverride,
 )
 from core.legacy_importer import import_skill_package
@@ -42,6 +43,9 @@ def test_rule_graph_compiles_to_existing_executable_package_and_atomic_plan():
     document = import_skill_package(_package())
     document.skill_template.rule_graph = _detection_graph()
     document.skill_template.rule_graphs = {}
+    document.skill_template.final_decision = None
+    document.skill_template.result_specs = []
+    document.skill_template.trigger_policy = TriggerPolicy()
 
     compiled = RuleGraphCompiler(build_default_registry()).compile_document(
         document, ["image"]
@@ -106,6 +110,8 @@ def test_rule_graph_rejects_cycles_and_ambiguous_input_ports():
 
 def test_event_pattern_compiles_independent_branch_durations_and_dynamic_join():
     document = import_skill_package(_package())
+    document.skill_template.final_decision = None
+    document.skill_template.result_specs = []
     nodes = [
         RuleNode(
             node_id="people",

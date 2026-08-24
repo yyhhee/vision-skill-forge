@@ -6,6 +6,8 @@ from typing import Any
 
 from .editor_schema import RuleGraph, SkillEditorDocument, UserOverride
 from .event_pattern import compile_event_patterns
+from .final_decision import compile_final_decision
+from .result_visualization import compile_result_visualization
 from .registry import OperatorRegistry
 from .schema import SkillPackage
 from .semantic import WorkflowCompiler
@@ -26,11 +28,10 @@ def validate_rule_graph(graph: RuleGraph, registry: OperatorRegistry) -> list[st
     incoming: dict[str, list] = {node_id: [] for node_id in node_by_id}
     outgoing: dict[str, list] = {node_id: [] for node_id in node_by_id}
     for edge in graph.edges:
-        if edge.source not in node_by_id:
-            errors.append(f"edge source does not exist: {edge.source}")
-            continue
-        if edge.target not in node_by_id:
-            errors.append(f"edge target does not exist: {edge.target}")
+        # Disabled alternatives remain in the editable graph so users can
+        # switch strategies later. Their internal edges are inactive too and
+        # must not invalidate the currently enabled execution path.
+        if edge.source not in node_by_id or edge.target not in node_by_id:
             continue
         incoming[edge.target].append(edge)
         outgoing[edge.source].append(edge)
@@ -137,6 +138,23 @@ class RuleGraphCompiler:
         atomic_variants = {}
         for media_type in requested:
             graph = graphs[media_type]
+            media_patterns = [
+                item
+                for item in template.event_patterns
+                if item.media_type == media_type
+            ]
+            media_results = [
+                item
+                for item in template.result_specs
+                if not item.media_types or media_type in item.media_types
+            ]
+            media_final = template.final_decision
+            if (
+                media_final is not None
+                and media_final.media_source_refs
+                and media_type not in media_final.media_source_refs
+            ):
+                media_final = None
             stream_required = any(
                 node.enabled
                 and node.operator is not None
@@ -146,7 +164,7 @@ class RuleGraphCompiler:
                     and float(node.params.get("seconds", 0.0)) == 0.0
                 )
                 for node in graph.nodes
-            ) or bool(template.event_patterns)
+            ) or bool(media_patterns)
             if media_type != "video" and stream_required:
                 message = "规则图包含轨迹或时序原子，需要视频"
                 variants[media_type] = {
@@ -165,8 +183,23 @@ class RuleGraphCompiler:
                 )
                 continue
             accepted.append(media_type)
+            business_sources = {
+                f"branch:{branch.branch_id}": branch.root_node_id
+                for branch in template.business_branches
+                if branch.media_type == media_type and branch.root_node_id
+            }
+            for node in graphs[media_type].nodes:
+                for source_ref in node.business_source_refs:
+                    business_sources[source_ref] = node.node_id
             variant = self._compile_variant(
-                graph, media_type, template.semantic_ir, template.event_patterns
+                graph,
+                media_type,
+                template.semantic_ir,
+                media_patterns,
+                business_sources,
+                media_final,
+                media_results,
+                template.trigger_policy,
             )
             variants[media_type] = variant
             atomic_variants[media_type] = variant
@@ -200,7 +233,17 @@ class RuleGraphCompiler:
             }
         )
 
-    def _compile_variant(self, graph, media_type, semantic_ir, event_patterns):
+    def _compile_variant(
+        self,
+        graph,
+        media_type,
+        semantic_ir,
+        event_patterns,
+        business_sources=None,
+        final_decision=None,
+        result_specs=None,
+        trigger_policy=None,
+    ):
         enabled = {node.node_id: node for node in graph.nodes if node.enabled}
         owns_media_pipeline = any(
             node.operator is not None and node.operator.startswith(f"media.{media_type}@")
@@ -235,6 +278,7 @@ class RuleGraphCompiler:
 
         atom_bindings: dict[str, list[str]] = {}
         outputs = {}
+        configuration_slots = []
         for node_id in ordered:
             rule = enabled[node_id]
             definition = self.registry.require(rule.operator)
@@ -270,10 +314,22 @@ class RuleGraphCompiler:
                     "params": deepcopy(rule.params),
                 }
             )
+            configuration_slots.extend(
+                slot.model_copy(
+                    update={
+                        "binding": slot.binding.model_copy(
+                            update={"node_id": node_id}
+                        )
+                    }
+                ).model_dump(mode="json")
+                for slot in rule.configuration_slots
+            )
             for atom_id in rule.semantic_atom_ids:
                 atom_bindings.setdefault(atom_id, []).append(node_id)
             if rule.output_name:
                 outputs[rule.output_name] = f"${node_id}"
+            for output_name in rule.output_names:
+                outputs[output_name] = f"${node_id}"
 
         if not outputs:
             leaves = [node_id for node_id in ordered if not outgoing[node_id]]
@@ -283,7 +339,29 @@ class RuleGraphCompiler:
             if constraint.atom_id and constraint.atom_id not in atom_bindings:
                 atom_bindings[constraint.atom_id] = fallback
         nodes, outputs = compile_event_patterns(
-            nodes, outputs, event_patterns, self.registry
+            nodes,
+            outputs,
+            event_patterns,
+            self.registry,
+            business_sources=business_sources,
+        )
+        nodes, outputs = compile_final_decision(
+            nodes,
+            outputs,
+            final_decision,
+            result_specs or [],
+            self.registry,
+            media_type=media_type,
+            business_sources=business_sources,
+            trigger_policy=trigger_policy,
+        )
+        nodes, outputs = compile_result_visualization(
+            nodes,
+            outputs,
+            result_specs or [],
+            trigger_policy,
+            self.registry,
+            frames_ref=frames_ref,
         )
         return {
             "media_type": media_type,
@@ -291,7 +369,7 @@ class RuleGraphCompiler:
             "nodes": nodes,
             "outputs": outputs,
             "atom_bindings": atom_bindings,
-            "configuration_slots": [],
+            "configuration_slots": configuration_slots,
         }
 
     @staticmethod

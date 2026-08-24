@@ -726,3 +726,29 @@ def test_realistic_color_paraphrase_ledgers_share_hash_despite_nonexecuted_phras
 
     assert normalized[0].semantic_hash == normalized[1].semantic_hash
     assert normalized[0].mode == normalized[1].mode == "entity_query"
+
+
+def test_alert_output_clause_cannot_be_hallucinated_as_temporal_evidence():
+    instruction = "检测人员，则发出告警。"
+    ledger = {
+        "mode": "workflow",
+        "target": {
+            "concept": "person",
+            "source_span": "人员",
+            "phrases": ["person"],
+        },
+        "constraints": [
+            {
+                "kind": "temporal",
+                "value": {"type": "persist", "seconds": 1},
+                "source": "则发出告警",
+                "source_span": "告警",
+                "temporal": True,
+            }
+        ],
+        "logic": "all",
+        "unresolved": [],
+    }
+
+    with pytest.raises(SemanticValidationError, match="temporal semantics require"):
+        SemanticNormalizer().normalize_ledger(ledger, instruction)

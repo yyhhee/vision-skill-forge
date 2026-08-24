@@ -81,6 +81,153 @@ def test_v2_planner_extracts_semantics_then_uses_deterministic_compiler():
     assert "source_span" in prompt
     assert "rex.ground@" not in prompt
     assert "Python" in prompt
+    assert "每个能够独立保存结果" in prompt
+    assert "full_frame 仅可作为 scope" in prompt
+    user_payload = json.loads(call["messages"][1]["content"])
+    assert user_payload["requested_skill_display_name"] == "红上衣灰裤人员"
+
+
+def test_v2_planner_validates_and_returns_optional_business_rule_draft():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    instruction = "检测人员并输出人员框。"
+    payload = {
+        "mode": "direct_grounding",
+        "target": {
+            "concept": "person",
+            "source_span": "人员",
+            "phrases": ["person"],
+        },
+        "constraints": [],
+        "logic": "all",
+        "unresolved": [],
+        "business_rule": {
+            "schema_version": "1.0",
+            "media_requirement": "image",
+            "branches": [
+                {
+                    "key": "people",
+                    "name": "人员检测",
+                    "media_type": "image",
+                    "conditions": [
+                        {
+                            "key": "detect",
+                            "name": "检测人员",
+                            "capability_id": "target.detect",
+                            "parameters": {
+                                "targets": ["person"],
+                                "phrases": "person",
+                                "business_label": "人员",
+                            },
+                        }
+                    ],
+                }
+            ],
+            "final_decision": {
+                "name": "人员检测结果",
+                "decision_type": "detection_summary",
+                "source_refs": ["branch:people"],
+            },
+            "results": [
+                {
+                    "key": "people_boxes",
+                    "name": "人员框",
+                    "source_ref": "condition:people.detect",
+                    "result_kind": "entities",
+                },
+                {
+                    "key": "decision",
+                    "name": "人员检测结果",
+                    "source_ref": "final:primary",
+                    "result_kind": "decision",
+                },
+            ],
+        },
+    }
+    fake = FakeClient([json.dumps(payload, ensure_ascii=False)])
+    planner = DeepSeekSemanticPlanner(
+        build_default_registry(), client=fake, model="deepseek-test"
+    )
+
+    result = planner.compile(
+        instruction,
+        requested_accept=["image"],
+        skill_id="people_business_draft",
+        display_name="人员业务草稿",
+    )
+
+    assert result.business_draft is not None
+    assert result.business_draft["branches"][0]["key"] == "people"
+    assert result.business_draft["results"][0]["result_kind"] == "entities"
+
+
+def test_static_auto_media_retries_a_business_draft_that_only_builds_video():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    instruction = "检测人员并输出人员框。"
+    first = {
+        "mode": "direct_grounding",
+        "target": {
+            "concept": "person",
+            "source_span": "人员",
+            "phrases": ["person"],
+        },
+        "constraints": [],
+        "logic": "all",
+        "unresolved": [],
+        "business_rule": {
+            "schema_version": "1.0",
+            "media_requirement": "video",
+            "branches": [
+                {
+                    "key": "people_video",
+                    "name": "视频人员检测",
+                    "media_type": "video",
+                    "conditions": [
+                        {
+                            "key": "detect",
+                            "name": "检测人员",
+                            "capability_id": "target.detect",
+                            "parameters": {
+                                "targets": ["person"],
+                                "phrases": "person",
+                            },
+                        }
+                    ],
+                }
+            ],
+            "final_decision": {
+                "name": "人员检测",
+                "source_refs": ["branch:people_video"],
+            },
+            "results": [
+                {
+                    "key": "decision",
+                    "name": "人员检测",
+                    "source_ref": "final:primary",
+                    "result_kind": "decision",
+                }
+            ],
+        },
+    }
+    repaired = {key: value for key, value in first.items() if key != "business_rule"}
+    fake = FakeClient(
+        [json.dumps(first, ensure_ascii=False), json.dumps(repaired, ensure_ascii=False)]
+    )
+    planner = DeepSeekSemanticPlanner(
+        build_default_registry(), client=fake, model="deepseek-test"
+    )
+
+    result = planner.compile(
+        instruction,
+        requested_accept=["image", "video"],
+        skill_id="auto_media_retry",
+        display_name="人员检测",
+    )
+
+    assert result.attempts == 2
+    assert result.package.input.accept == ["image", "video"]
+    assert "媒体流程" in result.errors[0]
 
 
 def test_v2_planner_accepts_optional_read_only_execution_context_without_putting_it_in_ir():
@@ -421,6 +568,25 @@ def test_v2_planner_returns_needs_review_without_direct_grounding_on_repeated_fa
     assert result.strategy == "needs_review"
     assert result.degraded is False
     assert len(result.errors) == 2
+    assert all("Expecting value" not in item for item in result.errors)
+    assert all("无法读取" in item for item in result.errors)
+
+
+def test_v2_planner_accepts_json_fence_without_exposing_parser_details():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    fenced = "```json\n" + json.dumps(_red_gray_ledger(), ensure_ascii=False) + "\n```"
+    result = DeepSeekSemanticPlanner(
+        build_default_registry(), client=FakeClient([fenced])
+    ).compile(
+        "检测穿红色上衣、灰色裤子的人。",
+        requested_accept=["image"],
+        skill_id="fenced_business_rule",
+        display_name="围栏JSON兼容",
+    )
+
+    assert result.package is not None
+    assert result.attempts == 1
 
 
 def test_v2_planner_paraphrases_share_semantic_hash_and_workflow_topology():

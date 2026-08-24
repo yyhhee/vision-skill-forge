@@ -82,8 +82,9 @@ def test_ui_keeps_five_steps_adds_generic_atoms_and_hides_internal_region_id(tmp
     config = build_v2_app(_controller(tmp_path)).get_config_file()
     dumped = json.dumps(config, ensure_ascii=False)
     assert "01 创建" in dumped and "05 资产" in dumped
-    assert "统一规则编排中心" in dumped
-    assert "业务事件快捷配置" in dumped
+    assert "事件规则编辑｜条件分支、时间编排、最终判定与业务输出" in dumped
+    assert "复杂事件编排" in dumped
+    assert "业务输出规格" in dumped
     assert "完整校验并应用为当前运行版本" in dumped
     internal_id = next(
         component
@@ -93,7 +94,7 @@ def test_ui_keeps_five_steps_adds_generic_atoms_and_hides_internal_region_id(tmp
     assert internal_id["props"]["visible"] is False
 
 
-def test_business_rule_editor_is_primary_and_atomic_graph_is_advanced(tmp_path):
+def test_business_rule_editor_is_primary_and_atomic_graph_is_hidden(tmp_path):
     config = build_v2_app(_controller(tmp_path)).get_config_file()
     accordions = {
         component.get("props", {}).get("label", ""): component.get("props", {})
@@ -102,7 +103,7 @@ def test_business_rule_editor_is_primary_and_atomic_graph_is_advanced(tmp_path):
     }
     business = next(
         props for label, props in accordions.items()
-        if label.startswith("业务规则配置")
+        if label.startswith("事件规则编辑")
     )
     advanced = next(
         props for label, props in accordions.items()
@@ -110,6 +111,12 @@ def test_business_rule_editor_is_primary_and_atomic_graph_is_advanced(tmp_path):
     )
     assert business["open"] is True
     assert advanced["open"] is False
+    assert advanced["visible"] is False
+    compatibility = next(
+        props for label, props in accordions.items()
+        if label == "旧事件规则兼容区"
+    )
+    assert compatibility["visible"] is False
 
 
 def test_empty_advanced_editor_dependencies_return_calm_empty_state(tmp_path):
@@ -117,6 +124,6 @@ def test_empty_advanced_editor_dependencies_return_calm_empty_state(tmp_path):
     parameter, value = controller.unified_node_parameters(
         "", "image variant", None
     )
-    assert parameter.value is None
+    assert parameter["value"] is None
     assert value == ""
     assert controller.unified_parameter_value("", "image variant", "", "") == ""

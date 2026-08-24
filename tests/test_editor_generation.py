@@ -68,14 +68,33 @@ def test_recipe_catalog_is_composed_only_from_registered_generic_atoms():
 
 def test_all_p01_to_p13_presets_project_without_losing_variants_or_outputs():
     from pathlib import Path
+    from core.business_capabilities import build_business_capability_registry
+    from core.business_rule_editor import BusinessRuleEditor
+    from core.editor_service import EditorService
+    from core.registry import build_default_registry
 
     paths = sorted(Path("presets_v2").glob("P*.json"))
     assert len(paths) == 13
+    registry = build_default_registry()
+    editor = BusinessRuleEditor(
+        build_business_capability_registry(registry), registry
+    )
+    service = EditorService(registry)
     for path in paths:
         package = SkillPackage.model_validate_json(path.read_text("utf-8"))
-        document = build_editor_document(package, source_type="preset")
+        document = editor.prepare(
+            build_editor_document(package, source_type="preset")
+        )
         assert set(document.skill_template.rule_graphs) == set(package.input.accept)
         assert document.effective_skill_package == package
+        assert len(document.skill_template.business_branches) == len(package.input.accept)
+        assert {
+            item.media_type for item in document.skill_template.business_branches
+        } == set(package.input.accept)
+        assert all(
+            item.display_name == package.display_name
+            for item in document.skill_template.business_branches
+        )
         expected_outputs = {
             name for variant in package.variants.values() for name in variant.outputs
         }
@@ -85,3 +104,85 @@ def test_all_p01_to_p13_presets_project_without_losing_variants_or_outputs():
             for name in spec.required_outputs
         }
         assert expected_outputs <= actual_outputs
+        for spec in document.skill_template.result_specs:
+            assert spec.source_ref == f"output:{spec.required_outputs[0]}"
+            assert spec.media_types
+        final = document.skill_template.final_decision
+        assert final is not None
+        assert set(final.media_source_refs) == set(package.input.accept)
+
+        # Loading a preset into 03 and compiling it again must preserve every
+        # proven legacy node while adding only generic final/result nodes.
+        compiled = service.apply(document)
+        for media_type, original in package.variants.items():
+            actual = compiled.effective_skill_package.variants[media_type]
+            original_ids = {node.id for node in original.nodes if node.enabled}
+            assert original_ids <= {node.id for node in actual.nodes}
+
+
+def test_detection_preset_final_is_an_explicit_non_empty_set_decision():
+    from pathlib import Path
+    from core.business_capabilities import build_business_capability_registry
+    from core.business_rule_editor import BusinessRuleEditor
+    from core.editor_service import EditorService
+    from core.registry import build_default_registry
+
+    package = _preset("P03")
+    registry = build_default_registry()
+    document = BusinessRuleEditor(
+        build_business_capability_registry(registry), registry
+    ).prepare(build_editor_document(package, source_type="preset"))
+    compiled = EditorService(registry).apply(document)
+
+    for media_type in package.input.accept:
+        variant = compiled.effective_skill_package.variants[media_type]
+        nodes = {node.id: node for node in variant.nodes}
+        final_ref = variant.outputs["final_primary"]
+        final_node = nodes[final_ref[1:]]
+        assert final_node.op == "logic.compare@1.0"
+        assert final_node.params == {"operator": ">", "value": 0}
+        count_ref = final_node.inputs["left"]
+        assert nodes[count_ref[1:]].op == "measure.count@1.0"
+
+
+def test_preset_business_branch_exposes_editable_existing_steps_without_rebuilding_recipe():
+    from core.business_capabilities import build_business_capability_registry
+    from core.business_rule_editor import BusinessRuleEditor
+    from core.registry import build_default_registry
+
+    package = _preset("P04")
+    registry = build_default_registry()
+    editor = BusinessRuleEditor(
+        build_business_capability_registry(registry), registry
+    )
+    document = editor.prepare(build_editor_document(package, source_type="preset"))
+    branch = document.skill_template.business_branches[0]
+    rows = editor.condition_rows(document, branch.branch_id)
+
+    assert rows[0]["kind"] == "导入判定"
+    assert {item["category"] for item in rows[1:]} >= {
+        "数量与测量", "轨迹与运动", "时间与复杂编排"
+    }
+    compare = next(
+        item for item in rows
+        if item["condition_id"] == "existing_node:many"
+    )
+    params = editor.parameter_rows(
+        document, branch.branch_id, compare["condition_id"]
+    )
+    assert {item["name"] for item in params} >= {"比较方式", "比较值"}
+
+    updated = editor.update_condition(
+        document,
+        branch.branch_id,
+        compare["condition_id"],
+        display_name="车辆不少于6辆",
+        parameters={"operator": ">=", "threshold": 6},
+    )
+    node = next(
+        item
+        for item in updated.skill_template.rule_graphs["video"].nodes
+        if item.node_id == "many"
+    )
+    assert node.display_name == "车辆不少于6辆"
+    assert node.params["value"] == 6

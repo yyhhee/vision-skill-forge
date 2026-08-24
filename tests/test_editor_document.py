@@ -133,5 +133,5 @@ def test_skill_document_store_versions_v3_and_imports_v2_files(tmp_path):
         json.dumps(data, ensure_ascii=False), encoding="utf-8"
     )
     imported = store.load("legacy_copy", 1)
-    assert imported.schema_version == "3.0"
+    assert imported.schema_version == "3.2"
     assert imported.effective_skill_package.skill_id == "legacy_copy"

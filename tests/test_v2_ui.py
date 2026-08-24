@@ -22,6 +22,29 @@ def test_json_object_or_empty_preserves_ui_after_a_failed_generation():
     }
 
 
+def test_generic_parameter_editor_covers_every_registered_business_parameter_type(tmp_path):
+    from app_v2 import SUPPORTED_BUSINESS_PARAMETER_EDITORS
+
+    controller = _controller(tmp_path)
+    registered = {
+        parameter.editor
+        for capability in controller.business_capabilities.definitions()
+        for parameter in capability.parameters
+    }
+
+    assert registered <= SUPPORTED_BUSINESS_PARAMETER_EDITORS
+    assert {
+        "text",
+        "number",
+        "select",
+        "multi_select",
+        "scene_resource_select",
+        "direction_resource_select",
+        "source_select",
+    } <= registered
+    assert "boolean" in SUPPORTED_BUSINESS_PARAMETER_EDITORS
+
+
 def test_annotation_guidance_is_generic_and_video_sampling_defaults_to_one_fps():
     from app_v2 import ANNOTATION_GUIDANCE_MARKDOWN
     from core.preset_factory import start_nodes
@@ -32,6 +55,123 @@ def test_annotation_guidance_is_generic_and_video_sampling_defaults_to_one_fps()
     assert build_default_registry().require("video.sample@1.1").defaults["fps"] == 1.0
     nodes, _, _ = start_nodes("video")
     assert next(node for node in nodes if node["id"] == "frames")["params"]["fps"] == 1.0
+
+
+def test_empty_business_secondary_controls_match_all_18_frontend_outputs(tmp_path):
+    controller = _controller(tmp_path)
+
+    values = controller.business_secondary_controls("", "image")
+
+    assert len(values) == 18
+    assert values[6:13] == (
+        "最终结果", "event_decision", values[8], "AND", 1, True, True
+    )
+    assert values[14:] == ("none", 0, "medium", ["event_record"])
+
+
+def test_preset_business_parameter_change_compiles_to_the_current_effective_package(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P04_highway_congestion.json"
+    ).read_text("utf-8")
+    document = controller._editor_document(effective, "", source_type="preset")
+    document = controller.business_rule_editor.prepare(document)
+    branch = document.skill_template.business_branches[0]
+    document = controller.business_rule_editor.update_condition(
+        document,
+        branch.branch_id,
+        "existing_node:many",
+        parameters={"operator": ">=", "threshold": 6},
+    )
+
+    compiled_json, package_json, status = controller.unified_validate_apply(
+        controller._dump(document)
+    )
+
+    compiled = controller._parse_editor_json(compiled_json)
+    package = SkillPackage.model_validate_json(package_json)
+    many = next(node for node in package.variants["video"].nodes if node.id == "many")
+    assert many.params["value"] == 6
+    assert compiled.effective_skill_package == package
+    assert "当前运行版本已更新" in status
+
+
+def test_business_parameters_use_controlled_editor_instead_of_freeform_table(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P04_highway_congestion.json"
+    ).read_text("utf-8")
+    document = controller.business_rule_editor.prepare(
+        controller._editor_document(effective, "", source_type="preset")
+    )
+    branch = document.skill_template.business_branches[0]
+    editor_json = controller._dump(document)
+
+    controls = controller.business_parameter_controls(
+        editor_json,
+        "video",
+        branch.branch_id,
+        "existing_node:many",
+        False,
+        "operator",
+    )
+
+    assert controls[2]["visible"] is True
+    assert ("大于（>）", ">") in controls[2]["choices"]
+    assert ("小于等于（<=）", "<=") in controls[2]["choices"]
+    assert controls[1]["visible"] is False
+
+    updated_json, status = controller.business_apply_parameter(
+        editor_json,
+        branch.branch_id,
+        "existing_node:many",
+        "operator",
+        "<",
+        [],
+        None,
+        None,
+        None,
+        None,
+        False,
+    )
+    updated = controller._parse_editor_json(updated_json)
+    graph = updated.skill_template.rule_graphs["video"]
+    assert next(node for node in graph.nodes if node.node_id == "many").params["operator"] == "<"
+    assert "比较方式" in status
+
+    target_condition = next(
+        row["condition_id"]
+        for row in controller.business_rule_editor.condition_rows(
+            document, branch.branch_id
+        )
+        if row.get("capability_id") == "target.detect"
+    )
+    target_values = controller.business_parameter_controls(
+        editor_json,
+        "video",
+        branch.branch_id,
+        target_condition,
+        False,
+        "targets",
+    )
+    assert target_values[7]["visible"] is True
+    assert target_values[7]["value"] == "车辆"
+    assert "逗号分隔" in target_values[8]
+
+    phrase = controller.business_parameter_controls(
+        editor_json,
+        "video",
+        branch.branch_id,
+        target_condition,
+        False,
+        "phrases",
+    )
+    assert phrase[6]["visible"] is True
+    assert "可直接修改" in phrase[8]
 
 
 def test_video_sampling_editor_defaults_to_one_fps(tmp_path):
@@ -1365,6 +1505,14 @@ def test_preferred_executable_variant_uses_video_for_a_temporal_skill(tmp_path):
     assert controller.preferred_executable_variant(effective, "image") == "video"
 
 
+def test_empty_generation_output_does_not_cascade_into_json_parse_errors(tmp_path):
+    controller = _controller(tmp_path)
+
+    assert controller.preferred_executable_variant("", "image") == "image"
+    with pytest.raises(ValueError, match="请先生成或加载技能"):
+        controller._parse_editor_json("")
+
+
 def test_natural_generation_syncs_the_executable_variant_to_the_run_control(tmp_path):
     """A video-only natural skill must not leave the run page on image."""
     from app_v2 import build_v2_app
@@ -1676,6 +1824,269 @@ def test_compile_maps_three_ui_media_choices_to_explicit_requested_accept(tmp_pa
         assert json.loads(semantic)["target"]["concept"] == "person"
         assert "自然语言生成" in source
         assert "Semantic IR" in status
+
+
+def test_media_choice_must_be_explicit_and_auto_choice_is_rejected(tmp_path):
+    package = _package()
+    planner = Planner(package)
+    controller = _controller(tmp_path, planner=planner)
+
+    with pytest.raises(gr.Error, match="请选择媒体能力"):
+        controller.compile_skill(
+            "检测人", "自动判断（推荐）", "auto_person", "自动人员检测"
+        )
+
+    assert planner.calls == []
+
+
+def test_natural_business_draft_is_cached_as_the_single_03_document(tmp_path):
+    package = _package()
+    data = package.model_dump(mode="json")
+    data["input"]["requested_accept"] = ["image"]
+    data["input"]["accept"] = ["image"]
+    data["variants"] = {"image": data["variants"]["image"]}
+    package = SkillPackage.model_validate(data)
+    planner = Planner(package)
+    planner_draft = {
+        "schema_version": "1.0",
+        "media_requirement": "image",
+        "branches": [
+            {
+                "key": "people",
+                "name": "人员检测",
+                "media_type": "image",
+                "conditions": [
+                    {
+                        "key": "detect",
+                        "name": "检测人员",
+                        "capability_id": "target.detect",
+                        "parameters": {
+                            "targets": ["person"],
+                            "phrases": "person",
+                            "business_label": "人员",
+                        },
+                    }
+                ],
+            }
+        ],
+        "final_decision": {
+            "name": "人员检测结果",
+            "decision_type": "detection_summary",
+            "source_refs": ["branch:people"],
+        },
+        "results": [
+            {
+                "key": "people_boxes",
+                "name": "人员框",
+                "source_ref": "condition:people.detect",
+                "result_kind": "entities",
+            },
+            {
+                "key": "decision",
+                "name": "人员检测结果",
+                "source_ref": "final:primary",
+                "result_kind": "decision",
+            },
+        ],
+    }
+
+    def compile_with_draft(instruction, **kwargs):
+        result = Planner.compile(planner, instruction, **kwargs)
+        result.business_draft = planner_draft
+        return result
+
+    planner.compile = compile_with_draft
+    controller = _controller(tmp_path, planner=planner)
+    _, effective, _, status, _ = controller.compile_skill(
+        "检测人员并输出人员框", "仅图片", "people_draft", "人员检测"
+    )
+    document = controller._editor_document(
+        effective, "", source_type="natural_language"
+    )
+
+    assert document.skill_template.business_branches[0].display_name == "人员检测"
+    assert (
+        document.skill_template.business_branches[0].condition_root.capability_id
+        == "target.detect"
+    )
+    assert "final_primary" in json.loads(effective)["variants"]["image"]["outputs"]
+    assert "业务分支" in status
+
+
+def test_natural_complex_event_draft_compiles_time_sequence_outputs_and_media(tmp_path):
+    data = _package().model_dump(mode="json")
+    data["input"]["requested_accept"] = ["video"]
+    data["input"]["accept"] = ["video"]
+    data["variants"] = {"video": data["variants"]["video"]}
+    planner = Planner(SkillPackage.model_validate(data))
+    planner_draft = {
+        "schema_version": "1.0",
+        "media_requirement": "video",
+        "branches": [
+            {
+                "key": "congestion",
+                "name": "车辆数量持续超限",
+                "media_type": "video",
+                "conditions": [
+                    {
+                        "key": "vehicles",
+                        "name": "检测车辆",
+                        "capability_id": "target.detect",
+                        "parameters": {"targets": ["vehicle"], "phrases": "vehicle"},
+                    },
+                    {
+                        "key": "count",
+                        "name": "车辆数大于2",
+                        "capability_id": "measure.count",
+                        "parameters": {
+                            "source": "condition:vehicles",
+                            "scope": "full_frame",
+                            "operator": ">",
+                            "threshold": 2,
+                        },
+                    },
+                ],
+                "time": {
+                    "mode": "continuous",
+                    "duration_seconds": 2,
+                    "identity_scope": "global",
+                },
+            },
+            {
+                "key": "accident",
+                "name": "交通事故",
+                "media_type": "video",
+                "conditions": [
+                    {
+                        "key": "detect",
+                        "name": "检测交通事故",
+                        "capability_id": "target.detect",
+                        "parameters": {
+                            "targets": ["traffic_accident"],
+                            "phrases": "traffic accident",
+                            "business_label": "交通事故",
+                        },
+                    },
+                    {
+                        "key": "event",
+                        "name": "交通事故事件",
+                        "capability_id": "event.detect_or_compose",
+                        "parameters": {
+                            "source": "condition:detect",
+                            "scope": "full_frame",
+                            "method": "visible_detection",
+                            "event_label": "交通事故",
+                        },
+                    },
+                ],
+            },
+            {
+                "key": "smoke",
+                "name": "烟火爆炸持续",
+                "media_type": "video",
+                "conditions": [
+                    {
+                        "key": "detect",
+                        "name": "检测烟火爆炸",
+                        "capability_id": "target.detect",
+                        "parameters": {
+                            "targets": ["fire_smoke_explosion"],
+                            "phrases": "fire smoke explosion",
+                            "business_label": "烟火爆炸",
+                        },
+                    }
+                ],
+                "time": {
+                    "mode": "continuous",
+                    "duration_seconds": 3,
+                    "identity_scope": "global",
+                },
+            },
+        ],
+        "patterns": [
+            {
+                "key": "accident_then_smoke",
+                "name": "事故后30秒内发生烟火爆炸",
+                "media_type": "video",
+                "mode": "sequence",
+                "branch_keys": ["accident", "smoke"],
+                "window_seconds": 30,
+            }
+        ],
+        "final_decision": {
+            "name": "复杂事件告警",
+            "decision_type": "timeline_summary",
+            "source_refs": ["branch:congestion", "event:accident_then_smoke"],
+            "combination": "AND",
+        },
+        "results": [
+            {
+                "key": "vehicle_count",
+                "name": "实际车辆数量",
+                "source_ref": "condition:congestion.count",
+                "result_kind": "count",
+                "unit": "辆",
+            },
+            {
+                "key": "smoke_boxes",
+                "name": "烟火爆炸框",
+                "source_ref": "condition:smoke.detect",
+                "result_kind": "entities",
+                "evidence_policy": "required",
+            },
+            {
+                "key": "timeline",
+                "name": "事故后烟火时间线",
+                "source_ref": "event:accident_then_smoke",
+                "result_kind": "timeline",
+            },
+            {
+                "key": "decision",
+                "name": "复杂事件告警",
+                "source_ref": "final:primary",
+                "result_kind": "decision",
+            },
+        ],
+        "trigger_policy": {
+            "mode": "once",
+            "cooldown_seconds": 30,
+            "severity": "high",
+            "outputs": ["event_record", "annotated_media"],
+        },
+    }
+
+    def compile_with_draft(instruction, **kwargs):
+        result = Planner.compile(planner, instruction, **kwargs)
+        result.business_draft = planner_draft
+        return result
+
+    planner.compile = compile_with_draft
+    controller = _controller(tmp_path, planner=planner)
+    _, effective, _, status, _ = controller.compile_skill(
+        "车辆数持续超限，并且事故后30秒内出现持续烟火，则告警并输出数量、时间线和框",
+        "仅视频",
+        "complex_event_draft",
+        "复杂事件告警",
+    )
+    package = SkillPackage.model_validate_json(effective)
+    operators = {item.op for item in package.variants["video"].nodes}
+    document = controller._editor_document(
+        effective, "", source_type="natural_language"
+    )
+
+    assert "measure.count@1.0" in operators
+    assert "temporal.qualify@1.0" in operators
+    assert "temporal.sequence@2.0" in operators
+    assert "output.draw@1.0" in operators
+    assert "media" in package.variants["video"].outputs
+    assert len(document.skill_template.event_patterns) == 1
+    assert {item.display_name for item in document.skill_template.result_specs} == {
+        "实际车辆数量",
+        "烟火爆炸框",
+        "事故后烟火时间线",
+        "复杂事件告警",
+    }
+    assert "业务分支" in status
 
 
 def test_effective_variant_can_be_extracted_edited_and_written_back(tmp_path):
@@ -2276,6 +2687,8 @@ def test_v2_app_exposes_media_variants_semantics_preprocessing_and_results(tmp_p
     demo = build_v2_app(_controller(tmp_path))
     assert isinstance(demo, gr.Blocks)
     config = json.dumps(demo.get_config_file(), ensure_ascii=False)
+    assert "自动判断（推荐）" not in config
+    assert "最终结果类型" not in config
     for label in [
         "按五步完成一次视觉任务",
         "01 创建技能",

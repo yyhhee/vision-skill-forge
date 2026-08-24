@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .context import ExecutionResult, ExecutionServices, TraceEntry, summarize
+from .evidence_index import EvidenceIndex
 from .registry import OperatorRegistry
+from .runtime_values import LegacyOutputEnvelopeAdapter
 from .schema import VisualSkillSpec
 from .validator import assert_valid_skill
 
@@ -102,7 +104,35 @@ class ExecutionEngine:
                 )
             )
         outputs = {name: values[ref[1:]] for name, ref in spec.outputs.items()}
-        return ExecutionResult(values, outputs, trace, Path(self.services.output_dir))
+        runtime_contract = self.services.state.get("runtime_contract") or {}
+        published_sources = dict(runtime_contract.get("published_sources") or {})
+        for output_name, ref in spec.outputs.items():
+            published_sources.setdefault(f"output:{output_name}", ref[1:])
+        adapter = LegacyOutputEnvelopeAdapter()
+        evidence_index = EvidenceIndex()
+        envelopes = []
+        for source_ref, node_id in sorted(published_sources.items()):
+            value = values.get(node_id)
+            if value is None:
+                continue
+            envelope, records = adapter.wrap(
+                run_id=str(self.services.state.get("run_id") or "unpersisted"),
+                source_node_id=node_id,
+                business_source_ref=source_ref,
+                value=value,
+                media_asset_id=self.services.state.get("media_asset_id"),
+            )
+            envelopes.append(envelope)
+            for record in records:
+                evidence_index.add(record)
+        return ExecutionResult(
+            values,
+            outputs,
+            trace,
+            Path(self.services.output_dir),
+            envelopes,
+            evidence_index.records,
+        )
 
 
 __all__ = ["ExecutionEngine", "ExecutionServices"]

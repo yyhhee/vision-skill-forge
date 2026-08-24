@@ -5,6 +5,7 @@ import re
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -147,6 +148,9 @@ class SkillDocumentStore:
         skill_id: str | None = None,
         display_name: str | None = None,
     ) -> Path:
+        from .editor_migrations import migrate_editor_document
+
+        document = migrate_editor_document(document)
         identity = SkillStore._validate_name(
             (skill_id or document.skill_template.skill_id).strip()
         )
@@ -169,12 +173,17 @@ class SkillDocumentStore:
         identity = SkillStore._validate_name(skill_id)
         path = self.root / identity / f"{version}.json"
         data = json.loads(path.read_text(encoding="utf-8"))
-        if data.get("schema_version") == "3.0":
-            return SkillEditorDocument.model_validate(data)
+        if data.get("schema_version") in {"3.0", "3.1", "3.2"}:
+            from .editor_migrations import migrate_editor_document
+
+            return migrate_editor_document(data)
         if data.get("schema_version") == "2.0":
+            from .editor_migrations import migrate_editor_document
             from .legacy_importer import import_skill_package
 
-            return import_skill_package(SkillPackage.model_validate(data))
+            return migrate_editor_document(
+                import_skill_package(SkillPackage.model_validate(data))
+            )
         raise ValueError(f"unsupported skill document schema: {data.get('schema_version')}")
 
     def list_versions(self) -> list[str]:
@@ -197,6 +206,51 @@ class RunStore:
         run_dir = self.root / run_id
         (run_dir / "evidence").mkdir(parents=True, exist_ok=False)
         return run_id, run_dir
+
+    def save_runtime_facts(
+        self,
+        run_dir: Path,
+        *,
+        runtime_values: list[Any],
+        evidence_index: Any,
+        runtime_contract: dict[str, Any] | None = None,
+    ) -> dict[str, Path]:
+        paths = {
+            "runtime_values": run_dir / "runtime_values.json",
+            "evidence_index": run_dir / "evidence" / "index.json",
+            "runtime_contract": run_dir / "runtime_contract.json",
+        }
+        write_json(
+            paths["runtime_values"],
+            [
+                item.model_dump(mode="json")
+                if hasattr(item, "model_dump")
+                else item
+                for item in runtime_values
+            ],
+        )
+        write_json(
+            paths["evidence_index"],
+            evidence_index.to_dict()
+            if hasattr(evidence_index, "to_dict")
+            else evidence_index,
+        )
+        write_json(paths["runtime_contract"], runtime_contract or {})
+        return paths
+
+    def load_runtime_facts(self, run_id: str) -> dict[str, Any]:
+        run_dir = self.root / run_id
+        return {
+            "runtime_values": json.loads(
+                (run_dir / "runtime_values.json").read_text("utf-8")
+            ),
+            "evidence_index": json.loads(
+                (run_dir / "evidence" / "index.json").read_text("utf-8")
+            ),
+            "runtime_contract": json.loads(
+                (run_dir / "runtime_contract.json").read_text("utf-8")
+            ),
+        }
 
 
 __all__ = [

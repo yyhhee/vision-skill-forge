@@ -4,6 +4,8 @@ import re
 from copy import deepcopy
 from typing import Any
 
+from .business_capabilities import build_business_capability_registry
+from .business_rule_compiler import BusinessRuleCompileError, BusinessRuleCompiler
 from .editor_schema import (
     BusinessBranch,
     EventPattern,
@@ -14,6 +16,9 @@ from .editor_schema import (
     SkillEditorDocument,
     UserOverride,
 )
+from .document_hashes import refresh_document_hashes
+from .editor_migrations import migrate_editor_document
+from .result_presentation_schema import PresentationSpec
 from .registry import OperatorDefinition, OperatorRegistry
 from .recipes import build_recipe_catalog
 from .resource_requirements import requirement_status
@@ -32,6 +37,9 @@ class EditorService:
     def __init__(self, registry: OperatorRegistry):
         self.registry = registry
         self.compiler = RuleGraphCompiler(registry)
+        self.business_compiler = BusinessRuleCompiler(
+            registry, build_business_capability_registry(registry)
+        )
 
     def operator_catalog(self) -> list[dict[str, Any]]:
         return [
@@ -348,9 +356,52 @@ class EditorService:
         result.skill_template.result_specs = parsed
         return self._touch(result)
 
-    def validate(self, document: SkillEditorDocument) -> dict[str, Any]:
+    def set_presentation_specs(
+        self,
+        document: SkillEditorDocument,
+        specs: list[dict[str, Any]] | list[PresentationSpec],
+    ) -> SkillEditorDocument:
+        result = migrate_editor_document(document).model_copy(deep=True)
+        try:
+            parsed = [PresentationSpec.model_validate(item) for item in specs]
+        except Exception as exc:
+            raise EditorMutationError(f"结果展示配置无效：{exc}") from exc
+        result_ids = {item.result_id for item in result.skill_template.result_specs}
+        presented_ids = [item.result_id for item in parsed]
+        if len(set(presented_ids)) != len(presented_ids):
+            raise EditorMutationError("结果展示配置存在重复 result_id")
+        unknown = set(presented_ids) - result_ids
+        if unknown:
+            raise EditorMutationError(
+                "结果展示配置引用未知结果：" + "、".join(sorted(unknown))
+            )
+        result.skill_template.presentation_specs = parsed
+        result.version += 1
+        return refresh_document_hashes(result)
+
+    def validate(
+        self,
+        document: SkillEditorDocument,
+        *,
+        _business_compiled: bool = False,
+    ) -> dict[str, Any]:
+        document = migrate_editor_document(document)
         errors = []
         warnings = []
+        if not _business_compiled and any(
+            branch.condition_root is not None
+            for branch in document.skill_template.business_branches
+        ):
+            try:
+                document = self.business_compiler.compile_document(document)
+            except BusinessRuleCompileError as exc:
+                return {
+                    "valid": False,
+                    "errors": [str(exc)],
+                    "warnings": [],
+                    "pending": [],
+                    "resource_blockers": [],
+                }
         for media_type, graph in document.skill_template.rule_graphs.items():
             errors.extend(f"{media_type}: {item}" for item in validate_rule_graph(graph, self.registry))
             nodes = {item.node_id: item for item in graph.nodes if item.enabled}
@@ -404,6 +455,30 @@ class EditorService:
                     for item in requirement_status(document.skill_template, profile)
                     if not item["configured"] and item["required_before"] in {"compile", "run"}
                 ]
+        result_ids = {
+            item.result_id for item in document.skill_template.result_specs
+        }
+        for spec in document.skill_template.result_specs:
+            if spec.source_ref is None:
+                errors.append(f"业务输出 {spec.display_name} 尚未选择结果来源")
+        final = document.skill_template.final_decision
+        if final is None:
+            errors.append("技能必须配置一个唯一最终判定")
+        elif final.source_ref.startswith("result:"):
+            source_result_id = final.source_ref.split(":", 1)[1]
+            if source_result_id not in result_ids:
+                errors.append(
+                    f"最终判定引用了不存在的业务输出：{source_result_id}"
+                )
+        presentation_ids = {
+            item.result_id for item in document.skill_template.presentation_specs
+        }
+        missing_presentations = result_ids - presentation_ids
+        if missing_presentations:
+            warnings.append(
+                "以下业务输出将使用通用展示："
+                + "、".join(sorted(missing_presentations))
+            )
         return {
             "valid": not errors and not pending and not resource_blockers,
             "errors": errors,
@@ -413,7 +488,16 @@ class EditorService:
         }
 
     def apply(self, document: SkillEditorDocument) -> SkillEditorDocument:
-        report = self.validate(document)
+        document = migrate_editor_document(document)
+        if any(
+            branch.condition_root is not None
+            for branch in document.skill_template.business_branches
+        ):
+            try:
+                document = self.business_compiler.compile_document(document)
+            except BusinessRuleCompileError as exc:
+                raise RuleGraphCompileError(str(exc)) from exc
+        report = self.validate(document, _business_compiled=True)
         if report["errors"]:
             raise RuleGraphCompileError("\n".join(report["errors"]))
         compiled = self.compiler.compile_document(document)
@@ -446,7 +530,21 @@ class EditorService:
             "resource_blockers": resource_blockers,
             "can_run": can_run,
         }
-        return compiled
+        compiled.readiness = compiled.readiness.model_copy(
+            update={
+                "draft_valid": not bool(report.get("errors")),
+                "review_complete": not bool(run_blockers),
+                "compile_valid": package is not None and not bool(result_errors),
+                "runtime_ready": can_run,
+                "publish_ready": can_run,
+                "reasons": [
+                    *result_errors,
+                    *[str(item) for item in resource_blockers],
+                    *[str(item) for item in run_blockers],
+                ],
+            }
+        )
+        return refresh_document_hashes(compiled)
 
     def _copy_graph(self, document: SkillEditorDocument, media_type: str) -> tuple[SkillEditorDocument, RuleGraph]:
         result = document.model_copy(deep=True)
@@ -489,8 +587,15 @@ class EditorService:
     def _assert_output_accepted(actual: str, expected: str) -> None:
         aliases = {
             "EntitySet": {"ObjectSet", "TrackSet", "EntitySet"},
-            "CountableSet": {"ObjectSet", "TrackSet", "PairSet", "ScopedSet", "EntitySet"},
-            "ValueSet": {"ScalarSet", "ConditionSet"},
+            "CountableSet": {
+                "ObjectSet",
+                "TrackSet",
+                "EventSet",
+                "PairSet",
+                "ScopedSet",
+                "EntitySet",
+            },
+            "ValueSet": {"ScalarSet", "VectorSet", "ConditionSet", "ValueSet"},
         }
         if actual != expected and actual not in aliases.get(expected, set()):
             raise EditorMutationError(f"端口类型不兼容：{actual} → {expected}")
@@ -528,7 +633,7 @@ class EditorService:
         document.version += 1
         document.effective_skill_package = None
         document.validation_report = {"valid": False, "dirty": True, "can_run": False}
-        return document
+        return refresh_document_hashes(document)
 
 
 __all__ = ["EditorMutationError", "EditorService"]

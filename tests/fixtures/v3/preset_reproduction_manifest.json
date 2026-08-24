@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "cases": [
+    {
+      "preset_id": "P01",
+      "package": "P01_fire_smoke.json",
+      "free_text": "检测画面中的烟雾或明火。",
+      "structured_text": "业务事件：烟火检测；条件分支：出现烟雾或明火；最终判定：检测到目标；业务输出：烟火框、标注画面。",
+      "media": ["image", "video"],
+      "editor_capabilities": ["target.detect", "attribute.color", "logic.group"]
+    },
+    {
+      "preset_id": "P02",
+      "package": "P02_traffic_accident.json",
+      "free_text": "检测车辆碰撞、侧翻或受损车辆形成的可见交通事故。",
+      "structured_text": "业务事件：交通事故；条件分支：出现车辆碰撞、侧翻或受损车辆；最终判定：发生事故；业务输出：事故框、事件结果。",
+      "media": ["image", "video"],
+      "editor_capabilities": ["target.detect"]
+    },
+    {
+      "preset_id": "P03",
+      "package": "P03_special_vehicles.json",
+      "free_text": "检测画面中的特种车辆并标注具体类型。",
+      "structured_text": "条件分支：识别消防车、救护车、警车等特种车辆；最终判定：检测到特种车辆；业务输出：车辆框和具体类型。",
+      "media": ["image", "video"],
+      "editor_capabilities": ["target.detect"]
+    },
+    {
+      "preset_id": "P04",
+      "package": "P04_highway_congestion.json",
+      "free_text": "按每个实际标注区域判断车辆不少于4辆、平均速度低于10并持续1秒的拥堵事件。",
+      "structured_text": "业务事件：车辆拥堵；条件分支：区域车辆数不少于4 AND 区域平均速度低于10，持续1秒；最终判定：拥堵发生；业务输出：区域车辆数、平均速度、拥堵事件。",
+      "media": ["video"],
+      "editor_capabilities": ["target.detect", "motion.track", "measure.count", "motion.speed", "logic.group", "temporal.persist"]
+    },
+    {
+      "preset_id": "P05",
+      "package": "P05_highway_wrong_way.json",
+      "free_text": "在实际标注区域内检测与参考方向相反并持续1秒的车辆。",
+      "structured_text": "业务事件：车辆逆行；条件分支：车辆轨迹方向与区域参考箭头相反，持续1秒；最终判定：发生逆行；业务输出：逆行事件、车辆框和轨迹。",
+      "media": ["video"],
+      "editor_capabilities": ["target.detect", "motion.track", "motion.direction", "motion.wrong_way", "temporal.persist"]
+    },
+    {
+      "preset_id": "P06",
+      "package": "P06_highway_person_dwell.json",
+      "free_text": "检测在手工标注区域内持续逗留1秒的人员。",
+      "structured_text": "业务事件：人员逗留；条件分支：人员位于标注区域并持续1秒；最终判定：发生逗留；业务输出：人员框、轨迹和事件。",
+      "media": ["video"],
+      "editor_capabilities": ["target.detect", "motion.track", "spatial.membership", "temporal.persist"]
+    },
+    {
+      "preset_id": "P07",
+      "package": "P07_illegal_parking.json",
+      "free_text": "检测位于禁停区域内、速度低于2并持续10秒的车辆。",
+      "structured_text": "业务事件：车辆违停；条件分支：车辆在禁停区域 AND 速度低于2，持续10秒；最终判定：发生违停；业务输出：车辆框、速度和事件。",
+      "media": ["video"],
+      "editor_capabilities": ["target.detect", "motion.track", "spatial.membership", "motion.speed", "measure.statistic", "logic.group", "temporal.persist"]
+    },
+    {
+      "preset_id": "P08",
+      "package": "P08_road_debris.json",
+      "free_text": "检测道路上的抛洒物、掉落货物或障碍物。",
+      "structured_text": "条件分支：抛洒物、掉落货物或障碍物位于道路区域；最终判定：检测到道路抛洒物；业务输出：目标框和标注画面。",
+      "media": ["image", "video"],
+      "editor_capabilities": ["target.detect", "spatial.membership"]
+    },
+    {
+      "preset_id": "P09",
+      "package": "P09_no_helmet.json",
+      "free_text": "检测施工人员中没有佩戴安全帽的人。",
+      "structured_text": "业务事件：未戴安全帽；条件分支：施工人员 NOT 关联安全帽；最终判定：存在未戴安全帽人员；业务输出：违规人员框。",
+      "media": ["image", "video"],
+      "editor_capabilities": ["target.detect", "spatial.association", "logic.group"]
+    },
+    {
+      "preset_id": "P10",
+      "package": "P10_no_safety_rope.json",
+      "free_text": "检测高处作业人员中没有连接安全绳或安全带的人。",
+      "structured_text": "业务事件：未系安全绳；条件分支：高处作业人员 NOT 关联安全绳证据；最终判定：存在违规人员；业务输出：违规人员框。",
+      "media": ["image", "video"],
+      "editor_capabilities": ["target.detect", "spatial.association", "logic.group"]
+    },
+    {
+      "preset_id": "P11",
+      "package": "P11_service_area_garbage.json",
+      "free_text": "检测垃圾、垃圾容器及溢出垃圾，并排除整齐包装货物。",
+      "structured_text": "条件分支：检测垃圾、垃圾容器及溢出垃圾 AND 排除整齐包装货物；最终判定：检测到垃圾；业务输出：分类框和数量。",
+      "media": ["image", "video"],
+      "editor_capabilities": ["target.detect", "target.filter_class", "spatial.association", "logic.group"]
+    },
+    {
+      "preset_id": "P12",
+      "package": "P12_person_fall.json",
+      "free_text": "检测出现摔倒或躺在地面上的可见姿态并持续1秒的人员。",
+      "structured_text": "业务事件：人员倒地；条件分支：人员与倒地姿态证据关联 AND 姿态几何符合要求，持续1秒；最终判定：发生倒地事件；业务输出：人员框和事件。",
+      "media": ["video"],
+      "editor_capabilities": ["target.detect", "motion.track", "spatial.association", "attribute.geometry", "logic.group", "temporal.persist"]
+    },
+    {
+      "preset_id": "P13",
+      "package": "P13_bridge_damage.json",
+      "free_text": "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋，并排除规则施工缝。",
+      "structured_text": "条件分支：检测桥梁病害 AND 排除规则施工缝；最终判定：检测到桥梁病害；业务输出：病害类别和目标框。",
+      "media": ["image", "video"],
+      "editor_capabilities": ["target.detect", "spatial.association", "logic.group"]
+    }
+  ]
+}

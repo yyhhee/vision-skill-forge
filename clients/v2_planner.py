@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from core.registry import OperatorRegistry
+from core.business_rule_draft import NaturalLanguageBusinessDraft
 from core.schema import SkillPackage
 from core.semantic import SemanticNormalizer, SemanticValidationError, WorkflowCompiler
 from core.visual_catalog import ATTRIBUTE_CATALOG, CARRIER_TEXT_ALIASES, COLOR_ALIASES
@@ -21,6 +22,7 @@ class PackageCompileResult:
     errors: list[str]
     raw_outputs: list[str]
     strategy: str
+    business_draft: dict | None = None
 
 
 class DeepSeekSemanticPlanner:
@@ -68,6 +70,25 @@ class DeepSeekSemanticPlanner:
         else:
             options["temperature"] = 0.0
         return options
+
+    @staticmethod
+    def _parse_json_object(raw: str) -> dict:
+        text = raw.strip()
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines and lines[0].lstrip().startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+        if not text.startswith("{") or not text.endswith("}"):
+            start, end = text.find("{"), text.rfind("}")
+            if start >= 0 and end > start:
+                text = text[start : end + 1]
+        value = json.loads(text)
+        if not isinstance(value, dict):
+            raise SemanticValidationError("LLM returned a non-object semantic ledger")
+        return value
 
     @staticmethod
     def _system_prompt() -> str:
@@ -140,6 +161,71 @@ class DeepSeekSemanticPlanner:
             "需要保留该限定时使用 region={\"source\":\"full_frame\"}，只是场景铺垫时直接省略该条件。"
             "只读执行上下文若提供，只能用于媒体可行性和采样风险理解；禁止把其中参数写入语义账本。"
             "不输出 resize、抽帧、切片、去重、输出尺寸/FPS，不输出 ROI 坐标、方向向量或节点。"
+            "同时输出顶层 business_rule，作为可审核业务草稿；它不是执行图。schema 为："
+            '{"schema_version":"1.0","media_requirement":"image|video|both",'
+            '"branches":[{"key":"英文稳定键","name":"用户业务名","media_type":"image|video",'
+            '"logic":"AND|OR|N_OF_M","required_count":null,'
+            '"conditions":[{"key":"英文键","name":"业务条件或条件组名",'
+            '"operator":"ATOM|AND|OR|NOT|N_OF_M","capability_id":"ATOM时填写业务能力ID",'
+            '"parameters":{},"negated":false,"children":["递归使用同一结构"],"required_count":null}],'
+            '"time":{"mode":"immediate|continuous|cumulative|ratio",'
+            '"duration_seconds":null,"observation_window_seconds":null,'
+            '"required_ratio":1.0,"allowed_gap_seconds":0.0,'
+            '"identity_scope":"global|object|track|pair|region"}}],'
+            '"resources":[{"key":"英文键","name":"待标注业务名",'
+            '"resource_type":"region|direction","semantic_role":"英文角色",'
+            '"media_types":["image|video"],"minimum_items":1,"paired_region_key":null}],'
+            '"patterns":[{"key":"英文键","name":"业务名","media_type":"video",'
+            '"mode":"all_active|all_completed|all_completed_within_window|any|n_of_m|sequence|absence|repeat",'
+            '"branch_keys":["分支key"],"window_seconds":null,"required_count":null,'
+            '"correlation_scope":"global|object|track|pair|region"}],'
+            '"final_decision":{"name":"最终结果名","decision_type":"event_decision|detection_summary|measurement_decision|state_summary|timeline_summary",'
+            '"source_refs":["branch:key或event:key"],"combination":"AND|OR|N_OF_M","required_count":null},'
+            '"results":[{"key":"英文键","name":"用户要看的结果名",'
+            '"source_ref":"condition:branchKey.conditionKey|branch:key|event:key|final:primary",'
+            '"result_kind":"decision|boolean|count|value|entities|tracks|events|duration|timeline|media",'
+            '"unit":null,"evidence_policy":"required|optional|none",'
+            '"save_policy":"always|on_change|on_match|never","show_in_overview":true}],'
+            '"trigger_policy":{"mode":"none|once|repeat|on_change","cooldown_seconds":0,'
+            '"severity":"info|low|medium|high|critical",'
+            '"outputs":["event_record","annotated_media","notification"]},'
+            '"pending_decisions":[{"key":"英文键","kind":"count_threshold|duration|time_window|comparison_operator|direction_reference|correlation|generic",'
+            '"prompt":"给用户的问题","reason":"为什么不确定","recommended_value":null,'
+            '"affected_refs":["condition:branchKey.conditionKey"],"required_before":"run"}]}。'
+            "业务能力 ID 只可使用：target.detect、target.filter_class、attribute.color、"
+            "attribute.geometry、subject.same_attributes、subject.missing_equipment、"
+            "spatial.membership、spatial.association、measure.count、measure.statistic、"
+            "motion.track、motion.direction、motion.wrong_way、motion.speed、state.current、"
+            "state.transition、event.detect_or_compose。时间约束写在 branch.time，跨分支关系写 patterns，"
+            "不要把 temporal.*、logic.group 或 output.business_result 当普通条件。"
+            "parameters 中的来源用 condition:key 或 condition:branchKey.conditionKey；"
+            "区域/方向用 resource:key，全画面用 full_frame。"
+            "target.detect 参数为 targets/phrases/business_label；attribute.color 为 source/part/color/minimum_fraction；"
+            "subject.same_attributes 为 subject/attributes/minimum_overlap；spatial.membership 为 source/scope/membership/minimum_overlap/inside；"
+            "measure.count 为 source/scope/group_by/operator/threshold；motion.wrong_way 为 source/scope/reference/minimum_reverse_angle/minimum_displacement；"
+            "event.detect_or_compose 为 source/scope/method/event_label。"
+            "同一人的多项属性必须增加 subject.same_attributes，不能只用 AND。"
+            "每个能够独立保存结果、展示证据或单独持续计时的业务判断必须建立独立 branch；"
+            "例如‘区域1指定着装人员 AND 区域2人数大于2’要建立两个同媒体分支，最终判定再 AND，"
+            "但同一人的目标检测、颜色属性和 same_attributes 必须留在同一分支内。"
+            "任何 source/subject/object/attributes/equipment 都必须引用 condition:key 或 branch:key，"
+            "不得写 full_frame；full_frame 仅可作为 scope。人数统计必须先建立对应 target.detect，"
+            "再由 measure.count.source 引用该检测条件。"
+            "target.detect.business_label 是结果框面向用户显示的名称：普通人员可写‘人员’，"
+            "指定多属性人员应写完整业务名称，例如‘红色上衣、灰色裤子人员’。"
+            "顶层用户消息中的 requested_skill_display_name 是用户确认的最终结果/告警名称，"
+            "final_decision.name 必须与它完全一致。"
+            "嵌套逻辑必须使用 conditions 的递归 operator/children 表达；"
+            "NOT 使用一个 child，N_OF_M 同时填写 required_count；不要把逻辑符写进条件名称冒充组合。"
+            "未给出的数量、比较符、持续时间、时间窗、区域数量或方向不得猜测：参数可用推荐占位，"
+            "但必须同时写 pending_decisions；不得输出字符串 XX 作为数值。"
+            "图片分支不得使用轨迹、方向、持续或复杂时序；有任一此类语义时 media_requirement 必须为 video。"
+            "‘发出告警/报警/事件通知’只描述输出与触发策略，不是 temporal、motion 或轨迹语义，"
+            "不得因此把静态检测任务限定为视频；只有原文明确持续、时间窗、顺序、轨迹、速度或方向时才要求视频。"
+            "both 必须分别给出可审核的 image 与 video 分支；每次运行仍只使用一个媒体源。"
+            "图片分支和视频分支是同一技能的两种可选执行流程，绝不能放入同一个 pattern；"
+            "patterns 只允许编排同一视频流程内的多个视频分支。both 的 final_decision 可同时列出"
+            "图片和视频来源，后端会按本次媒体自动选择同媒体来源。"
             f"规范目录仅用于映射，不限制开放实体：{json.dumps(ontology, ensure_ascii=False, separators=(',', ':'))}"
         )
 
@@ -158,6 +244,7 @@ class DeepSeekSemanticPlanner:
             {"role": "user", "content": json.dumps({
                 "instruction": text,
                 "requested_accept": requested_accept,
+                "requested_skill_display_name": display_name,
                 **(
                     {"execution_context": execution_context}
                     if execution_context is not None
@@ -188,7 +275,8 @@ class DeepSeekSemanticPlanner:
                 if not raw.strip():
                     retry_without_thinking = True
                     raise SemanticValidationError("LLM returned an empty semantic ledger")
-                ledger = json.loads(raw)
+                ledger = self._parse_json_object(raw)
+                business_payload = ledger.pop("business_rule", None)
                 semantic_ir = self.normalizer.normalize_ledger(ledger, text)
                 package = self.compiler.compile(
                     semantic_ir,
@@ -197,12 +285,37 @@ class DeepSeekSemanticPlanner:
                     skill_id=skill_id,
                     display_name=display_name,
                 )
+                business_draft = (
+                    NaturalLanguageBusinessDraft.model_validate(
+                        business_payload
+                    ).model_dump(mode="json")
+                    if business_payload is not None
+                    else None
+                )
+                if business_draft is not None:
+                    expected_media = (
+                        "both"
+                        if set(package.input.accept) == {"image", "video"}
+                        else package.input.accept[0]
+                    )
+                    if business_draft["media_requirement"] != expected_media:
+                        raise SemanticValidationError(
+                            "business_rule 的媒体流程必须与确定性语义编译结果一致："
+                            f"应为 {expected_media}，实际为 "
+                            f"{business_draft['media_requirement']}。"
+                        )
                 return PackageCompileResult(
                     package, attempt, False, errors, raw_outputs,
                     "semantic_ir+deterministic_workflow",
+                    business_draft,
                 )
             except Exception as exc:
-                errors.append(str(exc))
+                public_error = (
+                    "LLM 返回的配置无法读取，系统已自动重试；请勿填写 JSON。"
+                    if isinstance(exc, json.JSONDecodeError)
+                    else str(exc)
+                )
+                errors.append(public_error)
                 if attempt >= 2 and (not retry_without_thinking or not raw.strip()):
                     break
                 repair_messages = [{"role": "user", "content": (

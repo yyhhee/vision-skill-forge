@@ -19,6 +19,14 @@ from .context import (
     TrackSet,
     VectorSet,
 )
+from .business_result_projector import build_runtime_contract, project_run_result
+from .editor_schema import (
+    BusinessBranch,
+    FinalDecisionSpec,
+    ResultSpec,
+    SkillEditorDocument,
+)
+from .evidence_index import EvidenceIndex
 from .executor import ExecutionEngine
 from .configuration import configuration_status
 from .media_assets import MediaAssetStore
@@ -26,6 +34,7 @@ from .media_policy import inspect_execution_policy
 from .persistence import RunStore, write_json
 from .registry import OperatorRegistry
 from .schema import SkillPackage, VisualSkillSpec
+from .runtime_values import RuntimeValueEnvelope
 from .validator import assert_executable_skill_package, assert_valid_skill_package
 
 
@@ -206,16 +215,32 @@ class SkillRuntime:
         generated_spec: VisualSkillSpec,
         effective_spec: VisualSkillSpec,
         media: str | Path,
+        *,
+        runtime_contract: dict | None = None,
     ) -> RunRecord:
+        media_path = require_single_media_source(media)
         run_id, run_dir = self.run_store.create()
         write_json(run_dir / "generated_skill.json", generated_spec)
         write_json(run_dir / "effective_skill.json", effective_spec)
+        media_asset_id = (
+            hashlib.sha256(media_path.read_bytes()).hexdigest()
+            if media_path.is_file()
+            else None
+        )
         engine = ExecutionEngine(
             self.registry,
             build_default_implementations(),
-            ExecutionServices(self.rex, run_dir),
+            ExecutionServices(
+                self.rex,
+                run_dir,
+                state={
+                    "run_id": run_id,
+                    "media_asset_id": media_asset_id,
+                    "runtime_contract": runtime_contract or {},
+                },
+            ),
         )
-        result = engine.execute(effective_spec, str(media))
+        result = engine.execute(effective_spec, str(media_path))
         event_diagnostics = _event_diagnostics(
             effective_spec, result.values, self.registry
         )
@@ -259,6 +284,13 @@ class SkillRuntime:
         write_json(run_dir / "regions.json", regions)
         write_json(run_dir / "directions.json", directions)
         write_json(run_dir / "trace.json", [asdict(entry) for entry in result.trace])
+        evidence_index = EvidenceIndex(result.evidence_records)
+        self.run_store.save_runtime_facts(
+            run_dir,
+            runtime_values=result.value_envelopes,
+            evidence_index=evidence_index,
+            runtime_contract=runtime_contract,
+        )
         annotated = None
         if rendered is not None and rendered.exists():
             suffix = ".mp4" if rendered.suffix.lower() == ".mp4" else ".jpg"
@@ -281,11 +313,14 @@ class SkillRuntime:
         metadata = {
             "run_id": run_id,
             "status": status,
-            "media": str(Path(media).resolve()),
+            "media": str(media_path),
             "effective_skill_sha256": hashlib.sha256(canonical).hexdigest(),
             "object_count": object_count,
             "event_count": len(events),
             "annotated_media": str(annotated) if annotated else None,
+            "media_asset_id": media_asset_id,
+            "runtime_value_count": len(result.value_envelopes),
+            "evidence_count": len(evidence_index),
         }
         write_json(run_dir / "run.json", metadata)
         return RunRecord(run_id, run_dir, status, object_count, len(events), annotated)
@@ -293,6 +328,15 @@ class SkillRuntime:
 
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 _VIDEO_SUFFIXES = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v"}
+
+
+def require_single_media_source(media: str | Path) -> Path:
+    if not isinstance(media, (str, Path)):
+        raise ValueError(
+            "V3 一次运行只接受一个图片或一个视频文件；"
+            "多文件、多摄像头和跨媒体联合运行不在当前版本范围内。"
+        )
+    return Path(media).resolve()
 
 
 def detect_media_type(path: str | Path) -> str:
@@ -331,23 +375,48 @@ class SkillPackageRuntime:
         generated_package: SkillPackage,
         effective_package: SkillPackage,
         media: str | Path,
+        *,
+        editor_document: SkillEditorDocument | None = None,
     ) -> RunRecord:
-        media_type = detect_media_type(media)
+        media_path = require_single_media_source(media)
+        media_type = detect_media_type(media_path)
         assert_executable_skill_package(
             effective_package, self.registry, media_type
         )
-        media_path = Path(media).resolve()
         media_sha256 = hashlib.sha256(media_path.read_bytes()).hexdigest()
         rex_model = str(
             getattr(self.rex, "model", type(self.rex).__name__)
         )
         policy = inspect_execution_policy(
-            effective_package, media_type, media, self.registry
+            effective_package, media_type, media_path, self.registry
         )
+        if editor_document is None:
+            from .editor_generation import build_editor_document
+
+            editor_document = build_editor_document(
+                effective_package, source_type="legacy"
+            )
+        else:
+            from .document_hashes import refresh_document_hashes
+            from .editor_migrations import migrate_editor_document
+
+            editor_document = migrate_editor_document(editor_document)
+            if editor_document.effective_skill_package != effective_package:
+                editor_document = refresh_document_hashes(
+                    editor_document.model_copy(
+                        update={"effective_skill_package": effective_package}
+                    )
+                )
+        runtime_contract = build_runtime_contract(editor_document, media_type)
         effective_spec = _variant_spec(effective_package, media_type)
         base = SkillRuntime(
             self.registry, rex=self.rex, run_store=self.run_store
-        ).run(effective_spec, effective_spec, media)
+        ).run(
+            effective_spec,
+            effective_spec,
+            media_path,
+            runtime_contract=runtime_contract,
+        )
         write_json(base.run_dir / "generated_skill.json", generated_package)
         write_json(base.run_dir / "effective_skill.json", effective_package)
         write_json(base.run_dir / "semantic_ir.json", effective_package.semantic_ir)
@@ -355,6 +424,19 @@ class SkillPackageRuntime:
             media_path
         )
         write_json(base.run_dir / "media_asset.json", media_asset)
+        write_json(
+            base.run_dir / "result_specs.json",
+            runtime_contract.get("result_specs", []),
+        )
+        write_json(
+            base.run_dir / "presentation_specs.json",
+            runtime_contract.get("presentation_specs", []),
+        )
+        write_json(
+            base.run_dir / "scene_profile.json",
+            runtime_contract.get("scene_profile"),
+        )
+        write_json(base.run_dir / "document_hashes.json", runtime_contract.get("hashes", {}))
         preprocessing_nodes = [
             {
                 "node_id": node.id,
@@ -425,6 +507,33 @@ class SkillPackageRuntime:
             })
         policy_data = asdict(policy)
         write_json(base.run_dir / "constraint_summary.json", constraint_summary)
+        runtime_values = [
+            RuntimeValueEnvelope.model_validate(item)
+            for item in json.loads(
+                (base.run_dir / "runtime_values.json").read_text("utf-8")
+            )
+        ]
+        business_result = project_run_result(
+            run_id=base.run_id,
+            media_asset_id=media_asset.asset_id,
+            media_type=media_type,
+            result_specs=[
+                ResultSpec.model_validate(item)
+                for item in runtime_contract.get("result_specs", [])
+            ],
+            final_decision=(
+                FinalDecisionSpec.model_validate(runtime_contract["final_decision"])
+                if runtime_contract.get("final_decision")
+                else None
+            ),
+            branches=[
+                BusinessBranch.model_validate(item)
+                for item in runtime_contract.get("branches", [])
+            ],
+            envelopes=runtime_values,
+            hashes=runtime_contract.get("hashes", {}),
+        )
+        write_json(base.run_dir / "run_result_v3.json", business_result)
         result = {
             "skill_id": effective_package.skill_id,
             "media_type": media_type,
@@ -444,6 +553,15 @@ class SkillPackageRuntime:
             "constraint_summary": constraint_summary,
             "actual_rex_phrases": phrases,
             "media_policy": policy_data,
+            "final_result": business_result.final_result.model_dump(mode="json"),
+            "business_outputs": [
+                item.model_dump(mode="json")
+                for item in business_result.business_outputs
+            ],
+            "branch_results": [
+                item.model_dump(mode="json")
+                for item in business_result.branch_results
+            ],
             "artifacts": {
                 "annotated_media": str(base.annotated_media)
                 if base.annotated_media else None,
@@ -465,6 +583,10 @@ class SkillPackageRuntime:
                 "constraint_summary": str(
                     base.run_dir / "constraint_summary.json"
                 ),
+                "runtime_values": str(base.run_dir / "runtime_values.json"),
+                "evidence_index": str(base.run_dir / "evidence" / "index.json"),
+                "runtime_contract": str(base.run_dir / "runtime_contract.json"),
+                "run_result_v3": str(base.run_dir / "run_result_v3.json"),
             },
             "status": "runtime_executed",
         }
@@ -479,6 +601,11 @@ class SkillPackageRuntime:
             "media_sha256": media_sha256,
             "rex_model": rex_model,
             "media_policy": policy_data,
+            "final_status": business_result.final_result.status,
+            "semantic_hash_v3": business_result.semantic_hash,
+            "compile_hash": business_result.compile_hash,
+            "package_hash": business_result.package_hash,
+            "presentation_hash": business_result.presentation_hash,
         })
         write_json(metadata_path, metadata)
         return RunRecord(
@@ -498,4 +625,5 @@ __all__ = [
     "SkillPackageRuntime",
     "SkillRuntime",
     "detect_media_type",
+    "require_single_media_source",
 ]

@@ -70,6 +70,11 @@ _EVENT_OUTPUT_CLAUSE = re.compile(
     r"(?:发出|触发|生成|发送).*(?:事件|告警|报警|预警|通知)",
     re.I,
 )
+_EXPLICIT_TEMPORAL_EVIDENCE = re.compile(
+    r"(?:持续|连续|累计|窗口|随后|之后|以后|先.+(?:再|后)|"
+    r"\d+(?:\.\d+)?\s*(?:秒|分钟|分|帧)|徘徊|逗留|停留|滞留)",
+    re.I,
+)
 _COUNT_COMPARISON_WITHOUT_VALUE = re.compile(
     r"(?:人的数量|人员数量|车辆数量|目标数量|人数|车辆数|目标数|数量|计数)\s*"
     r"(?P<operator>大于等于|小于等于|不小于|不大于|不超过|至少|至多|大于|超过|等于|小于|少于)\s*"
@@ -760,6 +765,13 @@ class SemanticNormalizer:
             if source not in instruction or span not in source:
                 raise SemanticValidationError(
                     f"constraint source must contain source_span and occur in instruction: {source}"
+                )
+            if (
+                kind == "temporal" or bool(constraint.get("temporal", False))
+            ) and not _EXPLICIT_TEMPORAL_EVIDENCE.search(source):
+                raise SemanticValidationError(
+                    "temporal semantics require explicit duration, sequence, "
+                    f"or stay evidence in the source clause: {source}"
                 )
             phrases = list(dict.fromkeys(
                 str(value).strip().lower()
