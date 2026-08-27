@@ -160,8 +160,16 @@ def seed_builtin_preset_media(
         preset_id = preset_path.stem[:3]
         for media_type in package.input.accept:
             path = _builtin_media_path(root, preset_id, media_type)
+            set_default = False
+            try:
+                current = catalog.get_default(preset_path.stem, media_type)
+                set_default = current is None or not Path(current.stored_path).is_file()
+            except (FileNotFoundError, OSError, KeyError, ValueError):
+                # A checked-in catalog may reference an asset store from the
+                # source machine. Re-seed the bundled demo file after clone.
+                set_default = True
             asset = catalog.add_candidate(
-                preset_path.stem, path, set_default=False
+                preset_path.stem, path, set_default=set_default
             )
             seeded.append(asset)
     return seeded

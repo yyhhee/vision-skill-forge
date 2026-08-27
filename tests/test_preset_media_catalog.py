@@ -72,3 +72,25 @@ def test_builtin_defaults_cover_every_supported_p01_to_p13_variant(tmp_path):
             assert asset.media_type == media_type
             assert Path(asset.stored_path).is_file()
     assert len(seeded) == expected == 21
+
+
+def test_builtin_seeding_repairs_a_default_from_a_missing_source_asset(tmp_path):
+    from core.preset_media import seed_builtin_preset_media
+
+    project_root = Path(__file__).resolve().parents[1]
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(
+        '{"schema_version":"1.0","presets":{"P01_fire_smoke":{"image":{'
+        '"candidates":[{"asset_id":"old","original_name":"old.png",'
+        '"stored_path":"C:/missing/media_assets/old/original.png"}],'
+        '"default_asset_id":"old"}}}}',
+        encoding="utf-8",
+    )
+    catalog = PresetMediaCatalog(catalog_path, MediaAssetStore(tmp_path / "assets"))
+
+    seed_builtin_preset_media(catalog, project_root)
+
+    default = catalog.get_default("P01_fire_smoke", "image")
+    assert default is not None
+    assert Path(default.stored_path).is_file()
+    assert default.original_name == "P01_fire_smoke.jpg"
