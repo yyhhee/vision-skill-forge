@@ -64,3 +64,31 @@ def test_global_event_projects_all_detection_boxes_from_trigger_frame():
     assert [item["entity_id"] for item in events[0]["evidence_boxes"]] == [
         "person_1", "person_2"
     ]
+
+
+def test_same_runtime_box_from_detection_and_track_is_only_attached_once():
+    sample = {
+        "id": "vehicle_1",
+        "label": "车辆",
+        "track_id": "track_1",
+        "frame_index": 8,
+        "timestamp": 4.0,
+        "bbox": [0.1, 0.2, 0.3, 0.4],
+    }
+    events = [{
+        "id": "wrong_way_1",
+        "label": "逆行车辆",
+        "entity_id": "track_1",
+        "start_time": 4.0,
+        "end_time": 4.0,
+        "metadata": {},
+    }]
+
+    _attach_runtime_event_evidence(
+        events,
+        [dict(sample)],
+        [{"id": "track_1", "history": [dict(sample)]}],
+    )
+
+    assert len(events[0]["metadata"]["evidence"]) == 1
+    assert len(events[0]["evidence_boxes"]) == 1

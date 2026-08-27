@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 from core.context import Region, RegionSet, VectorSet, TimedValue
+from .objects import iter_object_samples
 
 
 def _validate_points(points):
@@ -53,7 +54,7 @@ def region_full_frame(inputs, params, services, node_id):
 
 
 def region_from_objects(inputs, params, services, node_id):
-    boxes = [item.bbox for item in inputs["objects"].items]
+    boxes = [item.bbox for item in iter_object_samples(inputs["objects"])]
     if not boxes:
         return RegionSet([])
     if params["mode"] == "largest":

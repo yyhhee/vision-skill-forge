@@ -161,7 +161,7 @@ def test_preset_business_branch_exposes_editable_existing_steps_without_rebuildi
 
     assert rows[0]["kind"] == "导入判定"
     assert {item["category"] for item in rows[1:]} >= {
-        "数量与测量", "轨迹与运动", "时间与复杂编排"
+        "目标与属性", "数量与测量", "时间与复杂编排"
     }
     compare = next(
         item for item in rows

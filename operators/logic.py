@@ -112,8 +112,9 @@ def logic_compare_heading_by_lane(inputs, params, services, node_id):
     tracks = {track.id: track for track in inputs["tracks"].items}
     regions = inputs["lanes"].items
     references = {item.key: item.value for item in inputs["references"].items}
-    threshold = float(params["threshold"])
-    relation = params.get("relation", "opposite")
+    default_threshold = float(params["threshold"])
+    default_relation = params.get("relation", "opposite")
+    scope_overrides = params.get("scope_overrides", {})
     membership_mode = params.get("membership_mode", "majority_center")
     fixed_lane_by_track = {
         track.id: (
@@ -136,9 +137,16 @@ def logic_compare_heading_by_lane(inputs, params, services, node_id):
         reference = references.get(lane.id, references.get("global"))
         if reference is None:
             continue
+        lane_overrides = scope_overrides.get(lane.id, {})
+        threshold = float(lane_overrides.get("threshold", default_threshold))
+        relation = lane_overrides.get("relation", default_relation)
         cosine = item.value[0] * reference[0] + item.value[1] * reference[1]
         matched = cosine < threshold if relation == "opposite" else cosine > threshold
         output.append(TimedValue(
-            item.key, item.timestamp, matched, item.frame_index
+            item.key,
+            item.timestamp,
+            matched,
+            item.frame_index,
+            {"region_id": lane.id, "direction_cosine": cosine},
         ))
     return ConditionSet(output)

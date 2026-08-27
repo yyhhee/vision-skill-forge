@@ -1,0 +1,391 @@
+{
+  "schema_version": "1.0",
+  "date": "2026-08-27",
+  "scope": "real_planner_compile_and_business_editor_reproduction",
+  "instruction_style": "preset",
+  "execution_source": "live_llm",
+  "case_count": 2,
+  "compiled": 2,
+  "semantic_mismatch": 0,
+  "failed": 0,
+  "cases": [
+    {
+      "preset_id": "P05",
+      "instruction_style": "preset",
+      "instruction": "按每条车道标注方向后检测与车流方向相反并持续1秒的车辆。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "live_llm",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"vehicle\",\n    \"source_span\": \"车辆\",\n    \"phrases\": [\"vehicle\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"direction_relation\",\n      \"value\": {\n        \"relation\": \"opposite\",\n        \"reference_scope\": \"per_named_region\",\n        \"reference_source\": \"manual\"\n      },\n      \"source\": \"按每条车道标注方向后检测与车流方向相反\",\n      \"source_span\": \"与车流方向相反\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"vehicle moving opposite to traffic direction\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"vehicle persisting for 1 second\"],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [\n    {\n      \"source_span\": \"按每条车道标注方向\",\n      \"reason\": \"需要用户明确车道区域的具体划分方式，以及每条车道内车流方向的参考来源（人工指定或自动估计）。\"\n    }\n  ],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"lane_direction_branch\",\n        \"name\": \"车道方向标注\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"lane_region\",\n            \"name\": \"车道区域\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"spatial.membership\",\n            \"parameters\": {\n              \"source\": \"condition:vehicle_detect\",\n              \"scope\": \"resource:lane_region\",\n              \"membership\": \"center\",\n              \"inside\": true\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"opposite_direction_branch\",\n        \"name\": \"反向车辆检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"vehicle_detect\",\n            \"name\": \"车辆检测\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"vehicle\"],\n              \"phrases\": [\"vehicle\"],\n              \"business_label\": \"车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"opposite_direction\",\n            \"name\": \"与车流方向相反\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"motion.direction\",\n            \"parameters\": {\n              \"source\": \"condition:vehicle_detect\",\n              \"scope\": \"resource:lane_region\",\n              \"reference\": \"manual\",\n              \"minimum_reverse_angle\": null,\n              \"minimum_displacement\": null\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"persist_1s\",\n            \"name\": \"持续1秒\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:vehicle_detect\",\n              \"scope\": \"resource:lane_region\",\n              \"duration_seconds\": 1.0\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"track\"\n        }\n      }\n    ],\n    \"resources\": [\n      {\n        \"key\": \"lane_region\",\n        \"name\": \"车道区域\",\n        \"resource_type\": \"region\",\n        \"semantic_role\": \"lane\",\n        \"media_types\": [\"video\"],\n        \"minimum_items\": 1,\n        \"paired_region_key\": null\n      }\n    ],\n    \"patterns\": [\n      {\n        \"key\": \"opposite_persist_pattern\",\n        \"name\": \"反向持续1秒\",\n        \"media_type\": \"video\",\n        \"mode\": \"all_completed_within_window\",\n        \"branch_keys\": [\"opposite_direction_branch\"],\n        \"window_seconds\": 1.0,\n        \"required_count\": null,\n        \"correlation_scope\": \"track\"\n      }\n    ],\n    \"final_decision\": {\n      \"name\": \"反向行驶车辆告警\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:opposite_direction_branch\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"opposite_vehicle_result\",\n        \"name\": \"反向车辆\",\n        \"source_ref\": \"branch:opposite_direction_branch\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"on_match\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"on_change\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"high\",\n      \"outputs\": [\"event_record\", \"annotated_media\", \"notification\"]\n    },\n    \"pending_decisions\": [\n      {\n        \"key\": \"lane_region_definition\",\n        \"kind\": \"generic\",\n        \"prompt\": \"请提供每条车道的具体区域划分方式（例如多边形坐标或自动车道线检测）。\",\n        \"reason\": \"用户要求按每条车道标注方向，但未给出车道区域的具体定义。\",\n        \"recommended_value\": null,\n        \"affected_refs\": [\"condition:lane_region\"],\n        \"required_before\": \"run\"\n      },\n      {\n        \"key\": \"traffic_direction_reference\",\n        \"kind\": \"direction_reference\",\n        \"prompt\": \"每条车道内的车流方向参考如何确定？请提供参考方向（例如从左到右）或选择自动估计。\",\n        \"reason\": \"需要明确每条车道内的车流方向才能判断反向。\",\n        \"recommended_value\": null,\n        \"affected_refs\": [\"condition:opposite_direction\"],\n        \"required_before\": \"run\"\n      }\n    ]\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 2,
+        "branch_media": [
+          "video",
+          "video"
+        ],
+        "branch_logic": [
+          "AND",
+          "AND"
+        ],
+        "capabilities": [
+          "motion.direction",
+          "spatial.membership",
+          "state.current",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "continuous"
+        ],
+        "resources": [
+          {
+            "resource_type": "region",
+            "semantic_role": "lane",
+            "minimum_items": 1
+          },
+          {
+            "resource_type": "direction",
+            "semantic_role": "reference_direction",
+            "minimum_items": 1
+          }
+        ],
+        "result_kinds": [
+          "events"
+        ],
+        "pending_kinds": [
+          "generic",
+          "direction_reference"
+        ]
+      },
+      "can_run": false,
+      "validation_errors": [],
+      "pending_decisions": [
+        {
+          "decision_id": "pending_lane_region_definition",
+          "parameter_kind": "generic",
+          "prompt": "请提供每条车道的具体区域划分方式（例如多边形坐标或自动车道线检测）。",
+          "resolution": {
+            "state": "unresolved",
+            "value": null,
+            "source": "llm_business_draft",
+            "source_span": null,
+            "recommended_value": null,
+            "alternatives": [],
+            "reason": "用户要求按每条车道标注方向，但未给出车道区域的具体定义。",
+            "required_before": "run"
+          },
+          "affected_ids": [
+            "condition_lane_direction_branch_lane_region"
+          ]
+        },
+        {
+          "decision_id": "pending_traffic_direction_reference",
+          "parameter_kind": "direction_reference",
+          "prompt": "每条车道内的车流方向参考如何确定？请提供参考方向（例如从左到右）或选择自动估计。",
+          "resolution": {
+            "state": "unresolved",
+            "value": null,
+            "source": "llm_business_draft",
+            "source_span": null,
+            "recommended_value": null,
+            "alternatives": [],
+            "reason": "需要明确每条车道内的车流方向才能判断反向。",
+            "required_before": "run"
+          },
+          "affected_ids": [
+            "condition_opposite_direction_branch_opposite_direction"
+          ]
+        }
+      ],
+      "resource_requirements": [
+        {
+          "requirement_id": "resource_lane_region",
+          "resource_type": "region_collection",
+          "display_name": "车道区域",
+          "semantic_role": "lane",
+          "cardinality": {
+            "mode": "dynamic",
+            "minimum": 1,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": null
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "pairing_policy": "none",
+          "required_before": "run",
+          "media_types": [
+            "video"
+          ],
+          "legacy_metadata": {}
+        },
+        {
+          "requirement_id": "resource_reference_direction",
+          "resource_type": "direction_collection",
+          "display_name": "参考方向",
+          "semantic_role": "reference_direction",
+          "cardinality": {
+            "mode": "match_collection",
+            "minimum": 0,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": "resource_lane_region"
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [],
+          "pairing_policy": "one_per_region",
+          "required_before": "run",
+          "media_types": [
+            "video"
+          ],
+          "legacy_metadata": {}
+        }
+      ],
+      "result_specs": [
+        {
+          "result_id": "result_opposite_vehicle_result",
+          "display_name": "反向车辆",
+          "semantic_type": "event_set",
+          "value_shape": "list",
+          "source_ref": "branch:branch_opposite_direction_branch",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "events",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "on_match",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_opposite_vehicle_result"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "regions": "$resource_resource_lane_region_regions",
+          "branch_branch_lane_direction_branch": "$branch_lane_direction_branch_condition_lane_direction_branch_lane_region_branch_lane_direction_branch_condition_lane_direction_branch_lane_region_apply_exists",
+          "branch_branch_opposite_direction_branch": "$branch_opposite_direction_branch_time_opposite_direction_branch_temporal",
+          "result_result_opposite_vehicle_result": "$branch_opposite_direction_branch_time_opposite_direction_branch_temporal",
+          "objects": "$business_branch_evidence_objects",
+          "final_primary": "$branch_opposite_direction_branch_time_opposite_direction_branch_temporal",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": false,
+          "resources": false,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "motion.direction",
+          "motion.track",
+          "motion.wrong_way",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "measure.statistic",
+          "motion.direction",
+          "motion.direction",
+          "motion.track",
+          "motion.track",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "motion.direction",
+          "motion.direction",
+          "motion.track",
+          "motion.track",
+          "motion.wrong_way",
+          "motion.wrong_way",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "08a024014b0b566332d3f832f3a13e612aed69fdee15d8d8241787f9d874c4ad",
+        "preset_signature_hash": "80ff23196f7386acccb9c23d28c612c2294d394a73447c4d6c4e4d2df2bf6fc7"
+      }
+    },
+    {
+      "preset_id": "P12",
+      "instruction_style": "preset",
+      "instruction": "检测出现摔倒或躺在地面上的可见姿态并持续1秒的人员。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "live_llm",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM 返回的配置无法读取，系统已自动重试；请勿填写 JSON。"
+      ],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人员\",\n    \"phrases\": [\"person\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"fallen or lying on ground\",\n      \"source\": \"出现摔倒或躺在地面上的可见姿态\",\n      \"source_span\": \"摔倒或躺在地面上\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"person fallen\", \"person lying on ground\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"fall_lying_persist\",\n        \"name\": \"摔倒或躺地人员持续检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"fall_condition\",\n            \"name\": \"摔倒或躺地状态\",\n            \"operator\": \"AND\",\n            \"capability_id\": null,\n            \"parameters\": {},\n            \"negated\": false,\n            \"children\": [\n              {\n                \"key\": \"detect_person\",\n                \"name\": \"检测人员\",\n                \"operator\": \"ATOM\",\n                \"capability_id\": \"target.detect\",\n                \"parameters\": {\n                  \"targets\": \"person\",\n                  \"phrases\": [\"person\"],\n                  \"business_label\": \"人员\"\n                },\n                \"negated\": false,\n                \"children\": [],\n                \"required_count\": null\n              },\n              {\n                \"key\": \"pose_condition\",\n                \"name\": \"摔倒或躺地姿态\",\n                \"operator\": \"ATOM\",\n                \"capability_id\": \"state.current\",\n                \"parameters\": {\n                  \"source\": \"condition:fall_condition.detect_person\",\n                  \"state\": \"fallen or lying on ground\"\n                },\n                \"negated\": false,\n                \"children\": [],\n                \"required_count\": null\n              }\n            ],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"track\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"摔倒或躺地事件\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:fall_lying_persist\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"fall_event_result\",\n        \"name\": \"摔倒或躺地人员\",\n        \"source_ref\": \"branch:fall_lying_persist\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"on_match\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"medium\",\n      \"outputs\": [\"event_record\", \"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人员\",\n    \"phrases\": [\"person\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"fallen or lying on ground\",\n      \"source\": \"出现摔倒或躺在地面上的可见姿态\",\n      \"source_span\": \"摔倒或躺在地面上\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"person fallen\", \"person lying on ground\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"fall_lying_persist\",\n        \"name\": \"摔倒或躺地人员持续检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"fall_condition\",\n            \"name\": \"摔倒或躺地状态\",\n            \"operator\": \"AND\",\n            \"capability_id\": null,\n            \"parameters\": {},\n            \"negated\": false,\n            \"children\": [\n              {\n                \"key\": \"detect_person\",\n                \"name\": \"检测人员\",\n                \"operator\": \"ATOM\",\n                \"capability_id\": \"target.detect\",\n                \"parameters\": {\n                  \"targets\": \"person\",\n                  \"phrases\": [\"person\"],\n                  \"business_label\": \"人员\"\n                },\n                \"negated\": false,\n                \"children\": [],\n                \"required_count\": null\n              },\n              {\n                \"key\": \"pose_condition\",\n                \"name\": \"摔倒或躺地姿态\",\n                \"operator\": \"ATOM\",\n                \"capability_id\": \"state.current\",\n                \"parameters\": {\n                  \"source\": \"condition:fall_condition.detect_person\",\n                  \"state\": \"fallen or lying on ground\"\n                },\n                \"negated\": false,\n                \"children\": [],\n                \"required_count\": null\n              }\n            ],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"track\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"摔倒或躺地事件\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:fall_lying_persist\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"fall_event_result\",\n        \"name\": \"摔倒或躺地人员\",\n        \"source_ref\": \"branch:fall_lying_persist\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"on_match\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"medium\",\n      \"outputs\": [\"event_record\", \"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 1,
+        "branch_media": [
+          "video"
+        ],
+        "branch_logic": [
+          "AND"
+        ],
+        "capabilities": [
+          "state.current",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "continuous"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "events"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_fall_event_result",
+          "display_name": "摔倒或躺地人员",
+          "semantic_type": "event_set",
+          "value_shape": "list",
+          "source_ref": "branch:branch_fall_lying_persist",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "events",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "on_match",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_fall_event_result"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "objects": "$branch_fall_lying_persist_condition_fall_lying_persist_pose_condition_label",
+          "branch_branch_fall_lying_persist": "$branch_fall_lying_persist_time_fall_lying_persist_temporal",
+          "result_result_fall_event_result": "$branch_fall_lying_persist_time_fall_lying_persist_temporal",
+          "final_primary": "$branch_fall_lying_persist_time_fall_lying_persist_temporal",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": true,
+          "conditions": false,
+          "temporal": false,
+          "resources": true,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": true,
+          "execution_structure": false
+        },
+        "matching_facets": 5,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "attribute.geometry",
+          "logic.group",
+          "motion.track",
+          "spatial.association",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "motion.track",
+          "motion.track",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "motion.track",
+          "motion.track",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "d1f818ab505a66b269616e440daeebb3e43164616c53eb4957bcdfcf9226e92b",
+        "preset_signature_hash": "03c28deb3ea7db1712f5ca3e8903c232ddbe52ee8d65427785367f147bb3a26b"
+      }
+    }
+  ]
+}

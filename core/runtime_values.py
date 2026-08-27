@@ -299,23 +299,34 @@ class LegacyOutputEnvelopeAdapter:
             )
 
         if name == "ObjectSet":
-            for item in _items(value):
-                entity_id = str(getattr(item, "id", ""))
-                refs = [candidate for candidate in [entity_id, getattr(item, "track_id", None)] if candidate]
-                add(
-                    "box",
-                    marker=(entity_id, item.frame_index, item.bbox),
-                    timestamp=float(item.timestamp),
-                    frame_index=int(item.frame_index),
-                    entity_refs=[str(candidate) for candidate in refs],
-                    geometry={"bbox": list(item.bbox)},
-                    evidence_value={
-                        "label": item.label,
-                        "phrase": item.phrase,
-                        "model_label": item.label,
-                    },
-                    coordinate_space="normalized_original",
-                )
+            for entity in _items(value):
+                history = getattr(entity, "history", None)
+                samples = history if history is not None else [entity]
+                for item in samples:
+                    entity_id = str(getattr(item, "id", ""))
+                    refs = [
+                        candidate
+                        for candidate in [
+                            getattr(entity, "id", None),
+                            entity_id,
+                            getattr(item, "track_id", None),
+                        ]
+                        if candidate
+                    ]
+                    add(
+                        "box",
+                        marker=(entity_id, item.frame_index, item.bbox),
+                        timestamp=float(item.timestamp),
+                        frame_index=int(item.frame_index),
+                        entity_refs=list(dict.fromkeys(str(candidate) for candidate in refs)),
+                        geometry={"bbox": list(item.bbox)},
+                        evidence_value={
+                            "label": item.label,
+                            "phrase": getattr(item, "phrase", ""),
+                            "model_label": item.label,
+                        },
+                        coordinate_space="normalized_original",
+                    )
         elif name == "TrackSet":
             for track in _items(value):
                 samples = []

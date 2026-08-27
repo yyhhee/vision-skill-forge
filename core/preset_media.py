@@ -119,13 +119,13 @@ def _builtin_media_path(
             demo = project_root / "data" / "demo_media" / "P05.mp4"
             if demo.is_file():
                 return demo
+        if preset_id == "P12":
+            demo = project_root / "data" / "demo_media" / "P12.mp4"
+            if demo.is_file():
+                return demo
         preferred = project_root / "data" / "acceptance_media" / "v2" / f"{preset_id}_positive.mp4"
         if preferred.is_file():
             return preferred
-        if preset_id == "P12":
-            preferred = project_root / "data" / "acceptance_media" / "v2" / "P12_positive_transition.mp4"
-            if preferred.is_file():
-                return preferred
         fallback = project_root / "data" / "demo_media" / f"{preset_id}.mp4"
         if fallback.is_file():
             return fallback

@@ -1,0 +1,2575 @@
+{
+  "schema_version": "1.0",
+  "date": "2026-08-27",
+  "scope": "real_planner_compile_and_business_editor_reproduction",
+  "instruction_style": "structured",
+  "execution_source": "recorded_real_llm_output",
+  "case_count": 13,
+  "compiled": 13,
+  "semantic_mismatch": 0,
+  "failed": 0,
+  "cases": [
+    {
+      "preset_id": "P01",
+      "instruction_style": "structured",
+      "instruction": "业务事件：烟火检测；条件分支：出现烟雾或明火；最终判定：检测到目标；业务输出：烟火框、标注画面。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"fire_and_smoke\",\n    \"source_span\": \"烟雾或明火\",\n    \"phrases\": [\"smoke\", \"fire\"],\n    \"classes\": [\n      {\n        \"label\": \"烟雾\",\n        \"phrases\": [\"smoke\"]\n      },\n      {\n        \"label\": \"明火\",\n        \"phrases\": [\"fire\"]\n      }\n    ]\n  },\n  \"constraints\": [],\n  \"logic\": \"any\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"branch_image\",\n        \"name\": \"图片烟火检测\",\n        \"media_type\": \"image\",\n        \"logic\": \"OR\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"cond_smoke_image\",\n            \"name\": \"出现烟雾\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"smoke\"],\n              \"phrases\": [\"smoke\"],\n              \"business_label\": \"烟火\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_fire_image\",\n            \"name\": \"出现明火\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"fire\"],\n              \"phrases\": [\"fire\", \"flame\"],\n              \"business_label\": \"烟火\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"branch_video\",\n        \"name\": \"视频烟火检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"OR\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"cond_smoke_video\",\n            \"name\": \"出现烟雾\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"smoke\"],\n              \"phrases\": [\"smoke\"],\n              \"business_label\": \"烟火\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_fire_video\",\n            \"name\": \"出现明火\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"fire\"],\n              \"phrases\": [\"fire\", \"flame\"],\n              \"business_label\": \"烟火\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"烟火检测\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:branch_image\", \"branch:branch_video\"],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"result_boxes\",\n        \"name\": \"烟火框\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"result_annotated_media\",\n        \"name\": \"标注画面\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"media\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": [\"event_record\", \"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "OR",
+          "OR"
+        ],
+        "capabilities": [
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "entities",
+          "media"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_result_boxes",
+          "display_name": "烟火框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "image",
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        },
+        {
+          "result_id": "result_result_annotated_media",
+          "display_name": "标注画面",
+          "semantic_type": "media",
+          "value_shape": "single",
+          "source_ref": "final:primary",
+          "media_types": [
+            "image",
+            "video"
+          ],
+          "projection": {
+            "kind": "media",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "objects": "$branch_branch_image_condition_branch_image_cond_fire_image_label",
+          "branch_branch_branch_image": "$branch_branch_image_group_branch_image_or",
+          "final_primary": "$branch_branch_image_group_branch_image_or",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        },
+        "video": {
+          "objects": "$branch_branch_video_condition_branch_video_cond_fire_video_label",
+          "branch_branch_branch_video": "$branch_branch_video_group_branch_video_or",
+          "final_primary": "$branch_branch_video_group_branch_video_or",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": true,
+          "resources": true,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 3,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "attribute.color",
+          "logic.group",
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "measure.count",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "measure.statistic",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "11cc67f1bd40c082908813938a8954affc3f9f8398b8e8fc291505b2e7b14fcb",
+        "preset_signature_hash": "7755aa3733e81b183b787ca5cdddb5b395bd1c47d2ceecf8ae116ddadc8b9840"
+      }
+    },
+    {
+      "preset_id": "P02",
+      "instruction_style": "structured",
+      "instruction": "业务事件：交通事故；条件分支：出现车辆碰撞、侧翻或受损车辆；最终判定：发生事故；业务输出：事故框、事件结果。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"vehicle\",\n    \"source_span\": \"车辆\",\n    \"phrases\": [\"vehicle\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"state\",\n      \"value\": \"collision\",\n      \"source\": \"出现车辆碰撞、侧翻或受损车辆\",\n      \"source_span\": \"碰撞\",\n      \"carrier\": \"vehicle\",\n      \"carrier_span\": \"车辆\",\n      \"phrases\": [\"vehicle collision\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"state\",\n      \"value\": \"rollover\",\n      \"source\": \"出现车辆碰撞、侧翻或受损车辆\",\n      \"source_span\": \"侧翻\",\n      \"carrier\": \"vehicle\",\n      \"carrier_span\": \"车辆\",\n      \"phrases\": [\"vehicle rollover\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"state\",\n      \"value\": \"damaged\",\n      \"source\": \"出现车辆碰撞、侧翻或受损车辆\",\n      \"source_span\": \"受损车辆\",\n      \"carrier\": \"vehicle\",\n      \"carrier_span\": \"车辆\",\n      \"phrases\": [\"damaged vehicle\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"any\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"image_accident_detection\",\n        \"name\": \"图片事故检测\",\n        \"media_type\": \"image\",\n        \"logic\": \"OR\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"vehicle_collision\",\n            \"name\": \"车辆碰撞\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:image_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"state\": \"collision\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"vehicle_rollover\",\n            \"name\": \"车辆侧翻\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:image_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"state\": \"rollover\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"vehicle_damaged\",\n            \"name\": \"受损车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:image_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"state\": \"damaged\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"video_accident_detection\",\n        \"name\": \"视频事故检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"OR\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"vehicle_collision\",\n            \"name\": \"车辆碰撞\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:video_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"state\": \"collision\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"vehicle_rollover\",\n            \"name\": \"车辆侧翻\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:video_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"state\": \"rollover\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"vehicle_damaged\",\n            \"name\": \"受损车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:video_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"state\": \"damaged\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"发生事故\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:image_accident_detection\", \"branch:video_accident_detection\"],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"accident_boxes\",\n        \"name\": \"事故框\",\n        \"source_ref\": \"branch:image_accident_detection\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"accident_event_result\",\n        \"name\": \"事件结果\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"decision\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"high\",\n      \"outputs\": [\"event_record\", \"annotated_media\", \"notification\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "OR",
+          "OR"
+        ],
+        "capabilities": [
+          "state.current"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "entities",
+          "decision"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_accident_boxes",
+          "display_name": "事故框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_image_accident_detection_vehicle_damaged",
+          "media_types": [
+            "image"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_accident_boxes"
+          ]
+        },
+        {
+          "result_id": "result_accident_event_result",
+          "display_name": "事件结果",
+          "semantic_type": "decision",
+          "value_shape": "single",
+          "source_ref": "final:primary",
+          "media_types": [
+            "image",
+            "video"
+          ],
+          "projection": {
+            "kind": "status",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "objects": "$branch_image_accident_detection_condition_image_accident_detection_vehicle_damaged_label",
+          "result_result_accident_boxes": "$branch_image_accident_detection_condition_image_accident_detection_vehicle_damaged_label",
+          "branch_branch_image_accident_detection": "$branch_image_accident_detection_group_image_accident_detection_or",
+          "final_primary": "$branch_image_accident_detection_group_image_accident_detection_or",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        },
+        "video": {
+          "objects": "$branch_video_accident_detection_condition_video_accident_detection_vehicle_damaged_label",
+          "branch_branch_video_accident_detection": "$branch_video_accident_detection_group_video_accident_detection_or",
+          "final_primary": "$branch_video_accident_detection_group_video_accident_detection_or",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": true,
+          "resources": true,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 3,
+        "facet_count": 9,
+        "required_capability_coverage": true,
+        "required_capabilities": [
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "measure.count",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "measure.statistic",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "00bebcc26b7ae4839209debc258bdc7a8054c6bdc039306001aee2325222e617",
+        "preset_signature_hash": "604e67b5fbe7621dd5333d322fad356178ec6637d16b34b0ce25b166bc2525f7"
+      }
+    },
+    {
+      "preset_id": "P03",
+      "instruction_style": "structured",
+      "instruction": "条件分支：识别消防车、救护车、警车等特种车辆；最终判定：检测到特种车辆；业务输出：车辆框和具体类型。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"special vehicle\",\n    \"source_span\": \"消防车、救护车、警车等特种车辆\",\n    \"phrases\": [\"fire truck\", \"ambulance\", \"police car\"],\n    \"classes\": [\n      {\"label\": \"消防车\", \"phrases\": [\"fire truck\"]},\n      {\"label\": \"救护车\", \"phrases\": [\"ambulance\"]},\n      {\"label\": \"警车\", \"phrases\": [\"police car\"]}\n    ]\n  },\n  \"constraints\": [],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"detect_special_vehicle_image\",\n        \"name\": \"识别特种车辆\",\n        \"media_type\": \"image\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_special\",\n            \"name\": \"检测特种车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"fire truck\", \"ambulance\", \"police car\"],\n              \"phrases\": [\"fire truck\", \"ambulance\", \"police car\"],\n              \"business_label\": \"特种车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"detect_special_vehicle_video\",\n        \"name\": \"识别特种车辆\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_special\",\n            \"name\": \"检测特种车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"fire truck\", \"ambulance\", \"police car\"],\n              \"phrases\": [\"fire truck\", \"ambulance\", \"police car\"],\n              \"business_label\": \"特种车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"key\": \"final_special_vehicle\",\n      \"name\": \"特种车辆检测结果\",\n      \"decision_type\": \"detection_summary\",\n      \"source_refs\": [\n        \"branch:detect_special_vehicle_image\",\n        \"branch:detect_special_vehicle_video\"\n      ],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"result_entities_image\",\n        \"name\": \"车辆框和具体类型\",\n        \"source_ref\": \"condition:detect_special_vehicle_image.detect_special\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"result_entities_video\",\n        \"name\": \"车辆框和具体类型\",\n        \"source_ref\": \"condition:detect_special_vehicle_video.detect_special\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"none\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": []\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "AND",
+          "AND"
+        ],
+        "capabilities": [
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "entities",
+          "entities"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_result_entities_image",
+          "display_name": "车辆框和具体类型",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_detect_special_vehicle_image_detect_special",
+          "media_types": [
+            "image"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_result_entities_image"
+          ]
+        },
+        {
+          "result_id": "result_result_entities_video",
+          "display_name": "车辆框和具体类型",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_detect_special_vehicle_video_detect_special",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_result_entities_video"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "objects": "$branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_label",
+          "result_result_result_entities_image": "$branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_label",
+          "branch_branch_detect_special_vehicle_image": "$branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_",
+          "final_primary": "$branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_",
+          "media": "$result_draw"
+        },
+        "video": {
+          "objects": "$branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_label",
+          "result_result_result_entities_video": "$branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_label",
+          "branch_branch_detect_special_vehicle_video": "$branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_",
+          "final_primary": "$branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": true,
+          "resources": true,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 3,
+        "facet_count": 9,
+        "required_capability_coverage": true,
+        "required_capabilities": [
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "actual_signature_hash": "91f714fe4c87f2907efc6beecc03b919ff1f0be2e52af66cfe54da61c2d954cb",
+        "preset_signature_hash": "7f3ef51a395cce54d04e7b3e98c7384d61472647dc94fbe7fec16dc16b47d086"
+      }
+    },
+    {
+      "preset_id": "P04",
+      "instruction_style": "structured",
+      "instruction": "业务事件：车辆拥堵；条件分支：区域车辆数不少于4，持续1秒；最终判定：拥堵发生；业务输出：区域车辆数、拥堵事件。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"vehicle\",\n    \"source_span\": \"车辆\",\n    \"phrases\": [\"vehicle\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"quantity\",\n      \"value\": {\n        \"measure\": \"count\",\n        \"operator\": \">=\",\n        \"value\": 4,\n        \"group_by\": \"named_region\",\n        \"region_role\": \"monitoring_region\"\n      },\n      \"source\": \"条件分支：区域车辆数不少于4，持续1秒\",\n      \"source_span\": \"车辆数不少于4\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"vehicles in region\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"region_requirement\",\n      \"value\": {\n        \"source\": \"manual\",\n        \"cardinality\": \"one\",\n        \"semantic_role\": \"monitoring_region\",\n        \"allowed_shapes\": [\"rectangle\", \"polygon\"]\n      },\n      \"source\": \"条件分支：区域车辆数不少于4，持续1秒\",\n      \"source_span\": \"区域\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"条件分支：区域车辆数不少于4，持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"traffic_congestion\",\n        \"name\": \"车辆拥堵检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_vehicle\",\n            \"name\": \"检测车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": \"vehicle\",\n              \"phrases\": [\"vehicle\"],\n              \"business_label\": \"车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"count_vehicles\",\n            \"name\": \"区域车辆数不少于4\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"measure.count\",\n            \"parameters\": {\n              \"source\": \"condition:traffic_congestion.detect_vehicle\",\n              \"scope\": \"resource:monitoring_region\",\n              \"operator\": \">=\",\n              \"threshold\": 4\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"region\"\n        }\n      }\n    ],\n    \"resources\": [\n      {\n        \"key\": \"monitoring_region\",\n        \"name\": \"监控区域\",\n        \"resource_type\": \"region\",\n        \"semantic_role\": \"monitoring_region\",\n        \"media_types\": [\"video\"],\n        \"minimum_items\": 1,\n        \"paired_region_key\": null\n      }\n    ],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"拥堵发生\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:traffic_congestion\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"vehicle_count\",\n        \"name\": \"区域车辆数\",\n        \"source_ref\": \"condition:traffic_congestion.count_vehicles\",\n        \"result_kind\": \"count\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"congestion_event\",\n        \"name\": \"拥堵事件\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"decision\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"on_match\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"none\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": [\"event_record\", \"annotated_media\"]\n    },\n    \"pending_decisions\": [\n      {\n        \"key\": \"define_monitoring_region\",\n        \"kind\": \"generic\",\n        \"prompt\": \"请指定监控区域，用于统计区域内的车辆数。\",\n        \"reason\": \"用户要求统计区域车辆数，但未提供具体区域。\",\n        \"recommended_value\": null,\n        \"affected_refs\": [\"condition:traffic_congestion.count_vehicles\"],\n        \"required_before\": \"run\"\n      }\n    ]\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 1,
+        "branch_media": [
+          "video"
+        ],
+        "branch_logic": [
+          "AND"
+        ],
+        "capabilities": [
+          "measure.count",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "continuous"
+        ],
+        "resources": [
+          {
+            "resource_type": "region",
+            "semantic_role": "monitoring_region",
+            "minimum_items": 1
+          }
+        ],
+        "result_kinds": [
+          "count",
+          "decision"
+        ],
+        "pending_kinds": [
+          "generic"
+        ]
+      },
+      "can_run": false,
+      "validation_errors": [],
+      "pending_decisions": [
+        {
+          "decision_id": "pending_define_monitoring_region",
+          "parameter_kind": "generic",
+          "prompt": "请指定监控区域，用于统计区域内的车辆数。",
+          "resolution": {
+            "state": "unresolved",
+            "value": null,
+            "source": "llm_business_draft",
+            "source_span": null,
+            "recommended_value": null,
+            "alternatives": [],
+            "reason": "用户要求统计区域车辆数，但未提供具体区域。",
+            "required_before": "run"
+          },
+          "affected_ids": [
+            "condition_traffic_congestion_count_vehicles"
+          ]
+        }
+      ],
+      "resource_requirements": [
+        {
+          "requirement_id": "resource_monitoring_region",
+          "resource_type": "region_collection",
+          "display_name": "监控区域",
+          "semantic_role": "monitoring_region",
+          "cardinality": {
+            "mode": "dynamic",
+            "minimum": 1,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": null
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "pairing_policy": "none",
+          "required_before": "run",
+          "media_types": [
+            "video"
+          ],
+          "legacy_metadata": {}
+        }
+      ],
+      "result_specs": [
+        {
+          "result_id": "result_vehicle_count",
+          "display_name": "区域车辆数",
+          "semantic_type": "scalar",
+          "value_shape": "single",
+          "source_ref": "condition:condition_traffic_congestion_count_vehicles",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "count",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "zero",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_vehicle_count"
+          ]
+        },
+        {
+          "result_id": "result_congestion_event",
+          "display_name": "拥堵事件",
+          "semantic_type": "decision",
+          "value_shape": "single",
+          "source_ref": "final:primary",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "status",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "on_match",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "objects": "$branch_traffic_congestion_condition_traffic_congestion_detect_vehicle_label",
+          "regions": "$resource_resource_monitoring_region_regions",
+          "result_result_vehicle_count": "$branch_traffic_congestion_condition_traffic_congestion_count_vehicles_region_count",
+          "branch_branch_traffic_congestion": "$branch_traffic_congestion_time_traffic_congestion_temporal",
+          "final_primary": "$branch_traffic_congestion_time_traffic_congestion_temporal",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": false,
+          "resources": false,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "measure.count",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "attribute.geometry",
+          "attribute.geometry",
+          "event.detect_or_compose",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "811f3818d03af18a6cd02e1ba315705ab6e3eb764ec431a906d605d0f619b280",
+        "preset_signature_hash": "29ab7de40db49cc32e094c36e94fb7f3380e662a3ff1afd07a5f1ad3b0c32b72"
+      }
+    },
+    {
+      "preset_id": "P05",
+      "instruction_style": "structured",
+      "instruction": "业务事件：车辆逆行；条件分支：车辆轨迹方向与区域参考箭头相反，持续1秒；最终判定：发生逆行；业务输出：逆行事件、车辆框和轨迹。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"vehicle\",\n    \"source_span\": \"车辆\",\n    \"phrases\": [\"vehicle\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"direction_relation\",\n      \"value\": {\n        \"relation\": \"opposite\",\n        \"reference_scope\": \"manual\",\n        \"reference_source\": \"manual\",\n        \"image_axis\": null\n      },\n      \"source\": \"车辆轨迹方向与区域参考箭头相反\",\n      \"source_span\": \"轨迹方向与区域参考箭头相反\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"vehicle trajectory direction opposite to reference arrow\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"persist for 1 second\"],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"branch_vehicle_wrong_way\",\n        \"name\": \"车辆逆行\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"cond_vehicle_detect\",\n            \"name\": \"检测车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"vehicle\"],\n              \"phrases\": [\"vehicle\"],\n              \"business_label\": \"车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_direction_opposite\",\n            \"name\": \"轨迹方向与参考箭头相反\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"motion.direction\",\n            \"parameters\": {\n              \"source\": \"condition:branch_vehicle_wrong_way.cond_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"reference\": \"resource:ref_arrow\",\n              \"minimum_reverse_angle\": null,\n              \"minimum_displacement\": null\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_persist_1s\",\n            \"name\": \"持续1秒\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:branch_vehicle_wrong_way.cond_direction_opposite\",\n              \"scope\": \"full_frame\",\n              \"duration_seconds\": 1.0\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"track\"\n        }\n      }\n    ],\n    \"resources\": [\n      {\n        \"key\": \"ref_arrow\",\n        \"name\": \"区域参考箭头\",\n        \"resource_type\": \"direction\",\n        \"semantic_role\": \"reference_direction\",\n        \"media_types\": [\"video\"],\n        \"minimum_items\": 1,\n        \"paired_region_key\": null\n      }\n    ],\n    \"patterns\": [\n      {\n        \"key\": \"pattern_wrong_way\",\n        \"name\": \"车辆逆行持续1秒\",\n        \"media_type\": \"video\",\n        \"mode\": \"all_completed_within_window\",\n        \"branch_keys\": [\"branch_vehicle_wrong_way\"],\n        \"window_seconds\": 1.0,\n        \"required_count\": null,\n        \"correlation_scope\": \"track\"\n      }\n    ],\n    \"final_decision\": {\n      \"name\": \"车辆逆行\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:branch_vehicle_wrong_way\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"result_wrong_way_event\",\n        \"name\": \"逆行事件\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"result_vehicle_boxes\",\n        \"name\": \"车辆框\",\n        \"source_ref\": \"condition:branch_vehicle_wrong_way.cond_vehicle_detect\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"result_vehicle_tracks\",\n        \"name\": \"车辆轨迹\",\n        \"source_ref\": \"condition:branch_vehicle_wrong_way.cond_direction_opposite\",\n        \"result_kind\": \"tracks\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"high\",\n      \"outputs\": [\"event_record\", \"annotated_media\", \"notification\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 1,
+        "branch_media": [
+          "video"
+        ],
+        "branch_logic": [
+          "AND"
+        ],
+        "capabilities": [
+          "motion.direction",
+          "state.current",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "continuous"
+        ],
+        "resources": [
+          {
+            "resource_type": "direction",
+            "semantic_role": "reference_direction",
+            "minimum_items": 1
+          }
+        ],
+        "result_kinds": [
+          "events",
+          "entities",
+          "tracks"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": false,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [
+        {
+          "requirement_id": "resource_ref_arrow",
+          "resource_type": "direction_collection",
+          "display_name": "区域参考箭头",
+          "semantic_role": "reference_direction",
+          "cardinality": {
+            "mode": "dynamic",
+            "minimum": 1,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": null
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [],
+          "pairing_policy": "none",
+          "required_before": "run",
+          "media_types": [
+            "video"
+          ],
+          "legacy_metadata": {}
+        }
+      ],
+      "result_specs": [
+        {
+          "result_id": "result_result_wrong_way_event",
+          "display_name": "逆行事件",
+          "semantic_type": "event_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "events",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        },
+        {
+          "result_id": "result_result_vehicle_boxes",
+          "display_name": "车辆框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_vehicle_wrong_way_cond_vehicle_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_result_vehicle_boxes"
+          ]
+        },
+        {
+          "result_id": "result_result_vehicle_tracks",
+          "display_name": "车辆轨迹",
+          "semantic_type": "track_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_vehicle_wrong_way_auto_track_cond_vehicle_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "tracks",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_result_vehicle_tracks"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "objects": "$branch_branch_vehicle_wrong_way_condition_branch_vehicle_wrong_way_cond_vehicle_detect_label",
+          "result_result_result_vehicle_boxes": "$branch_branch_vehicle_wrong_way_condition_branch_vehicle_wrong_way_cond_vehicle_detect_label",
+          "result_result_result_vehicle_tracks": "$branch_branch_vehicle_wrong_way_condition_branch_vehicle_wrong_way_auto_track_cond_vehicle_detect_confirm",
+          "branch_branch_branch_vehicle_wrong_way": "$branch_branch_vehicle_wrong_way_time_branch_vehicle_wrong_way_temporal",
+          "final_primary": "$branch_branch_vehicle_wrong_way_time_branch_vehicle_wrong_way_temporal",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": false,
+          "resources": false,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "motion.direction",
+          "motion.track",
+          "motion.wrong_way",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "measure.statistic",
+          "motion.direction",
+          "motion.direction",
+          "motion.track",
+          "motion.track",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "motion.direction",
+          "motion.direction",
+          "motion.track",
+          "motion.track",
+          "motion.wrong_way",
+          "motion.wrong_way",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "197ebff7c7963a6b9d1944eaeb8f9dba5940f5c7d800319e871b90b19379546f",
+        "preset_signature_hash": "80ff23196f7386acccb9c23d28c612c2294d394a73447c4d6c4e4d2df2bf6fc7"
+      }
+    },
+    {
+      "preset_id": "P06",
+      "instruction_style": "structured",
+      "instruction": "业务事件：人员逗留；条件分支：人员位于标注区域并持续1秒；最终判定：发生逗留；业务输出：人员框、轨迹和事件。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人员\",\n    \"phrases\": [\"person\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"spatial_relation\",\n      \"value\": {\n        \"relation\": \"inside_roi\",\n        \"region\": {\n          \"source\": \"manual\",\n          \"semantic_role\": \"designated_area\",\n          \"shape\": \"polygon\",\n          \"allowed_shapes\": [\"rectangle\", \"polygon\"]\n        }\n      },\n      \"source\": \"人员位于标注区域并持续1秒\",\n      \"source_span\": \"位于标注区域\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"person inside designated area\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"人员位于标注区域并持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"person continuously inside designated area\"],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"branch_loitering\",\n        \"name\": \"人员逗留\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"person_detect\",\n            \"name\": \"检测到人员\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"person\"],\n              \"phrases\": [\"person\"],\n              \"business_label\": \"人员\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"person_in_region\",\n            \"name\": \"人员位于标注区域\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"spatial.membership\",\n            \"parameters\": {\n              \"source\": \"condition:person_detect\",\n              \"scope\": \"resource:marked_region\",\n              \"membership\": \"center\",\n              \"inside\": true\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"track\"\n        }\n      }\n    ],\n    \"resources\": [\n      {\n        \"key\": \"marked_region\",\n        \"name\": \"标注区域\",\n        \"resource_type\": \"region\",\n        \"semantic_role\": \"designated_area\",\n        \"media_types\": [\"video\"],\n        \"minimum_items\": 1,\n        \"paired_region_key\": null\n      }\n    ],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"人员逗留\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:branch_loitering\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"person_boxes\",\n        \"name\": \"人员框\",\n        \"source_ref\": \"condition:branch_loitering.person_detect\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"person_tracks\",\n        \"name\": \"轨迹\",\n        \"source_ref\": \"condition:branch_loitering.person_detect\",\n        \"result_kind\": \"tracks\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"loitering_event\",\n        \"name\": \"事件\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": [\"event_record\", \"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 1,
+        "branch_media": [
+          "video"
+        ],
+        "branch_logic": [
+          "AND"
+        ],
+        "capabilities": [
+          "spatial.membership",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "continuous"
+        ],
+        "resources": [
+          {
+            "resource_type": "region",
+            "semantic_role": "designated_area",
+            "minimum_items": 1
+          }
+        ],
+        "result_kinds": [
+          "entities",
+          "tracks",
+          "events"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": false,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [
+        {
+          "requirement_id": "resource_marked_region",
+          "resource_type": "region_collection",
+          "display_name": "标注区域",
+          "semantic_role": "designated_area",
+          "cardinality": {
+            "mode": "dynamic",
+            "minimum": 1,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": null
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "pairing_policy": "none",
+          "required_before": "run",
+          "media_types": [
+            "video"
+          ],
+          "legacy_metadata": {}
+        }
+      ],
+      "result_specs": [
+        {
+          "result_id": "result_person_boxes",
+          "display_name": "人员框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_loitering_person_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_person_boxes"
+          ]
+        },
+        {
+          "result_id": "result_person_tracks",
+          "display_name": "轨迹",
+          "semantic_type": "track_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_loitering_auto_track_person_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "tracks",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_person_tracks"
+          ]
+        },
+        {
+          "result_id": "result_loitering_event",
+          "display_name": "事件",
+          "semantic_type": "event_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "events",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "result_result_person_boxes": "$branch_branch_loitering_condition_branch_loitering_person_detect_label",
+          "result_result_person_tracks": "$branch_branch_loitering_condition_branch_loitering_auto_track_person_detect_confirm",
+          "regions": "$resource_resource_marked_region_regions",
+          "objects": "$branch_branch_loitering_condition_branch_loitering_person_in_region_apply",
+          "branch_branch_branch_loitering": "$branch_branch_loitering_time_branch_loitering_temporal",
+          "final_primary": "$branch_branch_loitering_time_branch_loitering_temporal",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": false,
+          "resources": false,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "motion.track",
+          "spatial.membership",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "motion.track",
+          "motion.track",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "motion.track",
+          "motion.track",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "67a29365e0f89eb7a845a4995b090fad20abe0a7f8360b78bafa2daf0c4f3ff6",
+        "preset_signature_hash": "1aa1baf91b13824285abd4ad94489f1038c8ba73669f9a42af5f41bbcfce94ff"
+      }
+    },
+    {
+      "preset_id": "P07",
+      "instruction_style": "structured",
+      "instruction": "业务事件：车辆违停；条件分支：车辆在禁停区域 AND 速度低于2，持续10秒；最终判定：发生违停；业务输出：车辆框、速度和事件。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"vehicle\",\n    \"source_span\": \"车辆\",\n    \"phrases\": [\"vehicle\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"spatial_relation\",\n      \"value\": {\n        \"relation\": \"inside_roi\",\n        \"region\": {\n          \"source\": \"manual\",\n          \"semantic_role\": \"prohibited area\",\n          \"shape\": \"polygon\",\n          \"allowed_shapes\": [\"rectangle\", \"polygon\"]\n        }\n      },\n      \"source\": \"车辆在禁停区域\",\n      \"source_span\": \"在禁停区域\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"vehicle inside prohibited area\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"motion\",\n      \"value\": {\n        \"measure\": \"speed\",\n        \"operator\": \"<\",\n        \"threshold\": 2,\n        \"unit\": \"pixels_per_second\",\n        \"aggregation\": \"per_track\"\n      },\n      \"source\": \"速度低于2\",\n      \"source_span\": \"速度低于2\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"vehicle speed less than 2\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 10\n      },\n      \"source\": \"持续10秒\",\n      \"source_span\": \"持续10秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"vehicle persists for 10 seconds\"],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"branch_vehicle_violation\",\n        \"name\": \"车辆违停检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"cond_vehicle_detect\",\n            \"name\": \"检测车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"vehicle\"],\n              \"phrases\": [\"vehicle\"],\n              \"business_label\": \"车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_in_prohibited_area\",\n            \"name\": \"车辆在禁停区域\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"spatial.membership\",\n            \"parameters\": {\n              \"source\": \"condition:branch_vehicle_violation.cond_vehicle_detect\",\n              \"scope\": \"resource:prohibited_area\",\n              \"membership\": \"center\",\n              \"minimum_overlap\": null,\n              \"inside\": true\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_speed_low\",\n            \"name\": \"速度低于2\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"motion.speed\",\n            \"parameters\": {\n              \"source\": \"condition:branch_vehicle_violation.cond_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"operator\": \"<\",\n              \"threshold\": 2,\n              \"unit\": \"pixels_per_second\",\n              \"aggregation\": \"per_track\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_persist_10s\",\n            \"name\": \"持续10秒\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:branch_vehicle_violation.cond_speed_low\",\n              \"scope\": \"full_frame\",\n              \"duration_seconds\": 10\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 10,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"track\"\n        }\n      }\n    ],\n    \"resources\": [\n      {\n        \"key\": \"prohibited_area\",\n        \"name\": \"禁停区域\",\n        \"resource_type\": \"region\",\n        \"semantic_role\": \"prohibited area\",\n        \"media_types\": [\"video\"],\n        \"minimum_items\": 1,\n        \"paired_region_key\": null\n      }\n    ],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"车辆违停\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:branch_vehicle_violation\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"vehicle_boxes\",\n        \"name\": \"车辆框\",\n        \"source_ref\": \"condition:branch_vehicle_violation.cond_vehicle_detect\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"vehicle_speed\",\n        \"name\": \"速度\",\n        \"source_ref\": \"condition:branch_vehicle_violation.cond_speed_low\",\n        \"result_kind\": \"value\",\n        \"unit\": \"pixels_per_second\",\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"violation_event\",\n        \"name\": \"事件\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"high\",\n      \"outputs\": [\"event_record\", \"annotated_media\", \"notification\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 1,
+        "branch_media": [
+          "video"
+        ],
+        "branch_logic": [
+          "AND"
+        ],
+        "capabilities": [
+          "motion.speed",
+          "spatial.membership",
+          "state.current",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "continuous"
+        ],
+        "resources": [
+          {
+            "resource_type": "region",
+            "semantic_role": "prohibited area",
+            "minimum_items": 1
+          }
+        ],
+        "result_kinds": [
+          "entities",
+          "value",
+          "events"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": false,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [
+        {
+          "requirement_id": "resource_prohibited_area",
+          "resource_type": "region_collection",
+          "display_name": "禁停区域",
+          "semantic_role": "prohibited area",
+          "cardinality": {
+            "mode": "dynamic",
+            "minimum": 1,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": null
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "pairing_policy": "none",
+          "required_before": "run",
+          "media_types": [
+            "video"
+          ],
+          "legacy_metadata": {}
+        }
+      ],
+      "result_specs": [
+        {
+          "result_id": "result_vehicle_boxes",
+          "display_name": "车辆框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_vehicle_violation_cond_vehicle_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_vehicle_boxes"
+          ]
+        },
+        {
+          "result_id": "result_vehicle_speed",
+          "display_name": "速度",
+          "semantic_type": "scalar",
+          "value_shape": "single",
+          "source_ref": "condition:condition_branch_vehicle_violation_cond_speed_low",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "value",
+            "parameters": {}
+          },
+          "unit": "pixels_per_second",
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_vehicle_speed"
+          ]
+        },
+        {
+          "result_id": "result_violation_event",
+          "display_name": "事件",
+          "semantic_type": "event_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "events",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "result_result_vehicle_boxes": "$branch_branch_vehicle_violation_condition_branch_vehicle_violation_cond_vehicle_detect_label",
+          "regions": "$resource_resource_prohibited_area_regions",
+          "objects": "$branch_branch_vehicle_violation_condition_branch_vehicle_violation_cond_in_prohibited_area_apply",
+          "result_result_vehicle_speed": "$branch_branch_vehicle_violation_condition_branch_vehicle_violation_cond_speed_low_speed",
+          "branch_branch_branch_vehicle_violation": "$branch_branch_vehicle_violation_time_branch_vehicle_violation_temporal",
+          "final_primary": "$branch_branch_vehicle_violation_time_branch_vehicle_violation_temporal",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": false,
+          "resources": false,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "logic.group",
+          "measure.statistic",
+          "motion.speed",
+          "motion.track",
+          "spatial.membership",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "measure.statistic",
+          "motion.speed",
+          "motion.speed",
+          "motion.track",
+          "motion.track",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "measure.statistic",
+          "measure.statistic",
+          "motion.speed",
+          "motion.speed",
+          "motion.track",
+          "motion.track",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "aef7775fe9e76863592bceebde71926597cd4da06aebb4d2a030e0c4f8414e49",
+        "preset_signature_hash": "7ecfe5726c76c9a862a52ce3ff417d1199e51794f7e8af5f26d6a3c75f0cda09"
+      }
+    },
+    {
+      "preset_id": "P08",
+      "instruction_style": "structured",
+      "instruction": "条件分支：抛洒物、掉落货物或障碍物位于道路区域；最终判定：检测到道路抛洒物；业务输出：目标框和标注画面。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"road debris\",\n    \"source_span\": \"抛洒物、掉落货物或障碍物\",\n    \"phrases\": [\"road debris\", \"fallen cargo\", \"obstacle\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"spatial_relation\",\n      \"value\": {\n        \"relation\": \"inside_roi\",\n        \"region\": {\n          \"source\": \"manual\",\n          \"semantic_role\": \"road area\",\n          \"shape\": \"polygon\",\n          \"allowed_shapes\": [\"rectangle\", \"polygon\"]\n        }\n      },\n      \"source\": \"抛洒物、掉落货物或障碍物位于道路区域\",\n      \"source_span\": \"位于道路区域\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"road debris\", \"fallen cargo\", \"obstacle\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"image_debris_in_road\",\n        \"name\": \"图片道路抛洒物检测\",\n        \"media_type\": \"image\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_debris\",\n            \"name\": \"检测道路抛洒物\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"road debris\", \"fallen cargo\", \"obstacle\"],\n              \"phrases\": [\"road debris\", \"fallen cargo\", \"obstacle\"],\n              \"business_label\": \"道路抛洒物\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"debris_in_road_region\",\n            \"name\": \"抛洒物位于道路区域\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"spatial.membership\",\n            \"parameters\": {\n              \"source\": \"condition:image_debris_in_road.detect_debris\",\n              \"scope\": \"resource:road_area\",\n              \"membership\": \"center\",\n              \"minimum_overlap\": null,\n              \"inside\": true\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"video_debris_in_road\",\n        \"name\": \"视频道路抛洒物检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_debris\",\n            \"name\": \"检测道路抛洒物\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"road debris\", \"fallen cargo\", \"obstacle\"],\n              \"phrases\": [\"road debris\", \"fallen cargo\", \"obstacle\"],\n              \"business_label\": \"道路抛洒物\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"debris_in_road_region\",\n            \"name\": \"抛洒物位于道路区域\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"spatial.membership\",\n            \"parameters\": {\n              \"source\": \"condition:video_debris_in_road.detect_debris\",\n              \"scope\": \"resource:road_area\",\n              \"membership\": \"center\",\n              \"minimum_overlap\": null,\n              \"inside\": true\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [\n      {\n        \"key\": \"road_area\",\n        \"name\": \"道路区域\",\n        \"resource_type\": \"region\",\n        \"semantic_role\": \"road area\",\n        \"media_types\": [\"image\", \"video\"],\n        \"minimum_items\": 1,\n        \"paired_region_key\": null\n      }\n    ],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"道路抛洒物告警\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:image_debris_in_road\", \"branch:video_debris_in_road\"],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"debris_boxes\",\n        \"name\": \"抛洒物目标框\",\n        \"source_ref\": \"condition:image_debris_in_road.detect_debris\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"annotated_media\",\n        \"name\": \"标注画面\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"media\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"medium\",\n      \"outputs\": [\"event_record\", \"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "AND",
+          "AND"
+        ],
+        "capabilities": [
+          "spatial.membership",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [
+          {
+            "resource_type": "region",
+            "semantic_role": "road area",
+            "minimum_items": 1
+          }
+        ],
+        "result_kinds": [
+          "entities",
+          "media"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": false,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [
+        {
+          "requirement_id": "resource_road_area",
+          "resource_type": "region_collection",
+          "display_name": "道路区域",
+          "semantic_role": "road area",
+          "cardinality": {
+            "mode": "dynamic",
+            "minimum": 1,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": null
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "pairing_policy": "none",
+          "required_before": "run",
+          "media_types": [
+            "image",
+            "video"
+          ],
+          "legacy_metadata": {}
+        }
+      ],
+      "result_specs": [
+        {
+          "result_id": "result_debris_boxes",
+          "display_name": "抛洒物目标框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_image_debris_in_road_detect_debris",
+          "media_types": [
+            "image"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_debris_boxes"
+          ]
+        },
+        {
+          "result_id": "result_annotated_media",
+          "display_name": "标注画面",
+          "semantic_type": "media",
+          "value_shape": "single",
+          "source_ref": "final:primary",
+          "media_types": [
+            "image",
+            "video"
+          ],
+          "projection": {
+            "kind": "media",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "result_result_debris_boxes": "$branch_image_debris_in_road_condition_image_debris_in_road_detect_debris_label",
+          "regions": "$resource_resource_road_area_regions",
+          "objects": "$branch_image_debris_in_road_condition_image_debris_in_road_debris_in_road_region_apply",
+          "branch_branch_image_debris_in_road": "$branch_image_debris_in_road_group_image_debris_in_road_and",
+          "final_primary": "$branch_image_debris_in_road_group_image_debris_in_road_and",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        },
+        "video": {
+          "regions": "$resource_resource_road_area_regions",
+          "objects": "$branch_video_debris_in_road_condition_video_debris_in_road_debris_in_road_region_apply",
+          "branch_branch_video_debris_in_road": "$branch_video_debris_in_road_group_video_debris_in_road_and",
+          "final_primary": "$branch_video_debris_in_road_group_video_debris_in_road_and",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": true,
+          "resources": false,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 9,
+        "required_capability_coverage": true,
+        "required_capabilities": [
+          "spatial.membership",
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "spatial.membership",
+          "spatial.membership",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "motion.track",
+          "motion.track",
+          "spatial.membership",
+          "spatial.membership",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "actual_signature_hash": "8288f2cccd73829bb56aae192b7344efe204e1e6f2b0debc2e7aa3c705fa09ee",
+        "preset_signature_hash": "4616720e21741405e8a0968efa4a530c4e3ce37a91c26e0507719801b852c5c1"
+      }
+    },
+    {
+      "preset_id": "P09",
+      "instruction_style": "structured",
+      "instruction": "业务事件：未戴安全帽；条件分支：施工人员 NOT 关联安全帽；最终判定：存在未戴安全帽人员；业务输出：违规人员框。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"施工人员\",\n    \"phrases\": [\"worker\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"wearable\",\n      \"value\": \"safety helmet\",\n      \"source\": \"施工人员 NOT 关联安全帽\",\n      \"source_span\": \"NOT 关联安全帽\",\n      \"carrier\": \"headwear\",\n      \"carrier_span\": \"安全帽\",\n      \"phrases\": [\"worker wearing safety helmet\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"image_worker_without_helmet\",\n        \"name\": \"图片施工人员未戴安全帽\",\n        \"media_type\": \"image\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_worker\",\n            \"name\": \"检测施工人员\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"person\"],\n              \"phrases\": [\"worker\"],\n              \"business_label\": \"施工人员\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"check_helmet\",\n            \"name\": \"检查安全帽穿戴\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"attribute.color\",\n            \"parameters\": {\n              \"source\": \"condition:image_worker_without_helmet.detect_worker\",\n              \"part\": \"whole\",\n              \"color\": \"yellow\",\n              \"minimum_fraction\": 50\n            },\n            \"negated\": true,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"video_worker_without_helmet\",\n        \"name\": \"视频施工人员未戴安全帽\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_worker\",\n            \"name\": \"检测施工人员\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"person\"],\n              \"phrases\": [\"worker\"],\n              \"business_label\": \"施工人员\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"check_helmet\",\n            \"name\": \"检查安全帽穿戴\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"attribute.color\",\n            \"parameters\": {\n              \"source\": \"condition:video_worker_without_helmet.detect_worker\",\n              \"part\": \"whole\",\n              \"color\": \"yellow\",\n              \"minimum_fraction\": 50\n            },\n            \"negated\": true,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"未戴安全帽人员告警\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:image_worker_without_helmet\", \"branch:video_worker_without_helmet\"],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"violation_boxes\",\n        \"name\": \"违规人员框\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"high\",\n      \"outputs\": [\"event_record\", \"annotated_media\", \"notification\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "AND",
+          "AND"
+        ],
+        "capabilities": [
+          "attribute.color",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "entities"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_violation_boxes",
+          "display_name": "违规人员框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "image",
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "objects": "$branch_image_worker_without_helmet_condition_image_worker_without_helmet_check_helmet_apply",
+          "branch_branch_image_worker_without_helmet": "$branch_image_worker_without_helmet_group_image_worker_without_helmet_and",
+          "final_primary": "$branch_image_worker_without_helmet_group_image_worker_without_helmet_and",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        },
+        "video": {
+          "objects": "$branch_video_worker_without_helmet_condition_video_worker_without_helmet_check_helmet_apply",
+          "branch_branch_video_worker_without_helmet": "$branch_video_worker_without_helmet_group_video_worker_without_helmet_and",
+          "final_primary": "$branch_video_worker_without_helmet_group_video_worker_without_helmet_and",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": true,
+          "resources": true,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 3,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "logic.group",
+          "spatial.association",
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "attribute.color",
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "motion.track",
+          "motion.track",
+          "motion.track",
+          "motion.track",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "actual_signature_hash": "fe707bc592710894bccd4f3f6a0b9e940a8f5c5907ba8acdf816ef574318b2a3",
+        "preset_signature_hash": "bf6120380688025c26d28a9f4d3dedb1363f0916761c03d99ef307e36c449bd6"
+      }
+    },
+    {
+      "preset_id": "P10",
+      "instruction_style": "structured",
+      "instruction": "业务事件：未系安全绳；条件分支：高处作业人员 NOT 关联安全绳证据；最终判定：存在违规人员；业务输出：违规人员框。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"高处作业人员\",\n    \"phrases\": [\"person working at height\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"entity_exclusion\",\n      \"value\": \"safety rope\",\n      \"source\": \"NOT 关联安全绳证据\",\n      \"source_span\": \"未系安全绳\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"safety rope\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"image_work_at_height\",\n        \"name\": \"高处作业人员检测\",\n        \"media_type\": \"image\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_work_at_height\",\n            \"name\": \"高处作业人员\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"person\"],\n              \"phrases\": [\"person working at height\"],\n              \"business_label\": \"高处作业人员\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"not_safety_rope\",\n            \"name\": \"未系安全绳\",\n            \"operator\": \"NOT\",\n            \"capability_id\": null,\n            \"parameters\": {},\n            \"negated\": false,\n            \"children\": [\n              {\n                \"key\": \"detect_safety_rope\",\n                \"name\": \"安全绳证据\",\n                \"operator\": \"ATOM\",\n                \"capability_id\": \"target.detect\",\n                \"parameters\": {\n                  \"targets\": [\"safety rope\"],\n                  \"phrases\": [\"safety rope\"],\n                  \"business_label\": \"安全绳\"\n                },\n                \"negated\": false,\n                \"children\": [],\n                \"required_count\": null\n              }\n            ],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"video_work_at_height\",\n        \"name\": \"高处作业人员检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_work_at_height\",\n            \"name\": \"高处作业人员\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"person\"],\n              \"phrases\": [\"person working at height\"],\n              \"business_label\": \"高处作业人员\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"not_safety_rope\",\n            \"name\": \"未系安全绳\",\n            \"operator\": \"NOT\",\n            \"capability_id\": null,\n            \"parameters\": {},\n            \"negated\": false,\n            \"children\": [\n              {\n                \"key\": \"detect_safety_rope\",\n                \"name\": \"安全绳证据\",\n                \"operator\": \"ATOM\",\n                \"capability_id\": \"target.detect\",\n                \"parameters\": {\n                  \"targets\": [\"safety rope\"],\n                  \"phrases\": [\"safety rope\"],\n                  \"business_label\": \"安全绳\"\n                },\n                \"negated\": false,\n                \"children\": [],\n                \"required_count\": null\n              }\n            ],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"未系安全绳违规人员\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:image_work_at_height\", \"branch:video_work_at_height\"],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"violation_person\",\n        \"name\": \"违规人员框\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"high\",\n      \"outputs\": [\"event_record\", \"annotated_media\", \"notification\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "AND",
+          "AND"
+        ],
+        "capabilities": [
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "entities"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_violation_person",
+          "display_name": "违规人员框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "image",
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "objects": "$branch_image_work_at_height_condition_image_work_at_height_detect_safety_rope_label",
+          "branch_branch_image_work_at_height": "$branch_image_work_at_height_group_image_work_at_height_and",
+          "final_primary": "$branch_image_work_at_height_group_image_work_at_height_and",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        },
+        "video": {
+          "objects": "$branch_video_work_at_height_condition_video_work_at_height_detect_safety_rope_label",
+          "branch_branch_video_work_at_height": "$branch_video_work_at_height_group_video_work_at_height_and",
+          "final_primary": "$branch_video_work_at_height_group_video_work_at_height_and",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": true,
+          "resources": true,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 3,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "logic.group",
+          "spatial.association",
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "actual_signature_hash": "4be363680eb8548f17f9039a75e0cdb6b072fc234738ac355a1720a68676d2f6",
+        "preset_signature_hash": "9ba5d58d16364dac7c7e351b6475afa16523e38ea68ddaf5265a7838725ed491"
+      }
+    },
+    {
+      "preset_id": "P11",
+      "instruction_style": "structured",
+      "instruction": "条件分支：检测垃圾堆、散落垃圾、垃圾容器及溢出垃圾；最终判定：检测到垃圾；业务输出：分类框和数量。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 3,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger",
+        "quantity semantics are not covered"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"waste\",\n    \"source_span\": \"垃圾堆、散落垃圾、垃圾容器及溢出垃圾\",\n    \"phrases\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n    \"classes\": [\n      {\"label\": \"垃圾堆\", \"phrases\": [\"garbage pile\"]},\n      {\"label\": \"散落垃圾\", \"phrases\": [\"scattered garbage\"]},\n      {\"label\": \"垃圾容器\", \"phrases\": [\"garbage container\"]},\n      {\"label\": \"溢出垃圾\", \"phrases\": [\"overflowing garbage\"]}\n    ]\n  },\n  \"constraints\": [],\n  \"logic\": \"any\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"image_waste_detection\",\n        \"name\": \"图片垃圾检测\",\n        \"media_type\": \"image\",\n        \"logic\": \"OR\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_waste\",\n            \"name\": \"检测垃圾\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n              \"phrases\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n              \"business_label\": \"垃圾\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"video_waste_detection\",\n        \"name\": \"视频垃圾检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"OR\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_waste\",\n            \"name\": \"检测垃圾\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n              \"phrases\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n              \"business_label\": \"垃圾\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"检测到垃圾\",\n      \"decision_type\": \"detection_summary\",\n      \"source_refs\": [\"branch:image_waste_detection\", \"branch:video_waste_detection\"],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"waste_boxes\",\n        \"name\": \"分类框\",\n        \"source_ref\": \"condition:image_waste_detection.detect_waste\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"waste_count\",\n        \"name\": \"数量\",\n        \"source_ref\": \"condition:image_waste_detection.detect_waste\",\n        \"result_kind\": \"count\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": [\"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n}",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"waste\",\n    \"source_span\": \"垃圾堆、散落垃圾、垃圾容器及溢出垃圾\",\n    \"phrases\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n    \"classes\": [\n      {\"label\": \"垃圾堆\", \"phrases\": [\"garbage pile\"]},\n      {\"label\": \"散落垃圾\", \"phrases\": [\"scattered garbage\"]},\n      {\"label\": \"垃圾容器\", \"phrases\": [\"garbage container\"]},\n      {\"label\": \"溢出垃圾\", \"phrases\": [\"overflowing garbage\"]}\n    ]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"quantity\",\n      \"value\": {\"measure\": \"count\"},\n      \"source\": \"业务输出：分类框和数量\",\n      \"source_span\": \"数量\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"count\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"any\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"image_waste_detection\",\n        \"name\": \"图片垃圾检测\",\n        \"media_type\": \"image\",\n        \"logic\": \"OR\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_waste\",\n            \"name\": \"检测垃圾\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n              \"phrases\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n              \"business_label\": \"垃圾\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"count_waste\",\n            \"name\": \"垃圾数量\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"measure.count\",\n            \"parameters\": {\n              \"source\": \"condition:image_waste_detection.detect_waste\",\n              \"scope\": \"full_frame\",\n              \"group_by\": null,\n              \"operator\": null,\n              \"threshold\": null\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"video_waste_detection\",\n        \"name\": \"视频垃圾检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"OR\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_waste\",\n            \"name\": \"检测垃圾\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n              \"phrases\": [\"garbage pile\", \"scattered garbage\", \"garbage container\", \"overflowing garbage\"],\n              \"business_label\": \"垃圾\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"count_waste\",\n            \"name\": \"垃圾数量\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"measure.count\",\n            \"parameters\": {\n              \"source\": \"condition:video_waste_detection.detect_waste\",\n              \"scope\": \"full_frame\",\n              \"group_by\": null,\n              \"operator\": null,\n              \"threshold\": null\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"检测到垃圾\",\n      \"decision_type\": \"detection_summary\",\n      \"source_refs\": [\"branch:image_waste_detection\", \"branch:video_waste_detection\"],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"waste_boxes\",\n        \"name\": \"分类框\",\n        \"source_ref\": \"condition:image_waste_detection.detect_waste\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"waste_count\",\n        \"name\": \"数量\",\n        \"source_ref\": \"condition:image_waste_detection.count_waste\",\n        \"result_kind\": \"count\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": [\"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "OR",
+          "OR"
+        ],
+        "capabilities": [
+          "measure.count",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "entities",
+          "count"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_waste_boxes",
+          "display_name": "分类框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_image_waste_detection_detect_waste",
+          "media_types": [
+            "image"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_waste_boxes"
+          ]
+        },
+        {
+          "result_id": "result_waste_count",
+          "display_name": "数量",
+          "semantic_type": "scalar",
+          "value_shape": "single",
+          "source_ref": "condition:condition_image_waste_detection_count_waste",
+          "media_types": [
+            "image"
+          ],
+          "projection": {
+            "kind": "count",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "zero",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_waste_count"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "objects": "$branch_image_waste_detection_condition_image_waste_detection_detect_waste_label",
+          "result_result_waste_boxes": "$branch_image_waste_detection_condition_image_waste_detection_detect_waste_label",
+          "result_result_waste_count": "$branch_image_waste_detection_condition_image_waste_detection_count_waste_count",
+          "branch_branch_image_waste_detection": "$branch_image_waste_detection_group_image_waste_detection_or",
+          "final_primary": "$branch_image_waste_detection_group_image_waste_detection_or",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        },
+        "video": {
+          "objects": "$branch_video_waste_detection_condition_video_waste_detection_detect_waste_label",
+          "branch_branch_video_waste_detection": "$branch_video_waste_detection_group_video_waste_detection_or",
+          "final_primary": "$branch_video_waste_detection_group_video_waste_detection_or",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": true,
+          "resources": false,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 9,
+        "required_capability_coverage": true,
+        "required_capabilities": [
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "measure.count",
+          "measure.count",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "measure.count",
+          "measure.count",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "motion.track",
+          "motion.track",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "spatial.association",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class",
+          "target.filter_class"
+        ],
+        "actual_signature_hash": "aba8a7b9012aba2052d8528b9d0255f1088a367d9451863ee475b25d40c068b5",
+        "preset_signature_hash": "609d3e43acc5bf497a008ad6878175de8e4c49022b402e655cbdc9960fae9e25"
+      }
+    },
+    {
+      "preset_id": "P12",
+      "instruction_style": "structured",
+      "instruction": "业务事件：人员倒地；条件分支：人员与倒地姿态证据关联 AND 姿态几何符合要求，持续1秒；最终判定：发生倒地事件；业务输出：人员框和事件。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人员\",\n    \"phrases\": [\"person\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"pose\",\n      \"value\": \"lying down\",\n      \"source\": \"人员与倒地姿态证据关联\",\n      \"source_span\": \"倒地姿态\",\n      \"carrier\": \"person\",\n      \"carrier_span\": \"人员\",\n      \"phrases\": [\"person lying down\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"pose\",\n      \"value\": \"geometric posture meets requirements\",\n      \"source\": \"姿态几何符合要求\",\n      \"source_span\": \"姿态几何符合要求\",\n      \"carrier\": \"person\",\n      \"carrier_span\": \"人员\",\n      \"phrases\": [\"person with geometric posture meeting requirements\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\"type\": \"persist\", \"seconds\": 1.0},\n      \"source\": \"持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"persist for 1 second\"],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"fall_detection\",\n        \"name\": \"人员倒地检测\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"person_detect\",\n            \"name\": \"检测人员\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": \"person\",\n              \"phrases\": [\"person\"],\n              \"business_label\": \"人员\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"lying_pose\",\n            \"name\": \"倒地姿态\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:fall_detection.person_detect\",\n              \"state\": \"lying\",\n              \"duration_seconds\": 1.0\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"geometry_ok\",\n            \"name\": \"姿态几何符合要求\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"attribute.geometry\",\n            \"parameters\": {\n              \"source\": \"condition:fall_detection.person_detect\",\n              \"geometry\": \"lying posture geometry\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"object\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"发生倒地事件\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:fall_detection\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"fall_event\",\n        \"name\": \"倒地事件\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"on_match\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"person_boxes\",\n        \"name\": \"人员框\",\n        \"source_ref\": \"condition:fall_detection.person_detect\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"on_match\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"high\",\n      \"outputs\": [\"event_record\", \"annotated_media\", \"notification\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 1,
+        "branch_media": [
+          "video"
+        ],
+        "branch_logic": [
+          "AND"
+        ],
+        "capabilities": [
+          "attribute.geometry",
+          "state.current",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "continuous"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "events",
+          "entities"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_fall_event",
+          "display_name": "倒地事件",
+          "semantic_type": "event_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "events",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "on_match",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        },
+        {
+          "result_id": "result_person_boxes",
+          "display_name": "人员框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_fall_detection_person_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "on_match",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_person_boxes"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "result_result_person_boxes": "$branch_fall_detection_condition_fall_detection_person_detect_label",
+          "objects": "$branch_fall_detection_condition_fall_detection_lying_pose_label",
+          "branch_branch_fall_detection": "$branch_fall_detection_time_fall_detection_temporal",
+          "final_primary": "$branch_fall_detection_time_fall_detection_temporal",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": false,
+          "resources": true,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 3,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "attribute.geometry",
+          "logic.group",
+          "motion.track",
+          "spatial.association",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "motion.track",
+          "motion.track",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "15fa2e3506b3bfd28c115e07fb79b3bc8f365c8b6ee96257bd2ef30e6dbff324",
+        "preset_signature_hash": "03c28deb3ea7db1712f5ca3e8903c232ddbe52ee8d65427785367f147bb3a26b"
+      }
+    },
+    {
+      "preset_id": "P13",
+      "instruction_style": "structured",
+      "instruction": "条件分支：检测桥梁病害 AND 排除规则施工缝；最终判定：检测到桥梁病害；业务输出：病害类别和目标框。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "recorded_real_llm_output",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"bridge_defect\",\n    \"source_span\": \"桥梁病害\",\n    \"phrases\": [\"bridge defect\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"entity_exclusion\",\n      \"value\": \"construction joint\",\n      \"source\": \"排除规则施工缝\",\n      \"source_span\": \"排除规则施工缝\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"construction joint\"],\n      \"temporal\": false\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"image_branch\",\n        \"name\": \"图像检测桥梁病害\",\n        \"media_type\": \"image\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_defect\",\n            \"name\": \"检测桥梁病害\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"bridge defect\"],\n              \"phrases\": [\"bridge defect\"],\n              \"business_label\": \"桥梁病害\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"exclude_joint\",\n            \"name\": \"排除施工缝\",\n            \"operator\": \"NOT\",\n            \"capability_id\": null,\n            \"parameters\": {},\n            \"negated\": false,\n            \"children\": [\n              {\n                \"key\": \"detect_joint\",\n                \"name\": \"检测施工缝\",\n                \"operator\": \"ATOM\",\n                \"capability_id\": \"target.detect\",\n                \"parameters\": {\n                  \"targets\": [\"construction joint\"],\n                  \"phrases\": [\"construction joint\"],\n                  \"business_label\": \"施工缝\"\n                },\n                \"negated\": false,\n                \"children\": [],\n                \"required_count\": null\n              }\n            ],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"video_branch\",\n        \"name\": \"视频检测桥梁病害\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_defect\",\n            \"name\": \"检测桥梁病害\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"bridge defect\"],\n              \"phrases\": [\"bridge defect\"],\n              \"business_label\": \"桥梁病害\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"exclude_joint\",\n            \"name\": \"排除施工缝\",\n            \"operator\": \"NOT\",\n            \"capability_id\": null,\n            \"parameters\": {},\n            \"negated\": false,\n            \"children\": [\n              {\n                \"key\": \"detect_joint\",\n                \"name\": \"检测施工缝\",\n                \"operator\": \"ATOM\",\n                \"capability_id\": \"target.detect\",\n                \"parameters\": {\n                  \"targets\": [\"construction joint\"],\n                  \"phrases\": [\"construction joint\"],\n                  \"business_label\": \"施工缝\"\n                },\n                \"negated\": false,\n                \"children\": [],\n                \"required_count\": null\n              }\n            ],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"桥梁病害检测\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:image_branch\", \"branch:video_branch\"],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"defect_result\",\n        \"name\": \"病害类别和目标框\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"none\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": [\"event_record\", \"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "AND",
+          "AND"
+        ],
+        "capabilities": [
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "entities"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_defect_result",
+          "display_name": "病害类别和目标框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "image",
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "objects": "$branch_image_branch_condition_image_branch_detect_joint_label",
+          "branch_branch_image_branch": "$branch_image_branch_group_image_branch_and",
+          "final_primary": "$branch_image_branch_group_image_branch_and",
+          "media": "$result_draw"
+        },
+        "video": {
+          "objects": "$branch_video_branch_condition_video_branch_detect_joint_label",
+          "branch_branch_video_branch": "$branch_video_branch_group_video_branch_and",
+          "final_primary": "$branch_video_branch_group_video_branch_and",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "semantic_configuration": false,
+          "conditions": false,
+          "temporal": true,
+          "resources": true,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 3,
+        "facet_count": 9,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "logic.group",
+          "spatial.association",
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "logic.group",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "motion.track",
+          "motion.track",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "actual_signature_hash": "1a8eb7b9ae7ed15ce4f5ae20a1ec07fd46fca9c867e9fc5085f93793c6d970ef",
+        "preset_signature_hash": "d8645231e5dafe1abdcb736e241259767b622f2fc00b827f5594137e119e2d78"
+      }
+    }
+  ]
+}

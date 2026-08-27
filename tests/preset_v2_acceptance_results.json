@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "updated_date": "2026-08-18",
+  "updated_date": "2026-08-26",
   "scope": "v2_real_rex_positive_negative_confusion_by_declared_variant",
   "cases": [
     {
@@ -2836,52 +2836,66 @@
       "signal": "objects",
       "minimum": 1,
       "maximum": null,
-      "labels_all": [],
-      "labels_any": [
-        "垃圾"
+      "labels_all": [
+        "垃圾容器",
+        "溢出垃圾"
       ],
-      "expected_note": "服务区存在垃圾和散落废弃物",
+      "labels_any": [],
+      "expected_note": "服务区存在垃圾容器及其上沿的溢出垃圾",
       "source_type": "project_fixture",
       "source_note": "项目已有或用户提供的演示素材",
       "media_sha256": "acd6ef883240fc23b47935366ae0b88441d35938e93194561c82b63145dfd758",
-      "package_sha256": "4048539c1e94c399a68795e777eaa1d2cdeb19e1e37a33da9255e81cb7da9ec9",
+      "package_sha256": "7c02e33791f0b2a84aae74a21a59c95bf1b1572e6ba6e372ab144ffbaf450fd8",
       "skill_id": "service_area_garbage",
       "skill_version": 1,
-      "instruction": "检测服务区画面中的散落废弃物，排除垃圾容器和整齐包装货物。",
-      "semantic_hash": "89d51e7bede6fd9bb638dd57a83f4aeb93d00682e8fa3c4b3b0c28ecde7177c3",
+      "instruction": "检测服务区画面中的垃圾堆、散落垃圾、垃圾容器及溢出垃圾。",
+      "semantic_hash": "eb734c13b88fa52618fca502dbafa0eb473ac20b2b8acb881ec2311b34f582b6",
       "structure_status": "structure_passed",
       "structure_errors": [],
-      "review_date": "2026-08-14",
+      "review_date": "2026-08-26",
       "runtime_status": "executed_with_output",
       "semantic_status": "semantic_passed",
-      "run_id": "20260814_001954_100965b3",
-      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs_v2\\20260814_001954_100965b3",
-      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs_v2\\20260814_001954_100965b3\\annotated.jpg",
-      "object_count": 15,
+      "run_id": "20260826_130222_142a0c83",
+      "run_dir": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs_v2\\20260826_130222_142a0c83",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs_v2\\20260826_130222_142a0c83\\annotated.jpg",
+      "object_count": 23,
       "event_count": 0,
       "actual_rex_phrases": [
-        "loose trash on the ground",
-        "trash bin",
-        "garbage container",
-        "neatly stacked packages",
-        "cardboard boxes on a pallet",
-        "shrink wrapped package"
+        "single individual black wheeled garbage bin",
+        "each separate outdoor garbage bin",
+        "trash visibly protruding above the rim of a garbage bin",
+        "garbage piled above the top opening of a garbage bin",
+        "waste spilling out over the upper edge of a garbage bin",
+        "large pile of mixed garbage bags and loose waste",
+        "heap of household trash accumulated on the pavement",
+        "visible garbage pile beside a trash collection point",
+        "isolated loose waste item lying on the pavement",
+        "discarded white plastic bag on the ground",
+        "crumpled plastic bag lying on the pavement",
+        "clearly visible litter item separated from a garbage pile",
+        "group of mixed small litter pieces scattered near a garbage bin",
+        "complete freestanding outdoor garbage bin with visible container body",
+        "complete wheeled garbage bin with visible opening and body"
       ],
       "rex_model": "rex-omni-awq",
       "checks": {
         "signal": "objects",
-        "actual_value": 15,
+        "actual_value": 23,
         "minimum": 1,
         "maximum": null,
         "minimum_passed": true,
         "maximum_passed": true,
         "actual_labels": [
-          "垃圾"
+          "垃圾堆",
+          "垃圾容器",
+          "散落垃圾",
+          "溢出垃圾"
         ],
-        "labels_all": [],
-        "labels_any": [
-          "垃圾"
+        "labels_all": [
+          "垃圾容器",
+          "溢出垃圾"
         ],
+        "labels_any": [],
         "labels_all_passed": true,
         "labels_any_passed": true,
         "annotated_media_exists": true

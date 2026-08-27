@@ -24,6 +24,171 @@ class FakeClient:
         self.chat = SimpleNamespace(completions=FakeCompletions(contents))
 
 
+def test_business_region_repairs_an_open_scene_position_constraint():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    ledger = {
+        "constraints": [{
+            "kind": "position",
+            "value": "on road",
+            "source": "检测道路上的障碍物",
+            "source_span": "道路上",
+        }],
+        "unresolved": [{
+            "source_span": "道路上",
+            "reason": "unknown position: on road",
+        }],
+    }
+    business_rule = {
+        "resources": [{
+            "key": "road",
+            "resource_type": "region",
+            "semantic_role": "road_surface",
+            "minimum_items": 1,
+        }]
+    }
+
+    repaired = DeepSeekSemanticPlanner._repair_business_region_positions(
+        ledger, business_rule
+    )
+
+    assert repaired["constraints"][0]["kind"] == "region_requirement"
+    assert repaired["constraints"][0]["value"]["semantic_role"] == "road_surface"
+    assert repaired["unresolved"] == []
+
+
+def test_open_scene_position_synthesizes_missing_business_region_resource():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    ledger = {
+        "constraints": [{
+            "kind": "position",
+            "value": "on road",
+            "source": "检测道路上的障碍物",
+            "source_span": "道路上",
+        }],
+        "unresolved": [],
+    }
+    business_rule = {
+        "branches": [{
+            "media_type": "image",
+            "conditions": [{
+                "capability_id": "spatial.membership",
+                "parameters": {"scope": "full_frame"},
+            }],
+        }],
+        "resources": [],
+    }
+
+    repaired = DeepSeekSemanticPlanner._repair_business_region_positions(
+        ledger, business_rule
+    )
+
+    assert repaired["constraints"][0]["kind"] == "region_requirement"
+    assert business_rule["resources"][0]["semantic_role"] == "on_road"
+    condition = business_rule["branches"][0]["conditions"][0]
+    assert condition["parameters"]["scope"] == "resource:on_road"
+
+
+def test_manual_direction_synthesizes_resource_and_repairs_direction_parameters():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    ledger = {
+        "constraints": [{
+            "kind": "direction_relation",
+            "value": {
+                "relation": "opposite",
+                "reference_scope": "manual",
+                "reference_source": "manual",
+            },
+        }],
+    }
+    business_rule = {
+        "branches": [{
+            "media_type": "video",
+            "conditions": [{
+                "capability_id": "motion.direction",
+                "parameters": {
+                    "reference": "manual",
+                    "minimum_reverse_angle": None,
+                },
+            }],
+        }],
+        "resources": [],
+    }
+
+    DeepSeekSemanticPlanner._repair_business_manual_directions(
+        ledger, business_rule
+    )
+
+    resource = business_rule["resources"][0]
+    assert resource["resource_type"] == "direction"
+    parameters = business_rule["branches"][0]["conditions"][0]["parameters"]
+    assert parameters["reference"] == "resource:reference_direction"
+    assert parameters["relation"] == "opposite"
+    assert "minimum_reverse_angle" not in parameters
+
+
+def test_per_region_direction_synthesizes_region_semantics_and_drops_resource_branch():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    ledger = {
+        "constraints": [{
+            "kind": "direction_relation",
+            "value": {
+                "relation": "opposite",
+                "reference_scope": "per_named_region",
+                "reference_source": "manual",
+            },
+            "source": "按每个区域标注方向",
+            "source_span": "按每个区域标注方向",
+        }],
+    }
+    business_rule = {
+        "branches": [
+            {
+                "key": "direction_setup",
+                "media_type": "video",
+                "conditions": [{
+                    "capability_id": "motion.direction",
+                    "parameters": {"source": "full_frame", "reference": "manual"},
+                }],
+            },
+            {
+                "key": "detection",
+                "media_type": "video",
+                "conditions": [{
+                    "capability_id": "motion.wrong_way",
+                    "parameters": {"reference": "manual"},
+                }],
+            },
+        ],
+        "resources": [{
+            "key": "areas",
+            "name": "检测区域",
+            "resource_type": "region",
+            "semantic_role": "area",
+            "media_types": ["video"],
+        }],
+    }
+
+    DeepSeekSemanticPlanner._repair_business_manual_directions(
+        ledger, business_rule
+    )
+
+    region = ledger["constraints"][0]
+    assert region["kind"] == "region_requirement"
+    assert region["value"]["cardinality"] == "many"
+    assert [item["key"] for item in business_rule["branches"]] == ["detection"]
+    direction = next(
+        item for item in business_rule["resources"]
+        if item["resource_type"] == "direction"
+    )
+    assert direction["paired_region_key"] == "areas"
+    parameters = business_rule["branches"][0]["conditions"][0]["parameters"]
+    assert parameters["reference"] == "resource:reference_direction"
+
+
 def _red_gray_ledger(top="上衣", pants="裤子"):
     return {
         "mode": "entity_query",
@@ -83,6 +248,10 @@ def test_v2_planner_extracts_semantics_then_uses_deterministic_compiler():
     assert "Python" in prompt
     assert "每个能够独立保存结果" in prompt
     assert "full_frame 仅可作为 scope" in prompt
+    assert "只是技能名称，不是事件名、告警名或框标签" in prompt
+    assert "不得直接复制给 final_decision.name" in prompt
+    assert "用户没有明确给出时必须省略" in prompt
+    assert "target.detect 不接受 scope" in prompt
     user_payload = json.loads(call["messages"][1]["content"])
     assert user_payload["requested_skill_display_name"] == "红上衣灰裤人员"
 
@@ -548,6 +717,62 @@ def test_v2_planner_repairs_invalid_source_span_once():
     assert result.package.compile_status == "compiled"
     assert "source_span is not present" in result.errors[0]
     assert "上一次语义账本无效" in fake.chat.completions.calls[1]["messages"][-1]["content"]
+
+
+def test_v2_planner_repairs_missing_target_fields_deterministically():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    instruction = "检测穿红色上衣、灰色裤子的人。"
+    ledger = _red_gray_ledger()
+    ledger["target"] = {
+        "concept": "",
+        "source_span": "不存在的目标片段",
+        "phrases": [],
+    }
+    fake = FakeClient([json.dumps(ledger, ensure_ascii=False)])
+
+    result = DeepSeekSemanticPlanner(build_default_registry(), client=fake).compile(
+        instruction,
+        requested_accept=["image"],
+        skill_id="multi_region_people",
+        display_name="多区域人员告警",
+    )
+
+    assert result.package is not None
+    assert result.attempts == 1
+    assert result.package.semantic_ir.target.concept == "person"
+    assert result.package.semantic_ir.target.source_span == "人"
+    assert result.package.semantic_ir.target.phrases == ["person"]
+
+
+def test_v2_planner_uses_third_attempt_for_repeated_semantic_ledger_failures():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    instruction = "区域1有穿红色衣服、灰色裤子的人，区域2有至少2个人，则发出告警。"
+    ledgers = [_red_gray_ledger("衣服", "裤子") for _ in range(3)]
+    for ledger in ledgers:
+        ledger["constraints"][0]["source"] = "区域1有穿红色衣服、灰色裤子的人"
+        ledger["constraints"][1]["source"] = "区域1有穿红色衣服、灰色裤子的人"
+    first, second, valid = ledgers
+    first["constraints"][0]["source_span"] = "蓝色衣服"
+    second["constraints"][1]["source_span"] = "绿色裤子"
+
+    result = DeepSeekSemanticPlanner(
+        build_default_registry(),
+        client=FakeClient([
+            json.dumps(first, ensure_ascii=False),
+            json.dumps(second, ensure_ascii=False),
+            json.dumps(valid, ensure_ascii=False),
+        ]),
+    ).compile(
+        instruction,
+        requested_accept=["image"],
+        skill_id="multi_region_people",
+        display_name="多区域人员告警",
+    )
+
+    assert result.package is not None
+    assert result.attempts == 3
 
 
 def test_v2_planner_returns_needs_review_without_direct_grounding_on_repeated_failure():

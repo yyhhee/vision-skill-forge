@@ -19,6 +19,13 @@ VEHICLE_TARGETS: list[Target] = [{
     "phrases": ["vehicle", "passenger car", "truck"],
 }]
 
+CONGESTION_VEHICLE_TARGETS: list[Target] = [{
+    "label": "车辆",
+    "phrases": [
+        "vehicle", "car", "passenger car", "SUV", "van", "truck", "bus"
+    ],
+}]
+
 PERSON_TARGETS: list[Target] = [{
     "label": "人员",
     "phrases": ["person"],
@@ -61,20 +68,41 @@ SPECIAL_VEHICLE_TARGETS: list[Target] = [
 def congestion_builder(media_type: str) -> VariantDraft:
     if media_type != "video":
         raise ValueError("congestion requires video")
-    nodes, frames, detection_frames = start_nodes(media_type)
+    nodes, frames, detection_frames = start_nodes(
+        media_type,
+        tile=True,
+        tile_include_full_frame=True,
+        tile_params={
+            "tile_width": 512,
+            "tile_height": 512,
+            "overlap_x": 0.25,
+            "overlap_y": 0.25,
+        },
+    )
     vehicles, _ = append_grounding(
-        nodes, "vehicles", detection_frames, VEHICLE_TARGETS
+        nodes,
+        "vehicles",
+        detection_frames,
+        CONGESTION_VEHICLE_TARGETS,
+        threshold=0.7,
+        keep="best_localization",
     )
     nodes.extend([
         node(
-            "tracks",
-            "track.iou@1.0",
+            "vehicle_box_shape",
+            "visual.geometry@1.0",
             {"objects": vehicles},
             {
-                "iou_threshold": 0.25,
-                "max_missing_frames": 2,
-                "same_label_only": True,
+                "dimension": "aspect_ratio",
+                "value": "horizontal",
+                "aspect_ratio_threshold": 0.6,
             },
+        ),
+        node(
+            "vehicles_localized",
+            "filter.apply@1.0",
+            {"objects": vehicles, "condition": "$vehicle_box_shape"},
+            {"output_label": None},
         ),
         node(
             "lane_regions",
@@ -83,9 +111,19 @@ def congestion_builder(media_type: str) -> VariantDraft:
             {"regions": []},
         ),
         node(
+            "vehicles_in_lanes",
+            "objects.filter_by_regions@1.0",
+            {"objects": "$vehicles_localized", "regions": "$lane_regions"},
+            {
+                "membership_mode": "center",
+                "overlap_threshold": 0.1,
+                "keep": "inside",
+            },
+        ),
+        node(
             "lane_count", "measure.region_count@1.0",
             {
-                "objects": vehicles,
+                "objects": "$vehicles_in_lanes",
                 "regions": "$lane_regions",
                 "frames": frames,
             },
@@ -98,31 +136,9 @@ def congestion_builder(media_type: str) -> VariantDraft:
             {"operator": ">=", "value": 4},
         ),
         node(
-            "lane_speed",
-            "measure.region_speed@1.0",
-            {"tracks": "$tracks", "regions": "$lane_regions"},
-            {
-                "window_frames": 2,
-                "unit": "pixels_per_second",
-                "aggregation": "median",
-                "membership_mode": "sample_center",
-            },
-        ),
-        node(
-            "slow",
-            "logic.compare@1.0",
-            {"left": "$lane_speed"},
-            {"operator": "<", "value": 10.0},
-        ),
-        node(
-            "congested",
-            "logic.all@1.0",
-            {"conditions": ["$many", "$slow"]},
-        ),
-        node(
             "events",
             "temporal.persist@1.0",
-            {"condition": "$congested"},
+            {"condition": "$many"},
             {
                 "seconds": 1.0,
                 "scope": "region",
@@ -136,6 +152,7 @@ def congestion_builder(media_type: str) -> VariantDraft:
             {"label": "高速车辆拥堵"},
         ),
     ])
+    vehicles = "$vehicles_in_lanes"
     outputs = draw_outputs(
         nodes,
         frames,
@@ -145,17 +162,20 @@ def congestion_builder(media_type: str) -> VariantDraft:
     )
     draw = next(item for item in nodes if item["id"] == "draw")
     draw["inputs"]["measurements"] = "$lane_count"
-    outputs["tracks"] = "$tracks"
+    # Every box has the same business category in this preset.  Repeating the
+    # label over dozens of tiny vehicles hides the box edges, so keep the boxes
+    # and aggregate measurements visible while suppressing redundant text.
+    # Users can re-enable labels and track identifiers in the draw atom.
+    draw["params"]["show_labels"] = False
+    draw["params"]["show_track_id"] = False
     outputs["measurements_1"] = "$lane_count"
-    outputs["measurements_2"] = "$lane_speed"
     return VariantDraft(
         nodes,
         outputs,
         {
-            "每条车道": ["lane_regions"],
+            "每条车道": ["lane_regions", "vehicles_in_lanes"],
             "车辆数量不少于4辆": ["lane_regions", "lane_count", "many"],
-            "平均像素速度低于10": ["tracks", "lane_regions", "lane_speed", "slow"],
-            "持续1秒": ["congested", "events", "alerts"],
+            "持续1秒": ["many", "events", "alerts"],
         },
         [{
             "slot_id": "lane_regions",
@@ -166,7 +186,7 @@ def congestion_builder(media_type: str) -> VariantDraft:
             "allowed_shapes": ["rectangle", "polygon"],
             "minimum_items": 1,
             "source_atom_ids": ["atom_1"],
-            "help_text": "请按视频实际车道逐条绘制；初始为空，可添加任意多个区域。区域只决定拥堵判断范围，不会裁掉全画面的车辆检测框；拥堵只按每个区域的车辆数和速度判断，不需要方向箭头。",
+            "help_text": "请按视频实际车道逐条绘制；初始为空，可添加任意多个区域。车辆统计和输出框统一限定在全部已标注车道区域内；拥堵按每个区域的车辆数量判断，不需要方向箭头。",
         }],
     )
 
@@ -175,25 +195,38 @@ def wrong_way_builder(media_type: str) -> VariantDraft:
     if media_type != "video":
         raise ValueError("wrong-way detection requires video")
     nodes, frames, detection_frames = start_nodes(media_type)
+    # Direction inference needs a denser timeline than generic event detection.
+    # At 1 FPS, a following vehicle can occupy almost the same box as the
+    # preceding vehicle and be joined into its track, creating false reverse
+    # motion.  Two samples per second is the verified P05 baseline.
+    next(item for item in nodes if item["id"] == "frames")["params"]["fps"] = 2.0
     vehicles, _ = append_grounding(
-        nodes, "vehicles", detection_frames, VEHICLE_TARGETS
+        nodes, "vehicles", detection_frames, CONGESTION_VEHICLE_TARGETS
     )
     nodes.extend([
         node(
             "tracks",
             "track.iou@1.0",
-            {"objects": vehicles},
+            {"objects": "$vehicles_in_lanes"},
             {
-                "iou_threshold": 0.2,
-                "max_missing_frames": 2,
+                "iou_threshold": 0.35,
+                "max_missing_frames": 1,
                 "same_label_only": True,
+                "motion_consistency": True,
+                "motion_prediction": True,
+                "min_direction_cosine": 0.0,
+                "min_motion_pixels": 5.0,
             },
         ),
         node(
             "headings",
             "measure.heading@1.0",
             {"tracks": "$tracks"},
-            {"window_frames": 3, "min_displacement_pixels": 5.0},
+            {
+                "window_frames": 3,
+                "min_displacement_pixels": 8.0,
+                "min_displacement_box_ratio": 0.15,
+            },
         ),
         node(
             "lane_regions",
@@ -208,6 +241,16 @@ def wrong_way_builder(media_type: str) -> VariantDraft:
             {"directions": []},
         ),
         node(
+            "vehicles_in_lanes",
+            "objects.filter_by_regions@1.0",
+            {"objects": vehicles, "regions": "$lane_regions"},
+            {
+                "membership_mode": "center",
+                "overlap_threshold": 0.1,
+                "keep": "inside",
+            },
+        ),
+        node(
             "opposite",
             "logic.heading_by_lane@1.0",
             {
@@ -216,7 +259,12 @@ def wrong_way_builder(media_type: str) -> VariantDraft:
                 "lanes": "$lane_regions",
                 "references": "$lane_references",
             },
-            {"threshold": -0.5, "membership_mode": "majority_center"},
+            {
+                "threshold": -0.5,
+                "membership_mode": "majority_center",
+                "relation": "opposite",
+                "scope_overrides": {},
+            },
         ),
         node(
             "events",
@@ -225,7 +273,12 @@ def wrong_way_builder(media_type: str) -> VariantDraft:
             {
                 "seconds": 1.0,
                 "scope": "track",
-                "gap_tolerance_seconds": 0.6,
+                # P05 samples at 2 FPS and tracking tolerates one missing
+                # sample. Direction evidence can therefore be 1.0 second
+                # apart without representing a real interruption.
+                "gap_tolerance_seconds": 1.1,
+                "scope_overrides": {},
+                "override_scope_field": "region_id",
             },
         ),
         node(
@@ -234,34 +287,38 @@ def wrong_way_builder(media_type: str) -> VariantDraft:
             {"events": "$events"},
             {"label": "逆行车辆"},
         ),
-        node(
-            "event_tracks",
-            "tracks.filter_by_events@1.0",
-            {"tracks": "$tracks", "events": "$alerts"},
-            {
-                # Keep the full history for visualization.  Event labels are
-                # still restricted to the actual event interval by output.draw,
-                # while the vehicle remains visible before and after the event.
-                "time_window": "whole_track",
-            },
-        ),
     ])
     outputs = draw_outputs(
         nodes,
         frames,
-        "$event_tracks",
+        "$tracks",
         events_ref="$alerts",
         regions_ref="$lane_regions",
         directions_ref="$lane_references",
     )
+    # Result media shows every detected/tracked vehicle.  The event stream only
+    # changes matching boxes to orange and appends “逆行车辆”; normal traffic
+    # must not disappear merely because it did not trigger an alert.
+    outputs["objects"] = "$vehicles_in_lanes"
+    outputs["tracks"] = "$tracks"
     outputs["observed_lane_directions"] = "$lane_references"
+    draw = next(item for item in nodes if item["id"] == "draw")
+    draw["params"].update({
+        "show_labels": False,
+        "show_track_id": False,
+        "show_event_labels": True,
+        # Wrong-way is a causal motion conclusion.  Do not project a later
+        # confirmed event back onto the track's first observation: frame 0 has
+        # no displacement evidence and must remain an ordinary vehicle box.
+        "event_time_window": "event",
+    })
     return VariantDraft(
         nodes,
         outputs,
         {
             "每条车道": ["lane_regions"],
             "标注方向后检测与车流方向相反": [
-                "tracks", "headings", "lane_regions", "lane_references", "opposite"
+                "vehicles_in_lanes", "tracks", "headings", "lane_regions", "lane_references", "opposite"
             ],
             "持续1秒": ["opposite", "events", "alerts"],
         },

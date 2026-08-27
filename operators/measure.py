@@ -16,6 +16,7 @@ def _center_pixels(obj):
 def measure_heading(inputs, params, services, node_id):
     window = max(2, int(params["window_frames"]))
     minimum = float(params["min_displacement_pixels"])
+    box_ratio = float(params.get("min_displacement_box_ratio", 0.0))
     values = []
     for track in inputs["tracks"].items:
         history = track.history
@@ -26,7 +27,20 @@ def measure_heading(inputs, params, services, node_id):
             x1, y1 = _center_pixels(current)
             dx, dy = x1 - x0, y1 - y0
             length = math.hypot(dx, dy)
-            if length >= minimum:
+            effective_minimum = minimum
+            if box_ratio > 0:
+                width, height = current.original_size
+                bx0, by0, bx1, by1 = current.bbox
+                box_diagonal = math.hypot(
+                    (bx1 - bx0) * width, (by1 - by0) * height
+                )
+                # Far targets are physically small in the image.  Requiring the
+                # same absolute displacement as a near target suppresses valid
+                # headings, so cap the threshold by a fraction of box size.
+                effective_minimum = min(
+                    minimum, max(2.0, box_diagonal * box_ratio)
+                )
+            if length >= effective_minimum:
                 values.append(
                     TimedValue(track.id, current.timestamp, (dx / length, dy / length), current.frame_index)
                 )

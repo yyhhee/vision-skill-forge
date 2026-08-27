@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 
 from core.annotation import (
+    annotations_from_package,
     extract_annotation_frame,
     normalize_canvas_point,
     render_annotation_workspace,
@@ -37,6 +38,44 @@ def test_annotation_frame_uses_original_image_and_selected_video_timestamp(tmp_p
     assert video_frame.image.size == (80, 40)
     assert video_frame.frame_index == 2
     assert video_frame.timestamp == 1.0
+
+
+def test_clear_saved_annotations_only_removes_existing_geometry(tmp_path):
+    from app_v2 import V2AppController
+    from tests.test_configuration_slots import _lane_package
+
+    source = tmp_path / "annotation.png"
+    Image.new("RGB", (120, 80), "white").save(source)
+    controller = V2AppController(
+        registry=build_default_registry(),
+        package_root=tmp_path / "skills",
+        run_root=tmp_path / "runs",
+        asset_root=tmp_path / "assets",
+        planner=None,
+        rex=None,
+    )
+    package = _lane_package()
+    state = {"tool": "polygon", "points": [[0.2, 0.2], [0.3, 0.3]]}
+
+    updated_json, _, updated_state, points_json, status = (
+        controller.clear_saved_annotations(
+            controller._dump(package),
+            "video",
+            str(source),
+            0.0,
+            state,
+        )
+    )
+
+    updated = SkillPackage.model_validate_json(updated_json)
+    assert annotations_from_package(updated, "video") == {
+        "regions": [],
+        "directions": [],
+    }
+    assert updated.semantic_ir.model_dump(mode="json") == package.semantic_ir.model_dump(mode="json")
+    assert updated_state["points"] == []
+    assert json.loads(points_json) == []
+    assert "全部已保存标注" in status
 
 
 def test_canvas_clicks_are_normalized_and_clamped_to_original_media():
@@ -366,6 +405,153 @@ def test_annotation_wizard_is_generic_for_single_and_named_slots(tmp_path):
     assert item_label == "lane_b"
 
 
+def test_annotation_wizard_prioritizes_unconfigured_region_set_and_hides_duplicates(
+    tmp_path,
+):
+    from app_v2 import V2AppController
+    from tests.test_configuration_slots import _lane_package
+
+    controller = V2AppController(
+        registry=build_default_registry(),
+        package_root=tmp_path / "skills",
+        run_root=tmp_path / "runs",
+        asset_root=tmp_path / "assets",
+        planner=None,
+        rex=None,
+    )
+    data = _lane_package().model_dump(mode="json")
+    variant = data["variants"]["video"]
+    variant["configuration_slots"] = [
+        slot
+        for slot in variant["configuration_slots"]
+        if slot["slot_id"] != "lane_directions"
+    ]
+    variant["nodes"] = [
+        node for node in variant["nodes"] if node["id"] != "lane_references"
+    ]
+    region_node = next(node for node in variant["nodes"] if node["id"] == "lane_regions")
+    region_node["params"]["regions"] = [
+        {
+            "id": "region_1",
+            "label": "区域1",
+            "shape": "rectangle",
+            "points": [[0.1, 0.1], [0.4, 0.8]],
+        }
+    ]
+    second_node = {
+        **region_node,
+        "id": "region_2_regions",
+        "params": {"regions": []},
+    }
+    variant["nodes"].append(second_node)
+    first_slot = next(
+        slot for slot in variant["configuration_slots"] if slot["slot_id"] == "lane_regions"
+    )
+    second_slot = {
+        **first_slot,
+        "slot_id": "region_2",
+        "label": "区域2",
+        "binding": {"node_id": "region_2_regions", "parameter": "regions"},
+    }
+    variant["configuration_slots"].extend([second_slot, dict(second_slot)])
+    package = SkillPackage.model_validate(data)
+
+    wizard = controller.annotation_wizard_state(controller._dump(package), "video")
+
+    assert wizard["current_slot"] == "region_2"
+    assert [row["slot_id"] for row in wizard["slots"]].count("region_2") == 1
+
+
+def test_first_automatic_named_region_uses_the_business_slot_label(tmp_path):
+    from app_v2 import V2AppController
+    from tests.test_configuration_slots import _lane_package
+
+    controller = V2AppController(
+        registry=build_default_registry(),
+        package_root=tmp_path / "skills",
+        run_root=tmp_path / "runs",
+        asset_root=tmp_path / "assets",
+        planner=None,
+        rex=None,
+    )
+
+    package = _lane_package()
+    region_node = next(
+        node for node in package.variants["video"].nodes if node.id == "lane_regions"
+    )
+    region_node.params = {"regions": []}
+    expected_label = next(
+        slot.label
+        for slot in package.variants["video"].configuration_slots
+        if slot.slot_id == "lane_regions"
+    )
+    _, _, default_label = controller.annotation_wizard_defaults(
+        controller._dump(package), "video", "lane_regions"
+    )
+    assert default_label == expected_label
+    updated, _, _ = controller.bind_annotation(
+        controller._dump(package),
+        "video",
+        "lane_regions",
+        "rectangle",
+        json.dumps([[0.1, 0.1], [0.4, 0.8]]),
+        "",
+        "",
+    )
+
+    region_node = next(
+        node
+        for node in json.loads(updated)["variants"]["video"]["nodes"]
+        if node["id"] == "lane_regions"
+    )
+    assert region_node["params"]["regions"][0]["label"] == expected_label
+
+
+def test_editor_document_syncs_saved_annotation_geometry(tmp_path):
+    from app_v2 import V2AppController
+    from core.legacy_importer import import_skill_package
+    from tests.test_configuration_slots import _lane_package
+
+    controller = V2AppController(
+        registry=build_default_registry(),
+        package_root=tmp_path / "skills",
+        run_root=tmp_path / "runs",
+        asset_root=tmp_path / "assets",
+        planner=None,
+        rex=None,
+    )
+    pending = _lane_package()
+    document = import_skill_package(pending)
+    data = pending.model_dump(mode="json")
+    region_node = next(
+        node for node in data["variants"]["video"]["nodes"] if node["id"] == "lane_regions"
+    )
+    region_node["params"]["regions"] = [
+        {
+            "id": "lane_1",
+            "label": "车道1",
+            "shape": "rectangle",
+            "points": [[0.1, 0.2], [0.4, 0.9]],
+        }
+    ]
+    annotated = SkillPackage.model_validate(data)
+
+    synced = controller._editor_document(
+        controller._dump(annotated), controller._dump(document)
+    )
+
+    collection = next(
+        item
+        for item in synced.scene_profiles[0].collections
+        if item.requirement_id == "video_lane_regions"
+    )
+    assert collection.completed is True
+    assert collection.items[0].geometry == {
+        "shape": "rectangle",
+        "points": [[0.1, 0.2], [0.4, 0.9]],
+    }
+
+
 def test_annotation_wizard_defaults_to_its_next_dependency_aware_step(tmp_path):
     from app_v2 import V2AppController
     from tests.test_configuration_slots import _pending_package
@@ -568,7 +754,11 @@ def test_region_slot_keeps_direction_arrow_as_a_drawing_tool(tmp_path):
         controller._dump(_lane_package()), "video", "lane_regions"
     )
 
-    assert choices == ["rectangle", "polygon", "direction"]
+    assert choices == [
+        ("矩形", "rectangle"),
+        ("多边形", "polygon"),
+        ("方向箭头", "direction"),
+    ]
 
 
 def test_annotation_slot_rows_mark_only_the_selected_slot(tmp_path):

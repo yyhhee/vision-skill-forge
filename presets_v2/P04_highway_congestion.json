@@ -3,7 +3,7 @@
   "skill_id": "highway_congestion",
   "version": 1,
   "display_name": "高速车辆拥堵",
-  "original_instruction": "按每条车道检测车辆数量不少于4辆、平均像素速度低于10且持续1秒的拥堵事件。",
+  "original_instruction": "按每条车道检测车辆数量不少于4辆且持续1秒的拥堵事件。",
   "compile_status": "compiled",
   "input": {
     "requested_accept": [
@@ -39,7 +39,7 @@
           "group_by": "named_region",
           "region_role": "lane"
         },
-        "source": "按每条车道检测车辆数量不少于4辆",
+        "source": "按每条车道检测车辆数量不少于4辆且持续1秒的拥堵事件",
         "source_span": "车辆数量不少于4辆",
         "polarity": "required",
         "carrier": null,
@@ -49,26 +49,6 @@
       },
       {
         "atom_id": "atom_2",
-        "kind": "motion",
-        "value": {
-          "measure": "speed",
-          "operator": "<",
-          "threshold": 10.0,
-          "unit": "pixels_per_second",
-          "aggregation": "region_median",
-          "group_by": "named_region",
-          "region_role": "lane"
-        },
-        "source": "平均像素速度低于10且持续1秒的拥堵事件",
-        "source_span": "平均像素速度低于10",
-        "polarity": "required",
-        "carrier": null,
-        "carrier_span": null,
-        "phrases": [],
-        "temporal": false
-      },
-      {
-        "atom_id": "atom_3",
         "kind": "region_requirement",
         "value": {
           "source": "manual",
@@ -79,7 +59,7 @@
             "polygon"
           ]
         },
-        "source": "按每条车道检测车辆数量不少于4辆",
+        "source": "按每条车道检测车辆数量不少于4辆且持续1秒的拥堵事件",
         "source_span": "每条车道",
         "polarity": "required",
         "carrier": null,
@@ -88,13 +68,13 @@
         "temporal": false
       },
       {
-        "atom_id": "atom_4",
+        "atom_id": "atom_3",
         "kind": "temporal",
         "value": {
           "type": "persist",
           "seconds": 1.0
         },
-        "source": "平均像素速度低于10且持续1秒的拥堵事件",
+        "source": "按每条车道检测车辆数量不少于4辆且持续1秒的拥堵事件",
         "source_span": "持续1秒",
         "polarity": "required",
         "carrier": null,
@@ -105,7 +85,7 @@
     ],
     "logic": "all",
     "unresolved": [],
-    "semantic_hash": "287a48e2c8c8356f3f0f5543f4ff22bbe8a0a3d76a40d50a93c3886777244295"
+    "semantic_hash": "701cbdfabfb9ca37449c0fb52a144bc2b3c92a50f6b788be48329024a5a0fa28"
   },
   "variants": {
     "video": {
@@ -146,10 +126,25 @@
           "enabled": true
         },
         {
+          "id": "tiles",
+          "op": "image.tile@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "tile_width": 512,
+            "tile_height": 512,
+            "overlap_x": 0.25,
+            "overlap_y": 0.25,
+            "include_full_frame": true
+          },
+          "enabled": true
+        },
+        {
           "id": "vehicles_raw",
           "op": "rex.ground@1.1",
           "inputs": {
-            "frames": "$resized"
+            "frames": "$tiles"
           },
           "params": {
             "targets": [
@@ -157,8 +152,12 @@
                 "label": "车辆",
                 "phrases": [
                   "vehicle",
+                  "car",
                   "passenger car",
-                  "truck"
+                  "SUV",
+                  "van",
+                  "truck",
+                  "bus"
                 ]
               }
             ]
@@ -173,21 +172,33 @@
           },
           "params": {
             "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
+            "threshold": 0.7,
+            "keep": "best_localization"
           },
           "enabled": true
         },
         {
-          "id": "tracks",
-          "op": "track.iou@1.0",
+          "id": "vehicle_box_shape",
+          "op": "visual.geometry@1.0",
           "inputs": {
             "objects": "$vehicles"
           },
           "params": {
-            "iou_threshold": 0.25,
-            "max_missing_frames": 2,
-            "same_label_only": true
+            "dimension": "aspect_ratio",
+            "value": "horizontal",
+            "aspect_ratio_threshold": 0.6
+          },
+          "enabled": true
+        },
+        {
+          "id": "vehicles_localized",
+          "op": "filter.apply@1.0",
+          "inputs": {
+            "objects": "$vehicles",
+            "condition": "$vehicle_box_shape"
+          },
+          "params": {
+            "output_label": null
           },
           "enabled": true
         },
@@ -201,10 +212,24 @@
           "enabled": true
         },
         {
+          "id": "vehicles_in_lanes",
+          "op": "objects.filter_by_regions@1.0",
+          "inputs": {
+            "objects": "$vehicles_localized",
+            "regions": "$lane_regions"
+          },
+          "params": {
+            "membership_mode": "center",
+            "overlap_threshold": 0.1,
+            "keep": "inside"
+          },
+          "enabled": true
+        },
+        {
           "id": "lane_count",
           "op": "measure.region_count@1.0",
           "inputs": {
-            "objects": "$vehicles",
+            "objects": "$vehicles_in_lanes",
             "regions": "$lane_regions",
             "frames": "$resized"
           },
@@ -226,49 +251,10 @@
           "enabled": true
         },
         {
-          "id": "lane_speed",
-          "op": "measure.region_speed@1.0",
-          "inputs": {
-            "tracks": "$tracks",
-            "regions": "$lane_regions"
-          },
-          "params": {
-            "window_frames": 2,
-            "unit": "pixels_per_second",
-            "aggregation": "median",
-            "membership_mode": "sample_center"
-          },
-          "enabled": true
-        },
-        {
-          "id": "slow",
-          "op": "logic.compare@1.0",
-          "inputs": {
-            "left": "$lane_speed"
-          },
-          "params": {
-            "operator": "<",
-            "value": 10.0
-          },
-          "enabled": true
-        },
-        {
-          "id": "congested",
-          "op": "logic.all@1.0",
-          "inputs": {
-            "conditions": [
-              "$many",
-              "$slow"
-            ]
-          },
-          "params": {},
-          "enabled": true
-        },
-        {
           "id": "events",
           "op": "temporal.persist@1.0",
           "inputs": {
-            "condition": "$congested"
+            "condition": "$many"
           },
           "params": {
             "seconds": 1.0,
@@ -293,26 +279,24 @@
           "op": "output.draw@1.0",
           "inputs": {
             "frames": "$resized",
-            "objects": "$vehicles",
+            "objects": "$vehicles_in_lanes",
             "events": "$alerts",
             "regions": "$lane_regions",
             "measurements": "$lane_count"
           },
           "params": {
-            "show_labels": true,
-            "show_track_id": true
+            "show_labels": false,
+            "show_track_id": false
           },
           "enabled": true
         }
       ],
       "outputs": {
         "media": "$draw",
-        "objects": "$vehicles",
+        "objects": "$vehicles_in_lanes",
         "events": "$alerts",
         "regions": "$lane_regions",
-        "tracks": "$tracks",
-        "measurements_1": "$lane_count",
-        "measurements_2": "$lane_speed"
+        "measurements_1": "$lane_count"
       },
       "atom_bindings": {
         "atom_1": [
@@ -321,16 +305,11 @@
           "many"
         ],
         "atom_2": [
-          "tracks",
           "lane_regions",
-          "lane_speed",
-          "slow"
+          "vehicles_in_lanes"
         ],
         "atom_3": [
-          "lane_regions"
-        ],
-        "atom_4": [
-          "congested",
+          "many",
           "events",
           "alerts"
         ]
@@ -353,7 +332,7 @@
           "source_atom_ids": [
             "atom_1"
           ],
-          "help_text": "请按视频实际车道逐条绘制；初始为空，可添加任意多个区域。区域只决定拥堵判断范围，不会裁掉全画面的车辆检测框；拥堵只按每个区域的车辆数和速度判断，不需要方向箭头。",
+          "help_text": "请按视频实际车道逐条绘制；初始为空，可添加任意多个区域。车辆统计和输出框统一限定在全部已标注车道区域内；拥堵按每个区域的车辆数量判断，不需要方向箭头。",
           "active_when_op": null,
           "key_source_slot_id": null
         }

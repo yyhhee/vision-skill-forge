@@ -42,6 +42,23 @@ def reduce_exists(inputs, params, services, node_id):
             })
             for group in source.items
         ])
+    if params.get("scope", "global") == "entity":
+        values = []
+        for entity in source.items:
+            history = getattr(entity, "history", None)
+            if history is not None:
+                values.extend(
+                    TimedValue(entity.id, item.timestamp, True, item.frame_index)
+                    for item in history
+                )
+            else:
+                values.append(TimedValue(
+                    getattr(entity, "track_id", None) or entity.id,
+                    getattr(entity, "timestamp", 0.0),
+                    True,
+                    getattr(entity, "frame_index", None),
+                ))
+        return ConditionSet(values)
     count = reduce_count(inputs, params, services, node_id)
     return ConditionSet([
         TimedValue(item.key, item.timestamp, item.value > 0, item.frame_index, item.metadata)
@@ -80,8 +97,62 @@ def reduce_statistic(inputs, params, services, node_id):
 
 
 def reduce_quantify(inputs, params, services, node_id):
-    conditions = inputs["conditions"].items
+    source = inputs["conditions"]
     mode = params["mode"]
+    if isinstance(source, list):
+        if mode == "for_each":
+            return ConditionSet([
+                item for condition_set in source for item in condition_set.items
+            ])
+        predicate = {
+            "any": any,
+            "all": all,
+            "n_of_m": lambda values: sum(values) >= int(params.get("required_count", 1)),
+        }.get(mode)
+        if predicate is None:
+            raise ValueError(f"unsupported quantifier: {mode}")
+        combine_scope = params.get("combine_scope", "by_key")
+        if combine_scope == "frame_any":
+            frames = sorted({
+                (item.frame_index, item.timestamp)
+                for condition_set in source
+                for item in condition_set.items
+            })
+            return ConditionSet([
+                TimedValue(
+                    "global",
+                    timestamp,
+                    predicate([
+                        any(
+                            bool(item.value)
+                            for item in condition_set.items
+                            if (item.frame_index, item.timestamp)
+                            == (frame_index, timestamp)
+                        )
+                        for condition_set in source
+                    ]),
+                    frame_index,
+                )
+                for frame_index, timestamp in frames
+            ])
+        maps = [
+            {
+                (item.key, item.frame_index, item.timestamp): bool(item.value)
+                for item in condition_set.items
+            }
+            for condition_set in source
+        ]
+        keys = sorted(set().union(*(mapping.keys() for mapping in maps)))
+        return ConditionSet([
+            TimedValue(
+                key,
+                timestamp,
+                predicate([mapping.get((key, frame_index, timestamp), False) for mapping in maps]),
+                frame_index,
+            )
+            for key, frame_index, timestamp in keys
+        ])
+    conditions = source.items
     if mode == "for_each":
         return ConditionSet(list(conditions))
     grouped = {}

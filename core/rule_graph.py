@@ -18,6 +18,24 @@ class RuleGraphCompileError(ValueError):
     pass
 
 
+def _event_pattern_requires_stream(pattern) -> bool:
+    if pattern.pattern_type != "join" or pattern.transitions:
+        return True
+    if any(
+        stage.persist_mode != "immediate"
+        or float(stage.duration.value or 0.0) > 0.0
+        or stage.allowed_gap_seconds > 0.0
+        or float(stage.observation_window_seconds.value or 0.0) > 0.0
+        for stage in pattern.stages
+    ):
+        return True
+    return any(
+        gateway.mode not in {"all_active", "any", "n_of_m"}
+        or float(gateway.window_seconds.value or 0.0) > 0.0
+        for gateway in pattern.gateways
+    )
+
+
 def validate_rule_graph(graph: RuleGraph, registry: OperatorRegistry) -> list[str]:
     errors = []
     enabled = [node for node in graph.nodes if node.enabled]
@@ -160,11 +178,14 @@ class RuleGraphCompiler:
                 and node.operator is not None
                 and self.registry.require(node.operator).execution_scope == "stream"
                 and not (
-                    node.operator == "event.from_condition@1.0"
-                    and float(node.params.get("seconds", 0.0)) == 0.0
+                    node.operator == "measure.region_count@1.0"
+                    or (
+                        node.operator == "event.from_condition@1.0"
+                        and float(node.params.get("seconds", 0.0)) == 0.0
+                    )
                 )
                 for node in graph.nodes
-            ) or bool(media_patterns)
+            ) or any(_event_pattern_requires_stream(item) for item in media_patterns)
             if media_type != "video" and stream_required:
                 message = "规则图包含轨迹或时序原子，需要视频"
                 variants[media_type] = {

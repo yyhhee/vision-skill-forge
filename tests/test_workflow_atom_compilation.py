@@ -591,7 +591,7 @@ def test_per_named_region_opposite_direction_compiles_auto_and_manual_references
                     "source": "manual",
                     "cardinality": "many",
                     "semantic_role": "lane",
-                    "allowed_shapes": ["rectangle", "polygon"],
+                    "allowed_shapes": ["polygon"],
                 },
                 "source": instruction,
                 "source_span": "每条车道",
@@ -619,6 +619,10 @@ def test_per_named_region_opposite_direction_compiles_auto_and_manual_references
     )
 
     variant = package.variants["video"]
+    region_slot = next(
+        slot for slot in variant.configuration_slots if slot.kind == "region_set"
+    )
+    assert region_slot.allowed_shapes == ["rectangle", "polygon"]
     assert variant.status == "needs_configuration"
     lanes = next(node for node in variant.nodes if node.op == "region.manual_set@1.0")
     tracks = next(node for node in variant.nodes if node.op == "track.iou@1.0")

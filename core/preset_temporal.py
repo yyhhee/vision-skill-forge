@@ -7,23 +7,20 @@ from .preset_factory import (
     node,
     start_nodes,
 )
-from .preset_workflows import PERSON_TARGETS
-
-
 def person_fall_builder(media_type: str) -> VariantDraft:
     if media_type != "video":
         raise ValueError("fall detection requires video")
     nodes, frames, detection_frames = start_nodes(media_type)
-    people, _ = append_grounding(
-        nodes, "people", detection_frames, PERSON_TARGETS
-    )
     fallen, fallen_nodes = append_grounding(
         nodes,
         "fallen_people",
         detection_frames,
         [{
-            "label": "倒地人员",
+            "label": "摔倒人员",
             "phrases": [
+                "person actively falling toward the ground",
+                "person losing balance and collapsing",
+                "person bent low while falling",
                 "person lying on the ground",
             ],
         }],
@@ -32,45 +29,18 @@ def person_fall_builder(media_type: str) -> VariantDraft:
         node(
             "tracks",
             "track.iou@1.0",
-            {"objects": people},
+            {"objects": fallen},
             {
                 "iou_threshold": 0.2,
                 "max_missing_frames": 2,
                 "same_label_only": True,
             },
         ),
-        node(
-            "fallen_state",
-            "spatial.associate@1.0",
-            {"subjects": "$tracks", "objects": fallen},
-            {
-                "relation": "overlap",
-                "threshold": 0.3,
-                "subject_region": [0.0, 0.0, 1.0, 1.0],
-            },
-        ),
-        node(
-            "fallen_pose_geometry",
-            "visual.geometry@1.0",
-            {"objects": "$tracks"},
-            {
-                "dimension": "aspect_ratio",
-                "value": "horizontal",
-                "aspect_ratio_threshold": 0.6,
-            },
-        ),
-        node(
-            "fallen_qualified",
-            "logic.all@1.0",
-            {
-                "conditions": ["$fallen_state", "$fallen_pose_geometry"]
-            },
-            {},
-        ),
+        node("fallen_present", "reduce.exists@1.0", {"sets": "$tracks"}, {"scope": "entity"}),
         node(
             "events",
             "temporal.persist@1.0",
-            {"condition": "$fallen_qualified"},
+            {"condition": "$fallen_present"},
             {
                 "seconds": 1.0,
                 "scope": "track",
@@ -84,15 +54,16 @@ def person_fall_builder(media_type: str) -> VariantDraft:
             {"label": "人员摔倒"},
         ),
     ])
+    outputs = draw_outputs(nodes, frames, "$tracks", events_ref="$alerts")
+    outputs["tracks"] = "$tracks"
+    draw = next(item for item in nodes if item["id"] == "draw")
+    draw["params"]["event_time_window"] = "track_history"
     return VariantDraft(
         nodes,
-        draw_outputs(nodes, frames, "$tracks", events_ref="$alerts"),
+        outputs,
         {
-            "出现摔倒或躺在地面上的可见姿态": fallen_nodes + [
-                "tracks", "fallen_state", "fallen_pose_geometry",
-                "fallen_qualified",
-            ],
-            "持续1秒": ["fallen_qualified", "events", "alerts"],
+            "出现摔倒或躺在地面上的可见姿态": fallen_nodes + ["tracks", "fallen_present"],
+            "持续1秒": ["fallen_present", "events", "alerts"],
         },
     )
 

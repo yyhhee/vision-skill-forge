@@ -689,6 +689,177 @@ def test_numbered_regions_repair_position_and_misnested_quantity_grouping():
     assert quantity.value["region_role"] == "region2"
 
 
+def test_open_scene_position_becomes_a_configurable_region():
+    instruction = "检测道路上的障碍物。"
+    ledger = {
+        "mode": "entity_query",
+        "target": {
+            "concept": "obstacle",
+            "source_span": "障碍物",
+            "phrases": ["obstacle"],
+        },
+        "constraints": [{
+            "kind": "position",
+            "value": "on road",
+            "source": instruction,
+            "source_span": "道路上",
+        }],
+        "logic": "all",
+        "unresolved": [{
+            "source_span": "道路上",
+            "reason": "unknown position: on road",
+        }],
+    }
+
+    ir = SemanticNormalizer().normalize_ledger(ledger, instruction)
+
+    assert ir.unresolved == []
+    region = next(item for item in ir.constraints if item.kind == "region_requirement")
+    assert region.value["semantic_role"] == "on_road"
+    assert region.value["source"] == "manual"
+
+
+def test_manual_region_and_internal_speed_unit_are_configuration_not_unknown_semantics():
+    instruction = "检测位于禁停区域内、速度低于2并持续10秒的车辆。"
+    ledger = {
+        "mode": "workflow",
+        "target": {
+            "concept": "vehicle",
+            "source_span": "车辆",
+            "phrases": ["vehicle"],
+        },
+        "constraints": [
+            {
+                "kind": "spatial_relation",
+                "value": {
+                    "relation": "inside_roi",
+                    "region": {
+                        "source": "manual",
+                        "semantic_role": "no_parking_zone",
+                    },
+                },
+                "source": "位于禁停区域内",
+                "source_span": "位于禁停区域内",
+            },
+            {
+                "kind": "motion",
+                "value": {
+                    "measure": "speed",
+                    "operator": "<",
+                    "threshold": 2,
+                    "unit": "pixels_per_second",
+                    "aggregation": "per_track",
+                },
+                "source": "速度低于2",
+                "source_span": "速度低于2",
+            },
+            {
+                "kind": "temporal",
+                "value": {"type": "persist", "seconds": 10},
+                "source": "持续10秒",
+                "source_span": "持续10秒",
+                "temporal": True,
+            },
+        ],
+        "logic": "all",
+        "unresolved": [
+            {"source_span": "速度低于2", "reason": "速度单位未明确"},
+            {"source_span": "禁停区域", "reason": "禁停区域具体范围未给出"},
+        ],
+    }
+
+    ir = SemanticNormalizer().normalize_ledger(ledger, instruction)
+
+    assert ir.unresolved == []
+
+
+def test_manual_direction_is_configuration_and_manual_scope_becomes_global():
+    instruction = "检测与参考方向相反的车辆。"
+    ledger = {
+        "mode": "workflow",
+        "target": {
+            "concept": "vehicle",
+            "source_span": "车辆",
+            "phrases": ["vehicle"],
+        },
+        "constraints": [{
+            "kind": "direction_relation",
+            "value": {
+                "relation": "opposite",
+                "reference_scope": "manual",
+                "reference_source": "manual",
+            },
+            "source": "与参考方向相反",
+            "source_span": "与参考方向相反",
+            "phrases": ["vehicle moving opposite to reference direction"],
+        }],
+        "logic": "all",
+        "unresolved": [
+            {"source_span": "参考方向", "reason": "参考方向未明确指定"},
+            {
+                "source_span": "与参考方向相反",
+                "reason": "direction relation requires a registered reference rule",
+            },
+        ],
+    }
+
+    ir = SemanticNormalizer().normalize_ledger(ledger, instruction)
+
+    assert ir.constraints[0].value["reference_scope"] == "global"
+    assert ir.unresolved == []
+
+
+def test_open_example_enumeration_with_umbrella_target_does_not_require_review():
+    instruction = "识别消防车、救护车、警车等特种车辆。"
+    ledger = {
+        "mode": "direct_grounding",
+        "target": {
+            "concept": "emergency vehicle",
+            "source_span": "消防车、救护车、警车等特种车辆",
+            "phrases": ["emergency vehicle"],
+            "classes": [
+                {"label": "消防车", "phrases": ["fire truck"]},
+                {"label": "救护车", "phrases": ["ambulance"]},
+                {"label": "警车", "phrases": ["police car"]},
+            ],
+        },
+        "constraints": [],
+        "logic": "any",
+        "unresolved": [{
+            "source_span": "等",
+            "reason": "“等”表示列举未尽，未明确其他特种车辆类型",
+        }],
+    }
+
+    ir = SemanticNormalizer().normalize_ledger(ledger, instruction)
+
+    assert ir.unresolved == []
+def test_nonliteral_reconstructed_constraint_source_uses_original_clause():
+    instruction = "检测桥梁表面的裂纹、锈蚀和渗水。"
+    ledger = {
+        "mode": "entity_query",
+        "target": {
+            "concept": "bridge damage",
+            "source_span": "桥梁表面",
+            "phrases": ["bridge surface damage"],
+        },
+        "constraints": [{
+            "kind": "state",
+            "value": "rusty",
+            "source": "检测桥梁表面的锈蚀",
+            "source_span": "锈蚀",
+            "phrases": ["rust"],
+        }],
+        "logic": "all",
+        "unresolved": [],
+    }
+
+    ir = SemanticNormalizer().normalize_ledger(ledger, instruction)
+
+    assert ir.constraints[0].source in instruction
+    assert "锈蚀" in ir.constraints[0].source
+
+
 def test_realistic_color_paraphrase_ledgers_share_hash_despite_nonexecuted_phrase_synonyms():
     instructions_and_ledgers = [
         (

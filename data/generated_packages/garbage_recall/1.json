@@ -1,0 +1,442 @@
+{
+  "schema_version": "2.0",
+  "skill_id": "garbage_recall",
+  "version": 1,
+  "display_name": "garbage_recall",
+  "original_instruction": "条件分支：检测垃圾堆、散落垃圾、垃圾容器及溢出垃圾；最终判定：检测到垃圾；业务输出：分类框和数量。",
+  "compile_status": "compiled",
+  "input": {
+    "requested_accept": [
+      "image"
+    ],
+    "accept": [
+      "image"
+    ],
+    "video_guidance": {
+      "recommended_max_duration_seconds": 30.0,
+      "enforcement": "warn_only"
+    }
+  },
+  "semantic_ir": {
+    "schema_version": "1.0",
+    "mode": "entity_query",
+    "target": {
+      "concept": "garbage",
+      "source_span": "垃圾堆、散落垃圾、垃圾容器及溢出垃圾",
+      "phrases": [
+        "garbage"
+      ],
+      "classes": [
+        {
+          "label": "垃圾堆",
+          "phrases": [
+            "garbage pile"
+          ]
+        },
+        {
+          "label": "散落垃圾",
+          "phrases": [
+            "scattered litter"
+          ]
+        },
+        {
+          "label": "垃圾容器",
+          "phrases": [
+            "garbage container"
+          ]
+        },
+        {
+          "label": "溢出垃圾",
+          "phrases": [
+            "overflowing garbage"
+          ]
+        }
+      ]
+    },
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "quantity",
+        "value": {
+          "measure": "count"
+        },
+        "source": "业务输出：分类框和数量",
+        "source_span": "数量",
+        "polarity": "required",
+        "carrier": "garbage container",
+        "carrier_span": "垃圾容器",
+        "phrases": [
+          "garbage container"
+        ],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_2",
+        "kind": "quantity",
+        "value": {
+          "measure": "count"
+        },
+        "source": "业务输出：分类框和数量",
+        "source_span": "数量",
+        "polarity": "required",
+        "carrier": "garbage pile",
+        "carrier_span": "垃圾堆",
+        "phrases": [
+          "garbage pile"
+        ],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_3",
+        "kind": "quantity",
+        "value": {
+          "measure": "count"
+        },
+        "source": "业务输出：分类框和数量",
+        "source_span": "数量",
+        "polarity": "required",
+        "carrier": "overflowing garbage",
+        "carrier_span": "溢出垃圾",
+        "phrases": [
+          "overflowing garbage"
+        ],
+        "temporal": false
+      },
+      {
+        "atom_id": "atom_4",
+        "kind": "quantity",
+        "value": {
+          "measure": "count"
+        },
+        "source": "业务输出：分类框和数量",
+        "source_span": "数量",
+        "polarity": "required",
+        "carrier": "scattered litter",
+        "carrier_span": "散落垃圾",
+        "phrases": [
+          "scattered litter"
+        ],
+        "temporal": false
+      }
+    ],
+    "logic": "any",
+    "unresolved": [],
+    "semantic_hash": "86964a6ad812884866040be604f1afdbed210a643ee9954fa03b9cba9e9bf384"
+  },
+  "variants": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "identity"
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "garbage pile",
+                "phrases": [
+                  "garbage pile"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+          "op": "objects.relabel@1.0",
+          "inputs": {
+            "objects": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect"
+          },
+          "params": {
+            "label": "垃圾堆"
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+          "op": "reduce.exists@1.0",
+          "inputs": {
+            "sets": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "scattered litter",
+                "phrases": [
+                  "scattered litter"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+          "op": "objects.relabel@1.0",
+          "inputs": {
+            "objects": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect"
+          },
+          "params": {
+            "label": "散落垃圾"
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+          "op": "reduce.exists@1.0",
+          "inputs": {
+            "sets": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "garbage container",
+                "phrases": [
+                  "garbage container"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+          "op": "objects.relabel@1.0",
+          "inputs": {
+            "objects": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect"
+          },
+          "params": {
+            "label": "垃圾容器"
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+          "op": "reduce.exists@1.0",
+          "inputs": {
+            "sets": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "overflowing garbage",
+                "phrases": [
+                  "overflowing garbage"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+          "op": "objects.relabel@1.0",
+          "inputs": {
+            "objects": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect"
+          },
+          "params": {
+            "label": "溢出垃圾"
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+          "op": "reduce.exists@1.0",
+          "inputs": {
+            "sets": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "business_branch_evidence_objects",
+          "op": "objects.merge@1.0",
+          "inputs": {
+            "objects": [
+              "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+              "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+              "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+              "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "final_primary",
+          "op": "logic.any@1.0",
+          "inputs": {
+            "conditions": [
+              "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+              "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+              "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+              "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection"
+            ]
+          },
+          "params": {
+            "combine_scope": "frame_any"
+          },
+          "enabled": true
+        },
+        {
+          "id": "result_objects",
+          "op": "objects.merge@1.0",
+          "inputs": {
+            "objects": [
+              "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+              "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+              "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+              "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label"
+            ]
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "result_draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$result_objects"
+          },
+          "params": {},
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "result_result_garbage_pile_entities": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+        "result_result_garbage_pile_count": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+        "branch_branch_garbage_pile_detection": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+        "result_result_scattered_litter_entities": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+        "result_result_scattered_litter_count": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+        "branch_branch_scattered_litter_detection": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+        "result_result_garbage_container_entities": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+        "result_result_garbage_container_count": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+        "branch_branch_garbage_container_detection": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+        "result_result_overflowing_garbage_entities": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+        "result_result_overflowing_garbage_count": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+        "branch_branch_overflowing_garbage_detection": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+        "objects": "$business_branch_evidence_objects",
+        "final_primary": "$final_primary",
+        "media": "$result_draw"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+          "business_branch_evidence_objects"
+        ],
+        "atom_2": [
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+          "business_branch_evidence_objects"
+        ],
+        "atom_3": [
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+          "business_branch_evidence_objects"
+        ],
+        "atom_4": [
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+          "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+          "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+          "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+          "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+          "business_branch_evidence_objects"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "compatibility_issues": []
+}

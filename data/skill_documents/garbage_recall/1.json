@@ -1,0 +1,1396 @@
+{
+  "schema_version": "3.2",
+  "version": 1,
+  "skill_template": {
+    "skill_id": "garbage_recall",
+    "display_name": "garbage_recall",
+    "original_instruction": "检测垃圾堆、散落垃圾、垃圾容器及溢出垃圾；输出分类框和数量",
+    "source_type": "natural_language",
+    "semantic_ir": {
+      "schema_version": "1.0",
+      "mode": "entity_query",
+      "target": {
+        "concept": "garbage_pile",
+        "source_span": "垃圾堆",
+        "phrases": [
+          "garbage pile"
+        ],
+        "classes": [
+          {
+            "label": "垃圾堆",
+            "phrases": [
+              "garbage pile"
+            ]
+          },
+          {
+            "label": "散落垃圾",
+            "phrases": [
+              "scattered garbage"
+            ]
+          },
+          {
+            "label": "垃圾容器",
+            "phrases": [
+              "garbage container"
+            ]
+          },
+          {
+            "label": "溢出垃圾",
+            "phrases": [
+              "overflowing garbage"
+            ]
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "atom_id": "atom_1",
+          "kind": "quantity",
+          "value": {
+            "measure": "count"
+          },
+          "source": "输出分类框和数量",
+          "source_span": "数量",
+          "polarity": "required",
+          "carrier": null,
+          "carrier_span": null,
+          "phrases": [
+            "count"
+          ],
+          "temporal": false
+        }
+      ],
+      "logic": "all",
+      "unresolved": [],
+      "semantic_hash": "4239a7d2f37b24d35917d2b86a175dd94d64470e5dd0c4915bd77d49a9e5debc"
+    },
+    "result_specs": [
+      {
+        "result_id": "result_media",
+        "display_name": "标注结果",
+        "semantic_type": "media",
+        "value_shape": "single",
+        "source_ref": "output:media",
+        "media_types": [
+          "image"
+        ],
+        "projection": {
+          "kind": "media",
+          "parameters": {}
+        },
+        "unit": null,
+        "grouping": [],
+        "condition_snapshot_policy": "on_result",
+        "label_policy": {
+          "business_label": null,
+          "preserve_model_label": true,
+          "fallback_to_model_label": true
+        },
+        "save_policy": "always",
+        "evidence_policy": "optional",
+        "empty_policy": "empty",
+        "result_type": null,
+        "required_outputs": [
+          "media"
+        ]
+      },
+      {
+        "result_id": "result_objects",
+        "display_name": "目标框",
+        "semantic_type": "entity_set",
+        "value_shape": "list",
+        "source_ref": "output:objects",
+        "media_types": [
+          "image"
+        ],
+        "projection": {
+          "kind": "entities",
+          "parameters": {}
+        },
+        "unit": null,
+        "grouping": [],
+        "condition_snapshot_policy": "on_result",
+        "label_policy": {
+          "business_label": null,
+          "preserve_model_label": true,
+          "fallback_to_model_label": true
+        },
+        "save_policy": "always",
+        "evidence_policy": "optional",
+        "empty_policy": "empty",
+        "result_type": null,
+        "required_outputs": [
+          "objects"
+        ]
+      },
+      {
+        "result_id": "result_measurements",
+        "display_name": "目标数量",
+        "semantic_type": "scalar",
+        "value_shape": "single",
+        "source_ref": "output:measurements",
+        "media_types": [
+          "image"
+        ],
+        "projection": {
+          "kind": "value",
+          "parameters": {}
+        },
+        "unit": null,
+        "grouping": [],
+        "condition_snapshot_policy": "on_result",
+        "label_policy": {
+          "business_label": null,
+          "preserve_model_label": true,
+          "fallback_to_model_label": true
+        },
+        "save_policy": "always",
+        "evidence_policy": "optional",
+        "empty_policy": "empty",
+        "result_type": null,
+        "required_outputs": [
+          "measurements"
+        ]
+      }
+    ],
+    "rule_graph": {
+      "nodes": [
+        {
+          "node_id": "media",
+          "kind": "scope",
+          "display_name": "media",
+          "operator": "media.image@1.0",
+          "input_bindings": {
+            "media": "$input"
+          },
+          "semantic_atom_ids": [],
+          "business_source_refs": [],
+          "output_name": null,
+          "output_names": [],
+          "params": {},
+          "parameter_sources": {},
+          "configuration_slots": [],
+          "enabled": true
+        },
+        {
+          "node_id": "resized",
+          "kind": "scope",
+          "display_name": "resized",
+          "operator": "image.resize@1.1",
+          "input_bindings": {},
+          "semantic_atom_ids": [],
+          "business_source_refs": [],
+          "output_name": null,
+          "output_names": [],
+          "params": {
+            "mode": "identity"
+          },
+          "parameter_sources": {
+            "mode": {
+              "state": "explicit",
+              "value": "identity",
+              "source": "legacy_skill_package",
+              "source_span": null,
+              "recommended_value": null,
+              "alternatives": [],
+              "reason": null,
+              "required_before": "never"
+            }
+          },
+          "configuration_slots": [],
+          "enabled": true
+        },
+        {
+          "node_id": "candidates_raw",
+          "kind": "target",
+          "display_name": "candidates_raw",
+          "operator": "rex.ground@1.1",
+          "input_bindings": {},
+          "semantic_atom_ids": [],
+          "business_source_refs": [],
+          "output_name": null,
+          "output_names": [],
+          "params": {
+            "targets": [
+              {
+                "label": "垃圾堆",
+                "phrases": [
+                  "garbage pile"
+                ]
+              },
+              {
+                "label": "散落垃圾",
+                "phrases": [
+                  "scattered garbage"
+                ]
+              },
+              {
+                "label": "垃圾容器",
+                "phrases": [
+                  "garbage container"
+                ]
+              },
+              {
+                "label": "溢出垃圾",
+                "phrases": [
+                  "overflowing garbage"
+                ]
+              }
+            ]
+          },
+          "parameter_sources": {
+            "targets": {
+              "state": "explicit",
+              "value": [
+                {
+                  "label": "垃圾堆",
+                  "phrases": [
+                    "garbage pile"
+                  ]
+                },
+                {
+                  "label": "散落垃圾",
+                  "phrases": [
+                    "scattered garbage"
+                  ]
+                },
+                {
+                  "label": "垃圾容器",
+                  "phrases": [
+                    "garbage container"
+                  ]
+                },
+                {
+                  "label": "溢出垃圾",
+                  "phrases": [
+                    "overflowing garbage"
+                  ]
+                }
+              ],
+              "source": "legacy_skill_package",
+              "source_span": null,
+              "recommended_value": null,
+              "alternatives": [],
+              "reason": null,
+              "required_before": "never"
+            }
+          },
+          "configuration_slots": [],
+          "enabled": true
+        },
+        {
+          "node_id": "candidates",
+          "kind": "target",
+          "display_name": "candidates",
+          "operator": "objects.deduplicate@1.0",
+          "input_bindings": {},
+          "semantic_atom_ids": [],
+          "business_source_refs": [],
+          "output_name": "objects",
+          "output_names": [],
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "parameter_sources": {
+            "metric": {
+              "state": "explicit",
+              "value": "ios",
+              "source": "legacy_skill_package",
+              "source_span": null,
+              "recommended_value": null,
+              "alternatives": [],
+              "reason": null,
+              "required_before": "never"
+            },
+            "threshold": {
+              "state": "explicit",
+              "value": 0.5,
+              "source": "legacy_skill_package",
+              "source_span": null,
+              "recommended_value": null,
+              "alternatives": [],
+              "reason": null,
+              "required_before": "never"
+            },
+            "keep": {
+              "state": "explicit",
+              "value": "first",
+              "source": "legacy_skill_package",
+              "source_span": null,
+              "recommended_value": null,
+              "alternatives": [],
+              "reason": null,
+              "required_before": "never"
+            }
+          },
+          "configuration_slots": [],
+          "enabled": true
+        },
+        {
+          "node_id": "constraint_1_count",
+          "kind": "aggregate",
+          "display_name": "constraint_1_count",
+          "operator": "measure.count@1.0",
+          "input_bindings": {},
+          "semantic_atom_ids": [
+            "atom_1"
+          ],
+          "business_source_refs": [],
+          "output_name": "measurements",
+          "output_names": [],
+          "params": {
+            "scope": "frame"
+          },
+          "parameter_sources": {
+            "scope": {
+              "state": "explicit",
+              "value": "frame",
+              "source": "legacy_skill_package",
+              "source_span": null,
+              "recommended_value": null,
+              "alternatives": [],
+              "reason": null,
+              "required_before": "never"
+            }
+          },
+          "configuration_slots": [],
+          "enabled": true
+        },
+        {
+          "node_id": "draw",
+          "kind": "output",
+          "display_name": "draw",
+          "operator": "output.draw@1.0",
+          "input_bindings": {},
+          "semantic_atom_ids": [],
+          "business_source_refs": [],
+          "output_name": "media",
+          "output_names": [],
+          "params": {},
+          "parameter_sources": {},
+          "configuration_slots": [],
+          "enabled": true
+        }
+      ],
+      "edges": [
+        {
+          "source": "media",
+          "target": "resized",
+          "port": "frames"
+        },
+        {
+          "source": "resized",
+          "target": "candidates_raw",
+          "port": "frames"
+        },
+        {
+          "source": "candidates_raw",
+          "target": "candidates",
+          "port": "objects"
+        },
+        {
+          "source": "candidates",
+          "target": "constraint_1_count",
+          "port": "entities"
+        },
+        {
+          "source": "resized",
+          "target": "draw",
+          "port": "frames"
+        },
+        {
+          "source": "candidates",
+          "target": "draw",
+          "port": "objects"
+        }
+      ]
+    },
+    "rule_graphs": {
+      "image": {
+        "nodes": [
+          {
+            "node_id": "media",
+            "kind": "scope",
+            "display_name": "media",
+            "operator": "media.image@1.0",
+            "input_bindings": {
+              "media": "$input"
+            },
+            "semantic_atom_ids": [],
+            "business_source_refs": [],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "resized",
+            "kind": "scope",
+            "display_name": "resized",
+            "operator": "image.resize@1.1",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "mode": "identity"
+            },
+            "parameter_sources": {
+              "mode": {
+                "state": "inferred",
+                "value": "identity",
+                "source": "llm_generated",
+                "source_span": null,
+                "recommended_value": null,
+                "alternatives": [],
+                "reason": null,
+                "required_before": "never"
+              }
+            },
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "candidates_raw",
+            "kind": "target",
+            "display_name": "candidates_raw",
+            "operator": "rex.ground@1.1",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "targets": [
+                {
+                  "label": "垃圾堆",
+                  "phrases": [
+                    "garbage pile"
+                  ]
+                },
+                {
+                  "label": "散落垃圾",
+                  "phrases": [
+                    "scattered garbage"
+                  ]
+                },
+                {
+                  "label": "垃圾容器",
+                  "phrases": [
+                    "garbage container"
+                  ]
+                },
+                {
+                  "label": "溢出垃圾",
+                  "phrases": [
+                    "overflowing garbage"
+                  ]
+                }
+              ]
+            },
+            "parameter_sources": {
+              "targets": {
+                "state": "inferred",
+                "value": [
+                  {
+                    "label": "垃圾堆",
+                    "phrases": [
+                      "garbage pile"
+                    ]
+                  },
+                  {
+                    "label": "散落垃圾",
+                    "phrases": [
+                      "scattered garbage"
+                    ]
+                  },
+                  {
+                    "label": "垃圾容器",
+                    "phrases": [
+                      "garbage container"
+                    ]
+                  },
+                  {
+                    "label": "溢出垃圾",
+                    "phrases": [
+                      "overflowing garbage"
+                    ]
+                  }
+                ],
+                "source": "llm_generated",
+                "source_span": null,
+                "recommended_value": null,
+                "alternatives": [],
+                "reason": null,
+                "required_before": "never"
+              }
+            },
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "candidates",
+            "kind": "target",
+            "display_name": "candidates",
+            "operator": "objects.deduplicate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [],
+            "output_name": "objects",
+            "output_names": [],
+            "params": {
+              "metric": "ios",
+              "threshold": 0.5,
+              "keep": "first"
+            },
+            "parameter_sources": {
+              "metric": {
+                "state": "inferred",
+                "value": "ios",
+                "source": "llm_generated",
+                "source_span": null,
+                "recommended_value": null,
+                "alternatives": [],
+                "reason": null,
+                "required_before": "never"
+              },
+              "threshold": {
+                "state": "inferred",
+                "value": 0.5,
+                "source": "llm_generated",
+                "source_span": null,
+                "recommended_value": null,
+                "alternatives": [],
+                "reason": null,
+                "required_before": "never"
+              },
+              "keep": {
+                "state": "inferred",
+                "value": "first",
+                "source": "llm_generated",
+                "source_span": null,
+                "recommended_value": null,
+                "alternatives": [],
+                "reason": null,
+                "required_before": "never"
+              }
+            },
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "constraint_1_count",
+            "kind": "aggregate",
+            "display_name": "constraint_1_count",
+            "operator": "measure.count@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [
+              "atom_1"
+            ],
+            "business_source_refs": [],
+            "output_name": "measurements",
+            "output_names": [],
+            "params": {
+              "scope": "frame"
+            },
+            "parameter_sources": {
+              "scope": {
+                "state": "inferred",
+                "value": "frame",
+                "source": "llm_generated",
+                "source_span": null,
+                "recommended_value": null,
+                "alternatives": [],
+                "reason": null,
+                "required_before": "never"
+              }
+            },
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "draw",
+            "kind": "output",
+            "display_name": "draw",
+            "operator": "output.draw@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [],
+            "output_name": "media",
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          }
+        ],
+        "edges": [
+          {
+            "source": "media",
+            "target": "resized",
+            "port": "frames"
+          },
+          {
+            "source": "resized",
+            "target": "candidates_raw",
+            "port": "frames"
+          },
+          {
+            "source": "candidates_raw",
+            "target": "candidates",
+            "port": "objects"
+          },
+          {
+            "source": "candidates",
+            "target": "constraint_1_count",
+            "port": "entities"
+          },
+          {
+            "source": "resized",
+            "target": "draw",
+            "port": "frames"
+          },
+          {
+            "source": "candidates",
+            "target": "draw",
+            "port": "objects"
+          }
+        ]
+      }
+    },
+    "business_branches": [
+      {
+        "branch_id": "image_main",
+        "display_name": "我的视觉技能",
+        "media_type": "image",
+        "node_ids": [
+          "media",
+          "resized",
+          "candidates_raw",
+          "candidates"
+        ],
+        "root_node_id": "candidates",
+        "condition_root": {
+          "expression_id": "image_main_root",
+          "operator": "ATOM",
+          "display_name": "我的视觉技能",
+          "capability_id": null,
+          "source_ref": "node:candidates",
+          "parameters": {},
+          "parameter_sources": {},
+          "children": [],
+          "required_count": null,
+          "enabled": true
+        },
+        "temporal_qualifiers": [],
+        "validity_policy": {
+          "mode": "current_frame",
+          "hold_seconds": {
+            "state": "not_applicable",
+            "value": null,
+            "source": "system",
+            "source_span": null,
+            "recommended_value": null,
+            "alternatives": [],
+            "reason": null,
+            "required_before": "never"
+          },
+          "reset_source_ref": null
+        },
+        "result_ids": [],
+        "evidence_policy": "required",
+        "save_result": true,
+        "participates_in_final_decision": true,
+        "enabled": true,
+        "description": "由当前已验证执行流程导入；可调整组成步骤参数，也可继续添加通用业务条件进行组合。"
+      }
+    ],
+    "event_patterns": [],
+    "final_decision": {
+      "decision_id": "primary",
+      "display_name": "我的视觉技能结果",
+      "decision_type": "detection_summary",
+      "source_ref": "result:result_objects",
+      "source_refs": [
+        "result:result_objects"
+      ],
+      "media_source_refs": {
+        "image": [
+          "result:result_objects"
+        ]
+      },
+      "combination": "AND",
+      "required_count": null,
+      "success_condition": {},
+      "show_reason": true,
+      "show_failed_or_pending_branches": true,
+      "overview_order": 0
+    },
+    "resource_requirements": [],
+    "pending_decisions": [],
+    "recipe_refs": [],
+    "trigger_policy": {
+      "mode": "none",
+      "trigger_moment": "first_satisfied",
+      "repeat_policy": "first_only",
+      "cooldown_seconds": 0.0,
+      "cooldown_scope": "global",
+      "severity": "medium",
+      "outputs": [
+        "event_record",
+        "annotated_media"
+      ],
+      "notification_channels": [],
+      "evidence_capture": "key_frame",
+      "pre_roll_seconds": 0.0,
+      "post_roll_seconds": 0.0,
+      "maximum_clip_seconds": null,
+      "deduplication_scope": "event_instance",
+      "emit_recovery": false
+    },
+    "presentation_specs": [
+      {
+        "result_id": "result_media",
+        "preferred_renderer": "generic.summary",
+        "show_in_overview": true,
+        "display_order": 0,
+        "overview_span": "normal",
+        "value_format": "auto",
+        "precision": null,
+        "sort_by": null,
+        "visualization_options": {},
+        "interaction_policy": {
+          "drilldown": true,
+          "highlight_evidence": true,
+          "default_focus": "summary"
+        }
+      },
+      {
+        "result_id": "result_objects",
+        "preferred_renderer": "generic.summary",
+        "show_in_overview": true,
+        "display_order": 1,
+        "overview_span": "normal",
+        "value_format": "auto",
+        "precision": null,
+        "sort_by": null,
+        "visualization_options": {},
+        "interaction_policy": {
+          "drilldown": true,
+          "highlight_evidence": true,
+          "default_focus": "summary"
+        }
+      },
+      {
+        "result_id": "result_measurements",
+        "preferred_renderer": "generic.summary",
+        "show_in_overview": true,
+        "display_order": 2,
+        "overview_span": "normal",
+        "value_format": "auto",
+        "precision": null,
+        "sort_by": null,
+        "visualization_options": {},
+        "interaction_policy": {
+          "drilldown": true,
+          "highlight_evidence": true,
+          "default_focus": "summary"
+        }
+      }
+    ]
+  },
+  "scene_profiles": [
+    {
+      "scene_profile_id": "scene_abdddcbddac0409e828db85c0bc12e73",
+      "display_name": "当前任务标注",
+      "media_fingerprint": null,
+      "collections": []
+    }
+  ],
+  "active_scene_profile_id": "scene_abdddcbddac0409e828db85c0bc12e73",
+  "user_overrides": [],
+  "atomic_plan": {
+    "image": {
+      "media_type": "image",
+      "status": "executable",
+      "nodes": [
+        {
+          "id": "media",
+          "op": "media.image@1.0",
+          "inputs": {
+            "media": "$input"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "resized",
+          "op": "image.resize@1.1",
+          "inputs": {
+            "frames": "$media"
+          },
+          "params": {
+            "mode": "identity"
+          },
+          "enabled": true
+        },
+        {
+          "id": "candidates_raw",
+          "op": "rex.ground@1.1",
+          "inputs": {
+            "frames": "$resized"
+          },
+          "params": {
+            "targets": [
+              {
+                "label": "垃圾堆",
+                "phrases": [
+                  "garbage pile"
+                ]
+              },
+              {
+                "label": "散落垃圾",
+                "phrases": [
+                  "scattered garbage"
+                ]
+              },
+              {
+                "label": "垃圾容器",
+                "phrases": [
+                  "garbage container"
+                ]
+              },
+              {
+                "label": "溢出垃圾",
+                "phrases": [
+                  "overflowing garbage"
+                ]
+              }
+            ]
+          },
+          "enabled": true
+        },
+        {
+          "id": "candidates",
+          "op": "objects.deduplicate@1.0",
+          "inputs": {
+            "objects": "$candidates_raw"
+          },
+          "params": {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "first"
+          },
+          "enabled": true
+        },
+        {
+          "id": "constraint_1_count",
+          "op": "measure.count@1.0",
+          "inputs": {
+            "entities": "$candidates"
+          },
+          "params": {
+            "scope": "frame"
+          },
+          "enabled": true
+        },
+        {
+          "id": "draw",
+          "op": "output.draw@1.0",
+          "inputs": {
+            "frames": "$resized",
+            "objects": "$candidates"
+          },
+          "params": {},
+          "enabled": true
+        }
+      ],
+      "outputs": {
+        "media": "$draw",
+        "objects": "$candidates",
+        "measurements": "$constraint_1_count"
+      },
+      "atom_bindings": {
+        "atom_1": [
+          "constraint_1_count"
+        ]
+      },
+      "configuration_slots": [],
+      "issue": null
+    }
+  },
+  "effective_skill_package": {
+    "schema_version": "2.0",
+    "skill_id": "my_visual_skill",
+    "version": 2,
+    "display_name": "我的视觉技能",
+    "original_instruction": "条件分支：检测垃圾堆、散落垃圾、垃圾容器及溢出垃圾；最终判定：检测到垃圾；业务输出：分类框和数量。",
+    "compile_status": "compiled",
+    "input": {
+      "requested_accept": [
+        "image"
+      ],
+      "accept": [
+        "image"
+      ],
+      "video_guidance": {
+        "recommended_max_duration_seconds": 30.0,
+        "enforcement": "warn_only"
+      }
+    },
+    "semantic_ir": {
+      "schema_version": "1.0",
+      "mode": "entity_query",
+      "target": {
+        "concept": "garbage",
+        "source_span": "垃圾堆、散落垃圾、垃圾容器及溢出垃圾",
+        "phrases": [
+          "garbage"
+        ],
+        "classes": [
+          {
+            "label": "垃圾堆",
+            "phrases": [
+              "garbage pile"
+            ]
+          },
+          {
+            "label": "散落垃圾",
+            "phrases": [
+              "scattered litter"
+            ]
+          },
+          {
+            "label": "垃圾容器",
+            "phrases": [
+              "garbage container"
+            ]
+          },
+          {
+            "label": "溢出垃圾",
+            "phrases": [
+              "overflowing garbage"
+            ]
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "atom_id": "atom_1",
+          "kind": "quantity",
+          "value": {
+            "measure": "count"
+          },
+          "source": "业务输出：分类框和数量",
+          "source_span": "数量",
+          "polarity": "required",
+          "carrier": "garbage container",
+          "carrier_span": "垃圾容器",
+          "phrases": [
+            "garbage container"
+          ],
+          "temporal": false
+        },
+        {
+          "atom_id": "atom_2",
+          "kind": "quantity",
+          "value": {
+            "measure": "count"
+          },
+          "source": "业务输出：分类框和数量",
+          "source_span": "数量",
+          "polarity": "required",
+          "carrier": "garbage pile",
+          "carrier_span": "垃圾堆",
+          "phrases": [
+            "garbage pile"
+          ],
+          "temporal": false
+        },
+        {
+          "atom_id": "atom_3",
+          "kind": "quantity",
+          "value": {
+            "measure": "count"
+          },
+          "source": "业务输出：分类框和数量",
+          "source_span": "数量",
+          "polarity": "required",
+          "carrier": "overflowing garbage",
+          "carrier_span": "溢出垃圾",
+          "phrases": [
+            "overflowing garbage"
+          ],
+          "temporal": false
+        },
+        {
+          "atom_id": "atom_4",
+          "kind": "quantity",
+          "value": {
+            "measure": "count"
+          },
+          "source": "业务输出：分类框和数量",
+          "source_span": "数量",
+          "polarity": "required",
+          "carrier": "scattered litter",
+          "carrier_span": "散落垃圾",
+          "phrases": [
+            "scattered litter"
+          ],
+          "temporal": false
+        }
+      ],
+      "logic": "any",
+      "unresolved": [],
+      "semantic_hash": "86964a6ad812884866040be604f1afdbed210a643ee9954fa03b9cba9e9bf384"
+    },
+    "variants": {
+      "image": {
+        "media_type": "image",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.image@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$media"
+            },
+            "params": {
+              "mode": "identity"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "garbage pile",
+                  "phrases": [
+                    "garbage pile"
+                  ]
+                }
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect"
+            },
+            "params": {
+              "label": "垃圾堆"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "scattered litter",
+                  "phrases": [
+                    "scattered litter"
+                  ]
+                }
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect"
+            },
+            "params": {
+              "label": "散落垃圾"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "garbage container",
+                  "phrases": [
+                    "garbage container"
+                  ]
+                }
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect"
+            },
+            "params": {
+              "label": "垃圾容器"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "overflowing garbage",
+                  "phrases": [
+                    "overflowing garbage"
+                  ]
+                }
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect"
+            },
+            "params": {
+              "label": "溢出垃圾"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "business_branch_evidence_objects",
+            "op": "objects.merge@1.0",
+            "inputs": {
+              "objects": [
+                "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+                "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+                "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+                "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label"
+              ]
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "final_primary",
+            "op": "logic.any@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+                "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+                "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+                "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "enabled": true
+          },
+          {
+            "id": "result_objects",
+            "op": "objects.merge@1.0",
+            "inputs": {
+              "objects": [
+                "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+                "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+                "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+                "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label"
+              ]
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$result_objects"
+            },
+            "params": {},
+            "enabled": true
+          }
+        ],
+        "outputs": {
+          "result_result_garbage_pile_entities": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+          "result_result_garbage_pile_count": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+          "branch_branch_garbage_pile_detection": "$branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+          "result_result_scattered_litter_entities": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+          "result_result_scattered_litter_count": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+          "branch_branch_scattered_litter_detection": "$branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+          "result_result_garbage_container_entities": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+          "result_result_garbage_container_count": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+          "branch_branch_garbage_container_detection": "$branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+          "result_result_overflowing_garbage_entities": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+          "result_result_overflowing_garbage_count": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+          "branch_branch_overflowing_garbage_detection": "$branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+          "objects": "$business_branch_evidence_objects",
+          "final_primary": "$final_primary",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+            "business_branch_evidence_objects"
+          ],
+          "atom_2": [
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+            "business_branch_evidence_objects"
+          ],
+          "atom_3": [
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+            "business_branch_evidence_objects"
+          ],
+          "atom_4": [
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_detect",
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label",
+            "branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_branch_garbage_pile_detection_condition_garbage_pile_detection_detect_garbage_pile_label_exists",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_detect",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_label",
+            "branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scattered_litter_branch_scattered_litter_detection_condition_scattered_litter_detection_detect_scatter",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_detect",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_label",
+            "branch_garbage_container_detection_condition_garbage_container_detection_detect_garbage_container_branch_garbage_container_detection_condition_garbage_container_detection_detect_ga",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_detect",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_label",
+            "branch_overflowing_garbage_detection_condition_overflowing_garbage_detection_detect_overflowing_garbage_branch_overflowing_garbage_detection_condition_overflowing_garbage_detection",
+            "business_branch_evidence_objects"
+          ]
+        },
+        "configuration_slots": [],
+        "issue": null
+      }
+    },
+    "compatibility_issues": []
+  },
+  "validation_report": {
+    "valid": true,
+    "errors": [],
+    "warnings": [],
+    "pending": [],
+    "resource_blockers": [],
+    "can_run": true
+  },
+  "compatibility": {
+    "editability": "full",
+    "issues": []
+  },
+  "readiness": {
+    "draft_valid": true,
+    "review_complete": false,
+    "compile_valid": false,
+    "runtime_ready": false,
+    "publish_ready": false,
+    "reasons": []
+  },
+  "hashes": {
+    "semantic_hash": "b44b980c4b78e9c719e2bc3154e58cd520e0c03a62762d6c5e4c0f727b9595ea",
+    "compile_hash": "cdb9f2338eea45a92f08dedcae536dfde49cdc636bf2bad4d8237bc48fa692f2",
+    "package_hash": "12ca2f602fb0324855c72acceace82d9c6d1bb084f34fef02529223e20a0ff2b",
+    "presentation_hash": "8b520620af8c195afe136944d4cfbf6889ff42a015c892e0f33e97b36541cb7d"
+  },
+  "compiled_artifact_ref": null
+}

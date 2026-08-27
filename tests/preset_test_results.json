@@ -1,6 +1,228 @@
 {
   "schema_version": "1.0",
-  "updated_date": "2026-08-20",
+  "updated_date": "2026-08-27",
+  "latest_homepage_title": {
+    "date": "2026-08-26",
+    "tests": "116 V2 UI tests passed; 6131 homepage includes “AI 一句话生成视觉技能”."
+  },
+  "latest_natural_language_examples": {
+    "date": "2026-08-27",
+    "status": "passed",
+    "coverage": [
+      "示例 1：识别未带安全帽的人。",
+      "示例 2：区域1有穿红色上衣、灰色裤子的人，区域2有至少2个人，则发出区域告警事件。"
+    ],
+    "tests": "118 passed: tests/test_v2_ui.py"
+  },
+  "latest_service_endpoint": {
+    "date": "2026-08-27",
+    "canonical_url": "http://127.0.0.1:6131",
+    "external_url": "http://10.168.24.70:6131",
+    "listener": "0.0.0.0:6131",
+    "health_check": "Both loopback and LAN URLs returned HTTP 200; homepage title marker present",
+    "note": "Both URLs point to the same 6131 process. Host-specific Gradio root metadata may differ while service configuration and runtime are shared."
+  },
+  "latest_same_subject_attribute_fix": {
+    "date": "2026-08-26",
+    "status": "passed_code_and_real_rex",
+    "coverage": [
+      "AND-scoped attribute filters sharing one entity source synthesize or complete subject.same_attributes",
+      "OR/N-of-M and attributes over different sources are not rewritten",
+      "entity outputs and annotated boxes use the most reduced compatible EntitySet instead of raw detections or boolean decisions",
+      "repeated output aliases no longer duplicate detection/event/track export counts"
+    ],
+    "tests": "172 passed; Python compileall passed",
+    "real_rex": {
+      "semantic_run_id": "20260826_153633_0951dc69",
+      "semantic_status": "satisfied",
+      "matched_people": 1,
+      "draw_source": "final same-subject semi-join",
+      "dedup_replay_run_id": "20260826_154112_6f1262bc",
+      "object_count": 1,
+      "detections": 1
+    }
+  },
+  "latest_business_step_description": {
+    "date": "2026-08-26",
+    "status": "passed_editor_contracts",
+    "tests": "25 business-rule editor/editor-generation tests passed; 10 parameter-presentation/document tests passed; 121 V2 UI/generic editor UI tests passed; compileall passed"
+  },
+  "latest_natural_language_preset_reproduction": {
+    "date": "2026-08-27",
+    "status": "passed_generic_without_preset_reuse",
+    "tests": "622 passed: full pytest suite",
+    "recorded_real_llm": {
+      "structured_inputs": "13/13 compiled",
+      "preset_text_inputs": "13/13 compiled",
+      "targeted_fresh_checks": "P03/P05/P06 3/3; P05/P12 2/2"
+    },
+    "artifacts": [
+      "tests/natural_language_preset_reproduction_verified.json",
+      "tests/natural_language_preset_reproduction_preset_verified.json",
+      "tests/natural_language_preset_reproduction_targeted_live_final.json",
+      "tests/natural_language_preset_reproduction_preset_targeted_live_final.json"
+    ],
+    "scope_note": "The generic planner and normalizer reproduce the requested business workflow and run contract. No semantic-similarity preset lookup or full-config copy is used; hidden tuning and manual scene points remain user-configurable."
+  },
+  "latest_review_refresh_and_annotation_clear": {
+    "date": "2026-08-27",
+    "status": "passed",
+    "tests": "151 focused tests; 622 full-suite tests",
+    "coverage": [
+      "Natural-language generation explicitly refreshes the current SkillEditorDocument before 03 审核 controls are read.",
+      "02 标注的清空已有标注 only removes persisted manual regions/directions in the active variant and resets the draft points.",
+      "Dependent named direction annotations are cleared with their source regions and required slots become pending again."
+    ],
+    "runtime": "http://127.0.0.1:6131 returned HTTP 200 with the new control label"
+  },
+  "latest_generic_color_attribute_fix": {
+    "date": "2026-08-27",
+    "status": "passed_code_and_real_rex",
+    "natural_language": "识别穿白色衬衫的人",
+    "media": "C:\\yhe_user\\detection_project\\Rex-Omni\\tutorials\\detection_example\\test_images\\cafe.jpg",
+    "root_cause": "服装颜色曾直接在整个人体框上取像素，背景像素满足低阈值后把所有人员保留。",
+    "generic_fix": "按条件名称和部位自动识别服装/装备载体，先请求同主体语义证据，再做主色占比和归属匹配；支持上衣、裤子、衬衫、外套、安全帽、鞋及中英文颜色别名，普通整目标颜色保留通用回退。",
+    "real_rex": {
+      "run_id": "20260827_123445_6058110b",
+      "old_object_count": 11,
+      "new_object_count": 2,
+      "status": "executed_with_output",
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_123445_6058110b\\annotated.jpg",
+      "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_123445_6058110b\\effective_skill.json",
+      "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_123445_6058110b\\trace.json"
+    },
+    "tests": "622 passed: full pytest suite; cross-carrier regression covers red upper clothing, gray trousers, and yellow helmet",
+    "runtime": "http://127.0.0.1:6131"
+  },
+  "latest_generic_black_clothing_recall_fix": {
+    "date": "2026-08-27",
+    "status": "passed_code_and_real_rex",
+    "natural_language": "识别穿黑色衣服的人",
+    "media": "C:\\yhe_user\\detection_project\\Rex-Omni\\tutorials\\detection_example\\test_images\\cafe.jpg",
+    "root_cause": "人体大框中的皮肤、椅子和地毯稀释了黑色服装像素，主色优势规则过滤了部分真实黑衣。",
+    "generic_fix": "泛指衣服先检测带颜色的服装证据框，再用 best_owner 回绑到对应人物；载体感知默认基线只用于自然语言推断，审核中显式阈值仍优先。",
+    "real_rex": {
+      "run_id": "20260827_130303_f12d560f",
+      "old_object_count": 2,
+      "new_object_count": 6,
+      "status": "executed_with_output",
+      "evidence_count": 6,
+      "colored_evidence_count": 6,
+      "owned_person_count": 6,
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_130303_f12d560f\\annotated.jpg",
+      "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_130303_f12d560f\\effective_skill.json",
+      "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_130303_f12d560f\\trace.json"
+    },
+    "tests": "623 passed: full pytest suite; cross-carrier and planner-inferred clothing regression included",
+    "runtime": "http://127.0.0.1:6131"
+  },
+  "latest_attribute_evidence_generalization": {
+    "date": "2026-08-27",
+    "status": "passed_code_and_regression",
+    "coverage": [
+      "generic clothing keeps direct coloured-garment evidence with best_owner projection",
+      "named garments and gear retain carrier-aware evidence and verification",
+      "non-clothing whole-object colours use coloured target evidence before deterministic verification",
+      "hand-authored graphs without a Rex grounding source retain the safe whole-box fallback"
+    ],
+    "tests": "624 passed: full pytest suite; red-car non-clothing evidence regression included",
+    "prompt_guidance": "Detect person wearing black clothing is the correct visual query. Detect is automatically supplied by RexGateway when query_prompt is omitted; do not duplicate it in the editor.",
+    "runtime": "http://127.0.0.1:6131"
+  },
+  "latest_yellow_clothing_semantic_evidence_fix": {
+    "date": "2026-08-27",
+    "status": "passed_code_and_real_rex",
+    "root_cause": "yellow clothing 模型证据框被严格纯黄色 HSV 校验全部过滤；画面中的两件衣物为姜黄/金黄，属于黄橙交界。",
+    "generic_fix": "颜色复核区分严格像素筛选与模型属性证据复核：后者为全部颜色族允许受限的相邻色、亮度和饱和度边界，普通整框筛选始终保持严格；该策略可复用到所有 Rex 已定位的颜色属性证据。",
+    "real_rex": {
+      "run_id": "20260827_135501_d9127a66",
+      "status": "executed_with_output",
+      "evidence_count": 2,
+      "colored_evidence_count": 2,
+      "owned_person_count": 2,
+      "object_count": 2,
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_135501_d9127a66\\annotated.jpg",
+      "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_135501_d9127a66\\effective_skill.json",
+      "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_135501_d9127a66\\trace.json"
+    },
+    "tests": "626 passed: full pytest suite; semantic yellow accepts golden boundary but keeps saturated orange rejected, and semantic blue accepts a cyan-blue boundary while clear cyan stays rejected",
+    "runtime": "http://127.0.0.1:6131"
+  },
+  "latest_multi_attribute_region_event_fix": {
+    "date": "2026-08-27",
+    "status": "passed_code_and_real_rex",
+    "policy": [
+      "detect each base target once",
+      "ground each independently visible attribute/carrier as a tight evidence box",
+      "apply deterministic attribute corroboration to that evidence box",
+      "bind every attribute evidence set to its best owner",
+      "intersect attributes by the same subject identity",
+      "evaluate region membership/counts independently and compose the final event deterministically"
+    ],
+    "real_rex": {
+      "run_id": "20260827_145056_053ba0ef",
+      "status": "executed_with_output",
+      "red_evidence_count": 2,
+      "red_verified_count": 2,
+      "gray_evidence_count": 1,
+      "gray_verified_count": 1,
+      "event_count": 1,
+      "annotated_media": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_145056_053ba0ef\\annotated.jpg",
+      "effective_skill": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_145056_053ba0ef\\effective_skill.json",
+      "trace": "C:\\yhe_user\\detection_project\\vision_skill\\data\\runs\\20260827_145056_053ba0ef\\trace.json"
+    },
+    "tests": "626 passed: full pytest suite; multi-region red-upper/gray-trousers structural regression included",
+    "runtime": "http://127.0.0.1:6131"
+  },
+  "latest_region_configuration_regeneration_fix": {
+    "date": "2026-08-27",
+    "status": "passed",
+    "coverage": [
+      "regenerating the same skill and normalized instruction preserves compatible saved region/direction slots",
+      "different instructions or changed slot identities never inherit stale geometry",
+      "run blockers show 区域1、区域2 and the 02 标注 save action instead of internal resource ids",
+      "Effective-package readers resolve the current executable media before using a stale UI variant value"
+    ],
+    "tests": "629 passed: full pytest suite",
+    "runtime": "http://127.0.0.1:6131"
+  },
+  "latest_p11_p07_runtime_rework": {
+    "date": "2026-08-27",
+    "status": "passed_code_and_real_rex",
+    "changes": [
+      "P11 审核流程隐藏保留/排除等内部编排箭头，仅展示检测、证据复核和空间关系；垃圾堆不再错误要求位于容器上沿，容器也不依赖溢出证据。",
+      "P07 删除速度测量和速度逻辑，仅保留车辆位于禁停区域并持续停留10秒。",
+      "视频标注输出优先使用 H.264 avc1，浏览器可直接播放；编码失败时安全回退并清理半成品。"
+    ],
+    "natural_language": {
+      "P11": "检测服务区画面中的垃圾堆、散落垃圾、垃圾容器及溢出垃圾。",
+      "P07": "检测位于手工标注禁停区域内并持续停留10秒的车辆。"
+    },
+    "real_rex": {
+      "P11_run_id": "20260827_161056_a47b92f2",
+      "P11_counts": {"垃圾容器": 2, "溢出垃圾": 2, "垃圾堆": 1, "散落垃圾": 18},
+      "P07_run_id": "20260827_161456_8a2fd8a6",
+      "P07_event_count": 1,
+      "P07_video_codec": "avc1"
+    },
+    "tests": "163 focused tests passed; 630 full-suite tests passed",
+    "runtime": "http://127.0.0.1:6131"
+  },
+  "latest_p11_generalization": {
+    "date": "2026-08-26",
+    "status": "passed_code_and_ui_contracts",
+    "change": "P11 uses independent crop-context confirmation for garbage containers, a one-way container-relative upper-rim relation for overflowing garbage, and full-frame scale routing plus IoS deduplication for garbage piles. Containers never depend on overflow. Optional regions pass through when empty, and editor conversion preserves optional configuration semantics.",
+    "tests": "225 passed: editor generation, operator semantics, presets, V2 UI, configuration slots, and context confirmation",
+    "real_rex": {
+      "run_id": "20260826_130222_142a0c83",
+      "semantic_status": "passed",
+      "garbage_pile": 1,
+      "garbage_container": 2,
+      "overflowing_garbage": 2,
+      "scattered_litter": 18,
+      "suite": "63/63 semantic_passed; runtime_failed 0"
+    }
+  },
   "latest_fall_result_visibility_fix": {
     "date": "2026-08-20",
     "status": "passed_code_ui_and_real_rex",

@@ -3,7 +3,7 @@
   "skill_id": "illegal_parking",
   "version": 1,
   "display_name": "车辆违停",
-  "original_instruction": "检测位于手工标注禁停区域内、像素速度低于2并持续10秒的车辆。",
+  "original_instruction": "检测位于手工标注禁停区域内并持续停留10秒的车辆。",
   "compile_status": "compiled",
   "input": {
     "requested_accept": [
@@ -31,24 +31,6 @@
     "constraints": [
       {
         "atom_id": "atom_1",
-        "kind": "motion",
-        "value": {
-          "measure": "speed",
-          "operator": "<",
-          "threshold": 2.0,
-          "unit": "pixels_per_second",
-          "aggregation": "per_track"
-        },
-        "source": "像素速度低于2并持续10秒的车辆",
-        "source_span": "像素速度低于2",
-        "polarity": "required",
-        "carrier": null,
-        "carrier_span": null,
-        "phrases": [],
-        "temporal": false
-      },
-      {
-        "atom_id": "atom_2",
         "kind": "spatial_relation",
         "value": {
           "relation": "inside_roi",
@@ -62,7 +44,7 @@
             ]
           }
         },
-        "source": "检测位于手工标注禁停区域内",
+        "source": "检测位于手工标注禁停区域内并持续停留10秒的车辆",
         "source_span": "位于手工标注禁停区域内",
         "polarity": "required",
         "carrier": null,
@@ -71,14 +53,14 @@
         "temporal": false
       },
       {
-        "atom_id": "atom_3",
+        "atom_id": "atom_2",
         "kind": "temporal",
         "value": {
           "type": "persist",
           "seconds": 10.0
         },
-        "source": "像素速度低于2并持续10秒的车辆",
-        "source_span": "持续10秒",
+        "source": "检测位于手工标注禁停区域内并持续停留10秒的车辆",
+        "source_span": "持续停留10秒",
         "polarity": "required",
         "carrier": null,
         "carrier_span": null,
@@ -88,7 +70,7 @@
     ],
     "logic": "all",
     "unresolved": [],
-    "semantic_hash": "fffaaefae10a22bff4538b4cc5c817c14ece40ba401156b23e1081c30c08196c"
+    "semantic_hash": "ed4e5f7afee8faf0dfc3e541db0a63020012443fa3e368743d18d71c17484c96"
   },
   "variants": {
     "video": {
@@ -207,47 +189,10 @@
           "enabled": true
         },
         {
-          "id": "speed",
-          "op": "measure.speed@1.0",
-          "inputs": {
-            "tracks": "$tracks"
-          },
-          "params": {
-            "window_frames": 2,
-            "unit": "pixels_per_second",
-            "aggregation": "per_track"
-          },
-          "enabled": true
-        },
-        {
-          "id": "stationary",
-          "op": "logic.compare@1.0",
-          "inputs": {
-            "left": "$speed"
-          },
-          "params": {
-            "operator": "<",
-            "value": 2.0
-          },
-          "enabled": true
-        },
-        {
-          "id": "violation_condition",
-          "op": "logic.all@1.0",
-          "inputs": {
-            "conditions": [
-              "$inside_region",
-              "$stationary"
-            ]
-          },
-          "params": {},
-          "enabled": true
-        },
-        {
           "id": "events",
           "op": "temporal.persist@1.0",
           "inputs": {
-            "condition": "$violation_condition"
+            "condition": "$inside_region"
           },
           "params": {
             "seconds": 10.0,
@@ -303,16 +248,11 @@
       },
       "atom_bindings": {
         "atom_1": [
-          "tracks",
-          "speed",
-          "stationary"
-        ],
-        "atom_2": [
           "no_parking_region",
           "inside_region"
         ],
-        "atom_3": [
-          "violation_condition",
+        "atom_2": [
+          "inside_region",
           "events",
           "alerts"
         ]

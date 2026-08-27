@@ -62,6 +62,37 @@ def _region_centers(regions):
     return result
 
 
+def _active_events_for_frame(events, frame, object_items, params):
+    """Select event evidence visible on one rendered frame.
+
+    Runtime event times remain causal.  Offline result media may additionally
+    project a confirmed entity event back to the first observation of the same
+    track/object, so viewers can follow the complete evidence trajectory instead
+    of seeing the label appear only after enough motion frames were collected.
+    """
+
+    if events is None:
+        return []
+    mode = params.get("event_time_window", "event")
+    first_seen: dict[str, float] = {}
+    if mode == "track_history":
+        for item in object_items:
+            entity_id = item.track_id or item.id
+            first_seen[entity_id] = min(
+                item.timestamp,
+                first_seen.get(entity_id, item.timestamp),
+            )
+
+    active = []
+    for event in events.items:
+        start_time = event.start_time
+        if mode == "track_history" and event.entity_id != "global":
+            start_time = min(start_time, first_seen.get(event.entity_id, start_time))
+        if start_time <= frame.timestamp <= event.end_time:
+            active.append(event)
+    return active
+
+
 def _annotate(
     frame,
     objects,
@@ -74,15 +105,16 @@ def _annotate(
     image = frame.image.copy().convert("RGB")
     draw = ImageDraw.Draw(image)
     font = _font()
-    active_events = [] if events is None else [
-        event for event in events.items if event.start_time <= frame.timestamp <= event.end_time
-    ]
+    object_items = []
+    if objects is not None:
+        for entity in objects.items:
+            object_items.extend(entity.history if hasattr(entity, "history") else [entity])
+    active_events = _active_events_for_frame(
+        events, frame, object_items, params
+    )
     active_by_entity = {event.entity_id: event.label for event in active_events}
     if objects is not None:
         label_rows = {}
-        object_items = []
-        for entity in objects.items:
-            object_items.extend(entity.history if hasattr(entity, "history") else [entity])
         for item in object_items:
             if item.frame_index != frame.frame_index:
                 continue
@@ -94,15 +126,24 @@ def _annotate(
             event_label = active_by_entity.get(item.track_id or item.id)
             color = "orange" if event_label else "red"
             draw.rectangle(box, outline=color, width=4 if event_label else 3)
-            if params["show_labels"]:
-                suffix = f" [{item.track_id}]" if params.get("show_track_id") and item.track_id else ""
-                event_suffix = f" {event_label}" if event_label else ""
+            show_base_label = params.get("show_labels", True)
+            show_event_label = bool(
+                event_label and params.get("show_event_labels", True)
+            )
+            if show_base_label or show_event_label:
+                suffix = (
+                    f" [{item.track_id}]"
+                    if show_base_label and params.get("show_track_id") and item.track_id
+                    else ""
+                )
+                event_suffix = f" {event_label}" if show_event_label else ""
+                label = item.label if show_base_label else ""
                 anchor = (box[0], max(0, box[1] - 22))
                 row = label_rows.get(anchor, 0)
                 label_rows[anchor] = row + 1
                 draw.text(
                     _label_position(anchor, row),
-                    item.label + suffix + event_suffix,
+                    (label + suffix + event_suffix).strip(),
                     fill=color,
                     font=font,
                 )
@@ -274,8 +315,11 @@ def _write_browser_playable_video(path, images, fps, output_size):
                     image = image.resize(even_size)
                 writer.append_data(np.asarray(image))
         return
-    except ImportError:
-        pass
+    except Exception:
+        # A Python imageio install without a working ffmpeg binary (or a
+        # codec unavailable on the host) must not leave a half-written file.
+        # The OpenCV fallback still produces a result for non-browser clients.
+        path.unlink(missing_ok=True)
     writer = cv2.VideoWriter(
         str(path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height)
     )

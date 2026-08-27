@@ -31,6 +31,24 @@ def test_reproduction_manifest_covers_p01_to_p13_and_two_natural_language_styles
         assert "业务输出" in item["structured_text"]
 
 
+def test_generated_condition_rows_expose_capability_ids_like_imported_rows():
+    registry = build_default_registry()
+    editor = BusinessRuleEditor(
+        build_business_capability_registry(registry), registry
+    )
+    package = SkillPackage.model_validate_json(
+        (ROOT / "presets_v2" / "P01_fire_smoke.json").read_text("utf-8")
+    )
+    document = editor.prepare(build_editor_document(package, source_type="preset"))
+    branch = document.skill_template.business_branches[0]
+    rows = editor.condition_rows(document, branch.branch_id)
+    assert all(
+        "capability_id" in row
+        for row in rows
+        if row["kind"] in {"条件", "导入判定"}
+    )
+
+
 def test_every_manifest_case_loads_into_the_same_editable_business_editor_and_recompiles():
     registry = build_default_registry()
     editor = BusinessRuleEditor(

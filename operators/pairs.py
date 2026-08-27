@@ -27,8 +27,14 @@ def pairs_build(inputs, params, services, node_id):
         for object_id, obj in objects:
             if subject.frame_index != obj.frame_index:
                 continue
-            if params.get("same_source_only") and obj.source_entity_id != subject_id:
-                continue
+            if params.get("same_source_only"):
+                # Derived attribute sets keep the original object id, while
+                # independently produced evidence may point back through
+                # source_entity_id.  Accept either identity representation and
+                # never fall back to geometric proximity for same-subject rules.
+                object_source_id = obj.source_entity_id or object_id
+                if object_source_id != subject_id:
+                    continue
             pairs.append(Pair(
                 subject_id,
                 object_id,

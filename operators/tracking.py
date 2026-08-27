@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from core.context import Track, TrackSet
 
 
@@ -12,6 +14,66 @@ def _iou(a, b):
     return intersection / union if union else 0.0
 
 
+def _center_pixels(item):
+    x0, y0, x1, y1 = item.bbox
+    width, height = item.original_size
+    return ((x0 + x1) * width / 2.0, (y0 + y1) * height / 2.0)
+
+
+def _predicted_bbox(track, candidate):
+    """Project the last box to the candidate time using constant box motion."""
+
+    if len(track.history) < 2:
+        return track.history[-1].bbox
+    previous, latest = track.history[-2:]
+    elapsed = float(latest.timestamp) - float(previous.timestamp)
+    lookahead = float(candidate.timestamp) - float(latest.timestamp)
+    if elapsed <= 0 or lookahead <= 0:
+        return latest.bbox
+    ratio = min(2.0, lookahead / elapsed)
+    projected = tuple(
+        current + (current - prior) * ratio
+        for prior, current in zip(previous.bbox, latest.bbox)
+    )
+    x0, y0, x1, y1 = projected
+    return (
+        max(0.0, min(1.0, x0)),
+        max(0.0, min(1.0, y0)),
+        max(0.0, min(1.0, x1)),
+        max(0.0, min(1.0, y1)),
+    )
+
+
+def _motion_is_consistent(track, candidate, params):
+    if not params.get("motion_consistency", False) or len(track.history) < 2:
+        return True
+    latest = track.history[-1]
+    lx, ly = _center_pixels(latest)
+    cx, cy = _center_pixels(candidate)
+    new_dx, new_dy = cx - lx, cy - ly
+    new_length = math.hypot(new_dx, new_dy)
+    minimum = float(params.get("min_motion_pixels", 5.0))
+    if new_length < minimum:
+        return True
+
+    # A single jittery or almost stationary sample must not erase an already
+    # established trajectory direction.  Walk backwards to the nearest prior
+    # observation with meaningful displacement instead of comparing only the
+    # last two boxes.  This splits an identity switch into a new track while
+    # still allowing slow sub-pixel motion.
+    old_dx = old_dy = old_length = 0.0
+    for previous in reversed(track.history[:-1]):
+        px, py = _center_pixels(previous)
+        old_dx, old_dy = lx - px, ly - py
+        old_length = math.hypot(old_dx, old_dy)
+        if old_length >= minimum:
+            break
+    if old_length < minimum:
+        return True
+    cosine = (old_dx * new_dx + old_dy * new_dy) / (old_length * new_length)
+    return cosine >= float(params.get("min_direction_cosine", -1.0))
+
+
 def track_iou(inputs, params, services, node_id):
     grouped = {}
     for obj in inputs["objects"].items:
@@ -20,23 +82,49 @@ def track_iou(inputs, params, services, node_id):
     next_id = 1
     last_seen = {}
     for sample_index, frame_index in enumerate(sorted(grouped)):
-        available = set(range(len(tracks)))
-        for obj in grouped[frame_index]:
-            candidates = []
-            for idx in available:
-                track = tracks[idx]
+        frame_objects = grouped[frame_index]
+        threshold = float(params["iou_threshold"])
+        pairs = []
+        for track_index, track in enumerate(tracks):
+            if sample_index - last_seen[track_index] > int(params["max_missing_frames"]) + 1:
+                continue
+            for object_index, obj in enumerate(frame_objects):
                 if params["same_label_only"] and track.label != obj.label:
                     continue
-                if sample_index - last_seen[idx] > int(params["max_missing_frames"]) + 1:
+                score = _iou(track.history[-1].bbox, obj.bbox)
+                if params.get("motion_prediction", False):
+                    # Fast perspective motion can move and enlarge a vehicle
+                    # enough that consecutive boxes no longer overlap at the
+                    # configured threshold.  Compare against the projected box
+                    # as well, while retaining the direction-consistency gate
+                    # below to avoid switching to a nearby vehicle.
+                    score = max(score, _iou(_predicted_bbox(track, obj), obj.bbox))
+                if score < threshold or not _motion_is_consistent(track, obj, params):
                     continue
-                candidates.append((_iou(track.history[-1].bbox, obj.bbox), idx))
-            score, selected = max(candidates, default=(0.0, -1))
-            if selected >= 0 and score >= float(params["iou_threshold"]):
+                pairs.append((score, track_index, object_index))
+
+        # Resolve the frame as one deterministic one-to-one assignment.  The
+        # previous implementation greedily iterated detector output order,
+        # which could swap identities in dense traffic and invert direction.
+        selected_tracks = set()
+        selected_objects = set()
+        assignment = {}
+        for _score, track_index, object_index in sorted(
+            pairs, key=lambda item: (-item[0], item[1], item[2])
+        ):
+            if track_index in selected_tracks or object_index in selected_objects:
+                continue
+            selected_tracks.add(track_index)
+            selected_objects.add(object_index)
+            assignment[object_index] = track_index
+
+        for object_index, obj in enumerate(frame_objects):
+            selected = assignment.get(object_index)
+            if selected is not None:
                 track = tracks[selected]
                 obj.track_id = track.id
                 track.history.append(obj)
                 last_seen[selected] = sample_index
-                available.remove(selected)
             else:
                 track_id = f"track_{next_id}"
                 next_id += 1

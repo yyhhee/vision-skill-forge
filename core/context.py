@@ -154,6 +154,10 @@ class VisualObject:
     source_entity_id: str | None = None
     raw_output: str | None = None
     original_size: tuple[int, int] = (1, 1)
+    # Relative localization quality of the source view that produced this box.
+    # A value above 1 usually means an un-clipped tile observation; full-frame
+    # detections use 1.  It is evidence metadata, not model confidence.
+    localization_score: float = 1.0
 
 
 @dataclass

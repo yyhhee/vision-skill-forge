@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import math
 
-from core.context import ConditionSet, TimedValue
+from copy import deepcopy
+
+from core.context import ConditionSet, ObjectSet, TimedValue
+from .objects import iter_object_samples
 
 
 def _point_in_polygon(point, polygon):
@@ -54,6 +57,40 @@ def spatial_inside(inputs, params, services, node_id):
                         for region in regions)
         output.append(TimedValue(entity_key, item.timestamp, value, item.frame_index))
     return ConditionSet(output)
+
+
+def objects_filter_by_regions(inputs, params, services, node_id):
+    """Keep objects inside/outside the union of explicitly supplied regions.
+
+    This is intentionally a projection/filtering atom instead of event logic:
+    presets can use the same annotated business scope for counting, tracking and
+    evidence drawing without hard-coding a number of regions.
+    """
+
+    regions = inputs["regions"].items
+    if not regions and params.get("empty_regions") == "passthrough":
+        return ObjectSet([
+            deepcopy(item) for item in iter_object_samples(inputs["objects"])
+        ])
+    mode = params.get("membership_mode", "center")
+    keep_inside = params.get("keep", "inside") == "inside"
+    threshold = float(params.get("overlap_threshold", 0.1))
+    output = []
+    for item in iter_object_samples(inputs["objects"]):
+        if mode == "center":
+            x0, y0, x1, y1 = item.bbox
+            center = ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
+            inside = any(_point_in_polygon(center, region.points) for region in regions)
+        elif mode == "overlap":
+            inside = any(
+                _overlap_fraction(item.bbox, _region_bounds(region)) >= threshold
+                for region in regions
+            )
+        else:
+            raise ValueError(f"unsupported region membership mode: {mode}")
+        if inside == keep_inside:
+            output.append(deepcopy(item))
+    return ObjectSet(output)
 
 
 def spatial_associate(inputs, params, services, node_id):
@@ -126,6 +163,25 @@ def spatial_associate(inputs, params, services, node_id):
                 x0, y0, x1, y1 = item.bbox
                 center = ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
                 if region[0] <= center[0] <= region[2] and region[1] <= center[1] <= region[3]:
+                    value = True
+                    break
+        elif params["relation"] == "center_in_object_region":
+            sx0, sy0, sx1, sy1 = subject.bbox
+            subject_center = ((sx0 + sx1) / 2.0, (sy0 + sy1) / 2.0)
+            rx0, ry0, rx1, ry1 = params["object_region"]
+            value = False
+            for item in candidates:
+                x0, y0, x1, y1 = item.bbox
+                region = (
+                    x0 + rx0 * (x1 - x0),
+                    y0 + ry0 * (y1 - y0),
+                    x0 + rx1 * (x1 - x0),
+                    y0 + ry1 * (y1 - y0),
+                )
+                if (
+                    region[0] <= subject_center[0] <= region[2]
+                    and region[1] <= subject_center[1] <= region[3]
+                ):
                     value = True
                     break
         elif params["relation"] in {"left_of", "right_of", "above", "below"}:

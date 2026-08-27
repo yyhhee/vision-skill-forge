@@ -16,6 +16,7 @@ def _object(
     *,
     frame_index=0,
     source_entity_id=None,
+    localization_score=1.0,
 ):
     return VisualObject(
         id=object_id,
@@ -27,6 +28,7 @@ def _object(
         source_node="ground",
         source_entity_id=source_entity_id,
         original_size=(100, 100),
+        localization_score=localization_score,
     )
 
 
@@ -98,6 +100,48 @@ def test_iou_and_ios_are_distinct_explicit_metrics():
 
     assert [item.id for item in ios.items] == ["large"]
     assert [item.id for item in iou.items] == ["large", "small"]
+
+
+def test_best_localization_dedup_prefers_precise_tile_box_over_coarse_full_frame():
+    from operators.perception import objects_deduplicate
+
+    objects = ObjectSet([
+        _object(
+            "coarse_full_frame", "car", (0.1, 0.1, 0.5, 0.5),
+            localization_score=1.0,
+        ),
+        _object(
+            "precise_tile", "car", (0.2, 0.2, 0.4, 0.4),
+            localization_score=2.5,
+        ),
+    ])
+
+    result = objects_deduplicate(
+        {"objects": objects},
+        {"metric": "ios", "threshold": 0.7, "keep": "best_localization"},
+        None,
+        "dedup",
+    )
+
+    assert [item.id for item in result.items] == ["precise_tile"]
+
+
+def test_localization_score_penalizes_boxes_cut_by_an_internal_tile_edge():
+    from core.context import Frame
+    from operators.perception import _localization_score
+
+    full = Frame(Image.new("RGB", (100, 100)), (100, 100))
+    tile = Frame(
+        Image.new("RGB", (50, 50)),
+        (100, 100),
+        source_rect=(0.25, 0.25, 0.75, 0.75),
+    )
+
+    full_score = _localization_score(full, (0.2, 0.2, 0.4, 0.4))
+    precise_tile_score = _localization_score(tile, (0.2, 0.2, 0.4, 0.4))
+    clipped_tile_score = _localization_score(tile, (0.0, 0.2, 0.4, 0.4))
+
+    assert precise_tile_score > full_score > clipped_tile_score
 
 
 def test_local_evidence_from_different_subjects_is_not_cross_subject_deduplicated():

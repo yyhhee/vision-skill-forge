@@ -251,7 +251,7 @@ def compile_final_decision(
                         "gap_tolerance_seconds": 0.0,
                         "trigger_mode": (
                             "repeat"
-                            if trigger_policy.mode in {"repeat", "on_change"}
+                            if trigger_policy.mode == "repeat"
                             else "once"
                         ),
                         "label": decision.display_name,
@@ -275,7 +275,7 @@ def compile_final_decision(
                 "params": {
                     "repeat_policy": (
                         "allow_repeat"
-                        if trigger_policy.repeat_policy == "allow_repeat"
+                        if trigger_policy.repeat_policy in {"allow_repeat", "after_reset"}
                         else "first_only"
                     ),
                     "cooldown_seconds": trigger_policy.cooldown_seconds,

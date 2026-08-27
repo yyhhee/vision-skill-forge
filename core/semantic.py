@@ -428,9 +428,19 @@ def _repair_configurable_region_unresolved(data: dict[str, Any]) -> None:
     region_spans = [
         str(item.get("source_span", "")).strip()
         for item in (data.get("constraints") or [])
-        if item.get("kind") == "region_requirement"
-        and isinstance(item.get("value"), dict)
-        and item["value"].get("source") == "manual"
+        if (
+            (
+                item.get("kind") == "region_requirement"
+                and isinstance(item.get("value"), dict)
+                and item["value"].get("source") == "manual"
+            )
+            or (
+                item.get("kind") == "spatial_relation"
+                and isinstance(item.get("value"), dict)
+                and isinstance(item["value"].get("region"), dict)
+                and item["value"]["region"].get("source") == "manual"
+            )
+        )
         and str(item.get("source_span", "")).strip()
     ]
     if not region_spans:
@@ -444,6 +454,151 @@ def _repair_configurable_region_unresolved(data: dict[str, Any]) -> None:
             for region_span in region_spans
         )
     ]
+
+
+def _repair_default_speed_unit_unresolved(data: dict[str, Any]) -> None:
+    """Treat the engine's explicit pixel-speed unit as executable metadata."""
+
+    speed_spans = [
+        str(item.get("source_span", "")).strip()
+        for item in (data.get("constraints") or [])
+        if item.get("kind") == "motion"
+        and isinstance(item.get("value"), dict)
+        and item["value"].get("measure") == "speed"
+        and item["value"].get("unit")
+        in {"pixels_per_second", "pixel_per_second", "px/s", "pixel/s"}
+    ]
+    if not speed_spans:
+        return
+    data["unresolved"] = [
+        item
+        for item in (data.get("unresolved") or [])
+        if not (
+            "单位" in str(item.get("reason", ""))
+            and any(
+                (span := str(item.get("source_span", "")).strip())
+                and (span in speed_span or speed_span in span)
+                for speed_span in speed_spans
+            )
+        )
+    ]
+
+
+def _repair_manual_direction_references(data: dict[str, Any]) -> None:
+    """Treat a requested manual direction as scene configuration."""
+
+    spans: list[str] = []
+    for item in data.get("constraints") or []:
+        if not isinstance(item, dict) or item.get("kind") != "direction_relation":
+            continue
+        value = item.get("value")
+        if not isinstance(value, dict) or value.get("reference_source") != "manual":
+            continue
+        # ``manual`` describes the source of the direction, not its scope.
+        # A single drawn reference is global unless the model explicitly
+        # requests one direction per named region.
+        if value.get("reference_scope") in (None, "", "manual"):
+            value["reference_scope"] = "global"
+        if value.get("reference_scope") not in {"global", "per_named_region"}:
+            continue
+        span = str(item.get("source_span", "")).strip()
+        if span:
+            spans.append(span)
+    if not spans:
+        return
+    data["unresolved"] = [
+        item
+        for item in (data.get("unresolved") or [])
+        if not (
+            any(
+                (span := str(item.get("source_span", "")).strip())
+                and (span in direction_span or direction_span in span)
+                for direction_span in spans
+            )
+            or (
+                "参考方向" in str(item.get("source_span", ""))
+                and any(
+                    token in str(item.get("reason", "")).lower()
+                    for token in ("参考", "direction", "reference")
+                )
+            )
+        )
+    ]
+
+
+def _repair_open_enumeration_unresolved(data: dict[str, Any]) -> None:
+    """Accept an open example list when an umbrella target is also present."""
+
+    target = data.get("target") or {}
+    classes = target.get("classes") or []
+    if not isinstance(classes, list) or len(classes) < 2:
+        return
+    target_span = str(target.get("source_span", ""))
+    if not any(token in target_span for token in ("等", "etc", "such as")):
+        return
+    data["unresolved"] = [
+        item
+        for item in (data.get("unresolved") or [])
+        if not (
+            str(item.get("source_span", "")).strip().lower()
+            in {"等", "等等", "etc", "etc."}
+            and any(
+                token in str(item.get("reason", "")).lower()
+                for token in ("列举", "未尽", "其他", "other", "enumerat")
+            )
+        )
+    ]
+
+
+def _repair_open_position_regions(data: dict[str, Any]) -> None:
+    """Turn non-screen position concepts into configurable scene regions."""
+
+    constraints = data.get("constraints") or []
+    if not isinstance(constraints, list):
+        return
+    known_positions = set(ATTRIBUTE_CATALOG["position"]["values"])
+    repaired_spans: set[str] = set()
+    used_roles: set[str] = set()
+    for index, item in enumerate(list(constraints), start=1):
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("kind", "")).strip().lower() != "position":
+            continue
+        value = str(item.get("value", "")).strip().lower()
+        if value in known_positions:
+            continue
+        role = re.sub(r"[^a-z0-9]+", "_", value).strip("_")
+        role = role or f"scene_region_{index}"
+        base_role = role
+        suffix = 2
+        while role in used_roles:
+            role = f"{base_role}_{suffix}"
+            suffix += 1
+        used_roles.add(role)
+        span = str(item.get("source_span", "")).strip()
+        repaired_spans.add(span)
+        constraints[index - 1] = {
+            "kind": "region_requirement",
+            "value": {
+                "source": "manual",
+                "cardinality": "one",
+                "semantic_role": role,
+                "allowed_shapes": ["rectangle", "polygon"],
+            },
+            "source": item.get("source") or span,
+            "source_span": span,
+            "phrases": [],
+            "temporal": False,
+        }
+    if repaired_spans:
+        data["unresolved"] = [
+            item
+            for item in (data.get("unresolved") or [])
+            if not (
+                str(item.get("source_span", "")).strip() in repaired_spans
+                and "unknown position" in str(item.get("reason", "")).lower()
+            )
+        ]
 
 
 def _repair_event_output_unresolved(data: dict[str, Any]) -> None:
@@ -629,6 +784,12 @@ def _canonical_signature(data: dict[str, Any]) -> dict[str, Any]:
 
 
 class SemanticNormalizer:
+    def infer_target(self, instruction: str) -> dict[str, Any]:
+        """Infer only the base target without validating every condition."""
+
+        ledger = self._extract_supported_ledger(instruction.strip())
+        return deepcopy(ledger["target"])
+
     def normalize_text(self, instruction: str) -> CanonicalSemanticIR:
         text = instruction.strip()
         ledger = self._extract_supported_ledger(text)
@@ -641,7 +802,11 @@ class SemanticNormalizer:
         _repair_incomplete_count_comparisons(data, instruction)
         _repair_explicit_numbered_regions(data, instruction)
         _repair_named_region_constraints(data, instruction)
+        _repair_open_position_regions(data)
         _repair_configurable_region_unresolved(data)
+        _repair_default_speed_unit_unresolved(data)
+        _repair_manual_direction_references(data)
+        _repair_open_enumeration_unresolved(data)
         _repair_event_output_unresolved(data)
         target = data.get("target") or {}
         target_span = str(target.get("source_span", "")).strip()
@@ -763,9 +928,12 @@ class SemanticNormalizer:
                 constraint["carrier"] = carrier
             source = str(constraint.get("source") or _source_clause(instruction, span)).strip()
             if source not in instruction or span not in source:
-                raise SemanticValidationError(
-                    f"constraint source must contain source_span and occur in instruction: {source}"
-                )
+                # The exact source span has already been verified above.  For
+                # list-style sentences, planners often reconstruct a readable
+                # clause that is not a literal substring; restore auditable
+                # provenance from the original instruction deterministically.
+                source = _source_clause(instruction, span)
+                constraint["source"] = source
             if (
                 kind == "temporal" or bool(constraint.get("temporal", False))
             ) and not _EXPLICIT_TEMPORAL_EVIDENCE.search(source):
@@ -2141,7 +2309,7 @@ class WorkflowCompiler:
                 "label": constraint.source_span,
                 "required": True,
                 "binding": {"node_id": region_id, "parameter": parameter},
-                "allowed_shapes": value["allowed_shapes"],
+                "allowed_shapes": ["rectangle", "polygon"],
                 "minimum_items": 1,
                 "source_atom_ids": [constraint.atom_id],
                 "help_text": "在原图或视频标注帧上配置命名区域",

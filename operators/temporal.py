@@ -47,14 +47,20 @@ def temporal_hold(inputs, params, services, node_id):
 
 def temporal_persist(inputs, params, services, node_id):
     grouped = {}
+    scope_overrides = params.get("scope_overrides", {})
+    override_scope_field = params.get("override_scope_field", "region_id")
     for item in inputs["condition"].items:
-        grouped.setdefault(item.key, []).append(item)
-    seconds = float(params["seconds"])
-    tolerance = float(params["gap_tolerance_seconds"])
-    trigger_mode = params["trigger_mode"]
+        scope_id = (
+            item.metadata.get(override_scope_field)
+            if isinstance(item.metadata, dict)
+            else None
+        )
+        grouped.setdefault((item.key, scope_id), []).append(item)
     events = []
 
-    def append_qualified_run(key, start, run_items):
+    def append_qualified_run(
+        key, scope_id, start, run_items, seconds, trigger_mode
+    ):
         """Emit the qualified portion of one contiguous true-condition run."""
 
         if start is None or not run_items:
@@ -72,6 +78,7 @@ def temporal_persist(inputs, params, services, node_id):
                         "qualification_start_time": start,
                         "trigger_time": trigger.timestamp,
                         "required_duration_seconds": seconds,
+                        **({"region_id": scope_id} if scope_id else {}),
                     },
                 ))
             return
@@ -94,11 +101,20 @@ def temporal_persist(inputs, params, services, node_id):
                     "qualification_start_time": start,
                     "trigger_time": trigger.timestamp,
                     "required_duration_seconds": seconds,
+                    **({"region_id": scope_id} if scope_id else {}),
                 },
             ))
 
-    for key, items in sorted(grouped.items()):
+    for (key, scope_id), items in sorted(
+        grouped.items(), key=lambda pair: (pair[0][0], pair[0][1] or "")
+    ):
         items.sort(key=lambda item: (item.timestamp, item.frame_index))
+        overrides = scope_overrides.get(scope_id, {}) if scope_id else {}
+        seconds = float(overrides.get("seconds", params["seconds"]))
+        tolerance = float(overrides.get(
+            "gap_tolerance_seconds", params["gap_tolerance_seconds"]
+        ))
+        trigger_mode = overrides.get("trigger_mode", params["trigger_mode"])
         # An immediate once event has no user-facing duration to absorb the
         # sampling cadence. Treat regular samples as one run so a 1 FPS input
         # does not create one duplicate event per frame. Explicitly timed
@@ -117,7 +133,9 @@ def temporal_persist(inputs, params, services, node_id):
                 and item.timestamp - previous > effective_tolerance
             )
             if not item.value or is_discontinuous:
-                append_qualified_run(key, start, run_items)
+                append_qualified_run(
+                    key, scope_id, start, run_items, seconds, trigger_mode
+                )
                 start = None
                 run_items = []
             if item.value:
@@ -125,7 +143,9 @@ def temporal_persist(inputs, params, services, node_id):
                     start = item.timestamp
                 run_items.append(item)
             previous = item.timestamp
-        append_qualified_run(key, start, run_items)
+        append_qualified_run(
+            key, scope_id, start, run_items, seconds, trigger_mode
+        )
     return EventSet(events)
 
 

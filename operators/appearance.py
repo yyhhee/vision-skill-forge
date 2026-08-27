@@ -3,8 +3,17 @@ from __future__ import annotations
 from core.context import ConditionSet, TimedValue
 
 
-def _matches_color(h: int, s: int, v: int, color: str) -> bool:
-    rules = {
+def _matches_color(
+    h: int, s: int, v: int, color: str, *, tolerance: str = "strict"
+) -> bool:
+    # Raw whole-box colour filters need narrow HSV bins.  Once Rex has
+    # already grounded a *named colour attribute*, the pixels only
+    # corroborate that evidence: compression, illumination and cameras often
+    # move a real colour across one neighbouring hue boundary.  The semantic
+    # ranges below widen every colour family by a small, bounded amount while
+    # retaining separate black/white/grey and brightness rules.  They are not
+    # used for a standalone image-only colour decision.
+    strict_rules = {
         "white": lambda: s <= 55 and v >= 170,
         "black": lambda: v <= 65,
         "gray": lambda: s <= 55 and 65 < v < 170,
@@ -18,6 +27,21 @@ def _matches_color(h: int, s: int, v: int, color: str) -> bool:
         "pink": lambda: 221 <= h <= 245 and s >= 40 and v >= 120,
         "brown": lambda: 9 <= h < 28 and s >= 55 and 45 <= v < 140,
     }
+    semantic_rules = {
+        "white": lambda: s <= 70 and v >= 155,
+        "black": lambda: v <= 80,
+        "gray": lambda: s <= 70 and 55 < v < 185,
+        "red": lambda: (h <= 16 or h >= 238) and s >= 65 and v >= 55,
+        "orange": lambda: 5 <= h < 36 and s >= 65 and v >= 120,
+        "yellow": lambda: 20 <= h <= 68 and s >= 65 and v >= 80,
+        "green": lambda: 53 <= h <= 123 and s >= 45 and v >= 45,
+        "cyan": lambda: 108 <= h <= 153 and s >= 45 and v >= 45,
+        "blue": lambda: 138 <= h <= 193 and s >= 45 and v >= 45,
+        "purple": lambda: 178 <= h <= 228 and s >= 35 and v >= 45,
+        "pink": lambda: 213 <= h <= 253 and s >= 30 and v >= 105,
+        "brown": lambda: 5 <= h < 32 and s >= 45 and 40 <= v < 155,
+    }
+    rules = semantic_rules if tolerance == "semantic" else strict_rules
     return rules[color]()
 
 
@@ -49,14 +73,21 @@ def visual_color_fraction(inputs, params, services, node_id):
             min(height, max(1, int(sy1 * height))),
         )).convert("HSV")
         pixels = list(crop.getdata())
+        tolerance = params.get("color_tolerance", "strict")
         fraction = (
-            sum(_matches_color(h, s, v, params["color"]) for h, s, v in pixels) / len(pixels)
+            sum(
+                _matches_color(h, s, v, params["color"], tolerance=tolerance)
+                for h, s, v in pixels
+            ) / len(pixels)
             if pixels else 0.0
         )
         matched = fraction >= float(params["min_fraction"])
         if matched and params.get("selection_mode", "fraction") == "dominant":
             other_fractions = [
-                sum(_matches_color(h, s, v, color) for h, s, v in pixels) / len(pixels)
+                sum(
+                    _matches_color(h, s, v, color, tolerance=tolerance)
+                    for h, s, v in pixels
+                ) / len(pixels)
                 for color in (
                     "black", "white", "gray", "red", "orange", "yellow",
                     "green", "cyan", "blue", "purple", "pink", "brown",
@@ -87,7 +118,11 @@ def visual_geometry(inputs, params, services, node_id):
                 x0, y0, x1, y1 = observation.bbox
                 width = max(0.0, x1 - x0)
                 height = max(0.0, y1 - y0)
-                ratio = width / height if height else 0.0
+                source_width, source_height = observation.original_size
+                ratio = (
+                    (width * source_width) / (height * source_height)
+                    if height and source_height else 0.0
+                )
                 if value == "horizontal":
                     matched = ratio >= threshold
                 elif value == "vertical":
@@ -140,7 +175,11 @@ def visual_geometry(inputs, params, services, node_id):
         elif dimension == "aspect_ratio":
             width = max(0.0, x1 - x0)
             height = max(0.0, y1 - y0)
-            ratio = width / height if height else 0.0
+            source_width, source_height = item.original_size
+            ratio = (
+                (width * source_width) / (height * source_height)
+                if height and source_height else 0.0
+            )
             threshold = float(params.get("aspect_ratio_threshold", 1.0))
             if value == "horizontal":
                 matched = ratio >= threshold

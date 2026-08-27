@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 import core.preset_factory as preset_factory
 from core.registry import build_default_registry
 
@@ -100,3 +102,29 @@ def test_controller_exposes_context_confirmation_as_editable_effective_configura
     assert sum(node.startswith("context_confirmation_") for node in nodes) == 10
     count = next(node for node in variant_nodes if node["id"] == "count")
     assert count["inputs"]["entities"] == "$context_confirmation_deduplicated"
+
+
+def test_context_confirmation_reports_missing_user_fields_in_business_language(tmp_path):
+    from app_v2 import V2AppController
+
+    controller = V2AppController(
+        registry=build_default_registry(),
+        package_root=tmp_path / "skills",
+        run_root=tmp_path / "runs",
+        planner=None,
+        rex=None,
+    )
+    original = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P11_service_area_garbage.json"
+    ).read_text(encoding="utf-8")
+
+    with pytest.raises(Exception, match="至少选择一个待复核检测类别"):
+        controller.apply_context_confirmation_control(
+            original, "image", True, [], "visible waste", 0.75, 768
+        )
+    with pytest.raises(Exception, match="至少一条确认可见证据提示词"):
+        controller.apply_context_confirmation_control(
+            original, "image", True, ["垃圾容器"], "", 0.75, 768
+        )

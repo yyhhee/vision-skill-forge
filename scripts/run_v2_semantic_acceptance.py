@@ -139,7 +139,7 @@ CASES: tuple[AcceptanceCase, ...] = (
     _case("P10", "video", "negative", VIDEOS / "P10_negative.mp4", "objects", maximum=0, expected_note="视频中挂钩已连接锚点", generated=True),
     _case("P10", "video", "confusion", VIDEOS / "P10_confusion_unconnected.mp4", "objects", minimum=1, expected_note="视频中挂钩悬空仍应违规", generated=True),
 
-    _case("P11", "image", "positive", IMAGES / "P11.png", "objects", minimum=1, labels_any=("垃圾",), expected_note="服务区存在垃圾和散落废弃物"),
+    _case("P11", "image", "positive", IMAGES / "P11.png", "objects", minimum=1, labels_all=("垃圾容器", "溢出垃圾"), expected_note="服务区存在垃圾容器及其上沿的溢出垃圾"),
     _case("P11", "image", "negative", GENERATED / "P11_clean_service_area.png", "objects", maximum=0, expected_note="干净服务区无垃圾", generated=True),
     _case("P11", "image", "confusion", GENERATED / "P11_ordered_packages_confusion.png", "objects", maximum=0, expected_note="整齐包装货物不是垃圾", generated=True),
     _case("P11", "video", "positive", VIDEOS / "P11_positive.mp4", "objects", minimum=1, labels_any=("垃圾",), expected_note="巡检视频逐帧检测垃圾", generated=True),

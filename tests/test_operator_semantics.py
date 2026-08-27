@@ -37,6 +37,23 @@ def obj(
     )
 
 
+def test_reduce_exists_can_preserve_track_identity_for_per_entity_persistence():
+    from operators.reduce import reduce_exists
+
+    first = obj("fall_0", (0.1, 0.1, 0.3, 0.7), frame=0, timestamp=0.0)
+    second = obj("fall_1", (0.1, 0.2, 0.3, 0.8), frame=1, timestamp=1.0)
+    tracks = TrackSet([Track("track_fall", "摔倒人员", [first, second])])
+
+    present = reduce_exists(
+        {"sets": tracks}, {"scope": "entity"}, None, "present"
+    )
+
+    assert [(item.key, item.timestamp, item.value) for item in present.items] == [
+        ("track_fall", 0.0, True),
+        ("track_fall", 1.0, True),
+    ]
+
+
 def test_manual_roi_and_inside_have_fixed_center_and_overlap_rules():
     from operators.region import region_manual
     from operators.spatial import spatial_inside
@@ -73,6 +90,192 @@ def test_manual_roi_and_inside_have_fixed_center_and_overlap_rules():
         "overlap",
     )
     assert {item.key: item.value for item in overlap.items}["boundary"] is True
+
+
+def test_motion_consistent_tracking_does_not_reverse_into_a_neighbor_box():
+    from operators.tracking import track_iou
+
+    objects = ObjectSet([
+        obj("a0", (0.10, 0.20, 0.30, 0.40), frame=0, timestamp=0.0),
+        obj("b0", (0.50, 0.20, 0.70, 0.40), frame=0, timestamp=0.0),
+        obj("a1", (0.15, 0.20, 0.35, 0.40), frame=1, timestamp=1.0),
+        obj("b1", (0.45, 0.20, 0.65, 0.40), frame=1, timestamp=1.0),
+        # Detector order deliberately presents the reversing neighbor first.
+        obj("a2_wrong", (0.10, 0.20, 0.30, 0.40), frame=2, timestamp=2.0),
+        obj("a2_forward", (0.20, 0.20, 0.40, 0.40), frame=2, timestamp=2.0),
+        obj("b2", (0.40, 0.20, 0.60, 0.40), frame=2, timestamp=2.0),
+    ])
+
+    tracks = track_iou(
+        {"objects": objects},
+        {
+            "iou_threshold": 0.3,
+            "max_missing_frames": 0,
+            "same_label_only": True,
+            "motion_consistency": True,
+            "motion_prediction": True,
+            "min_direction_cosine": 0.0,
+            "min_motion_pixels": 2.0,
+        },
+        None,
+        "tracks",
+    )
+
+    first = next(track for track in tracks.items if track.history[0].id == "a0")
+    assert [item.id for item in first.history] == ["a0", "a1", "a2_forward"]
+
+
+def test_motion_consistency_keeps_established_direction_across_one_jitter_sample():
+    from operators.tracking import track_iou
+
+    objects = ObjectSet([
+        obj("forward_0", (0.10, 0.20, 0.30, 0.40), frame=0, timestamp=0.0),
+        obj("forward_1", (0.15, 0.20, 0.35, 0.40), frame=1, timestamp=0.5),
+        # One almost-stationary sample must not erase the earlier rightward
+        # direction before a neighboring box appears on the left.
+        obj("jitter", (0.151, 0.20, 0.351, 0.40), frame=2, timestamp=1.0),
+        obj("reverse_neighbor", (0.09, 0.20, 0.29, 0.40), frame=3, timestamp=1.5),
+    ])
+
+    tracks = track_iou(
+        {"objects": objects},
+        {
+            "iou_threshold": 0.3,
+            "max_missing_frames": 0,
+            "same_label_only": True,
+            "motion_consistency": True,
+            "min_direction_cosine": 0.0,
+            "min_motion_pixels": 2.0,
+        },
+        None,
+        "tracks",
+    )
+
+    first = next(track for track in tracks.items if track.history[0].id == "forward_0")
+    assert [item.id for item in first.history] == ["forward_0", "forward_1", "jitter"]
+    assert any(
+        [item.id for item in track.history] == ["reverse_neighbor"]
+        for track in tracks.items
+    )
+
+
+def test_motion_prediction_keeps_fast_perspective_vehicle_in_one_track():
+    from operators.tracking import track_iou
+
+    objects = ObjectSet([
+        obj("car_0", (0.20, 0.20, 0.32, 0.30), frame=0, timestamp=0.0),
+        obj("car_1", (0.22, 0.22, 0.35, 0.33), frame=1, timestamp=0.5),
+        # The vehicle approaches the camera: the current boxes have too little
+        # IoU, but constant box-motion prediction still overlaps strongly.
+        obj("car_2", (0.255, 0.255, 0.395, 0.375), frame=2, timestamp=1.0),
+    ])
+
+    tracks = track_iou(
+        {"objects": objects},
+        {
+            "iou_threshold": 0.4,
+            "max_missing_frames": 0,
+            "same_label_only": True,
+            "motion_consistency": True,
+            "motion_prediction": True,
+            "min_direction_cosine": 0.0,
+            "min_motion_pixels": 2.0,
+        },
+        None,
+        "tracks",
+    )
+
+    assert len(tracks.items) == 1
+    assert [item.id for item in tracks.items[0].history] == [
+        "car_0", "car_1", "car_2"
+    ]
+
+
+def test_heading_uses_box_scaled_threshold_for_far_small_target():
+    from operators.measure import measure_heading
+    from core.context import Track
+
+    small = Track("small", "车辆", [
+        obj("small_0", (0.10, 0.10, 0.12, 0.12), frame=0, timestamp=0.0),
+        obj("small_1", (0.13, 0.10, 0.15, 0.12), frame=1, timestamp=0.5),
+    ])
+    result = measure_heading(
+        {"tracks": TrackSet([small])},
+        {
+            "window_frames": 3,
+            "min_displacement_pixels": 8.0,
+            "min_displacement_box_ratio": 0.2,
+        },
+        None,
+        "heading",
+    )
+
+    assert len(result.items) == 1
+
+
+def test_far_wrong_way_track_qualifies_across_one_missing_sample():
+    from core.context import VectorSet
+    from operators.logic import logic_compare_heading_by_lane
+    from operators.measure import measure_heading
+    from operators.temporal import temporal_persist
+
+    track = Track("far_car", "车辆", [
+        obj("far_0", (0.10, 0.10, 0.30, 0.30), frame=0, timestamp=0.0),
+        obj("far_1", (0.15, 0.10, 0.35, 0.30), frame=1, timestamp=0.5),
+        # The 1.0 second sample is missing, matching one tolerated miss at 2 FPS.
+        obj("far_3", (0.20, 0.10, 0.40, 0.30), frame=3, timestamp=1.5),
+    ])
+    tracks = TrackSet([track])
+    lanes = RegionSet([
+        Region("lane", [(0, 0), (1, 0), (1, 1), (0, 1)], "lane")
+    ])
+    references = VectorSet([
+        TimedValue("lane", 0.0, (-1.0, 0.0), None)
+    ])
+
+    headings = measure_heading(
+        {"tracks": tracks},
+        {
+            "window_frames": 3,
+            "min_displacement_pixels": 8.0,
+            "min_displacement_box_ratio": 0.15,
+        },
+        None,
+        "headings",
+    )
+    opposite = logic_compare_heading_by_lane(
+        {
+            "tracks": tracks,
+            "headings": headings,
+            "lanes": lanes,
+            "references": references,
+        },
+        {
+            "threshold": -0.5,
+            "membership_mode": "majority_center",
+            "relation": "opposite",
+            "scope_overrides": {},
+        },
+        None,
+        "opposite",
+    )
+    events = temporal_persist(
+        {"condition": opposite},
+        {
+            "seconds": 1.0,
+            "scope": "track",
+            "gap_tolerance_seconds": 1.1,
+            "trigger_mode": "once",
+            "scope_overrides": {},
+            "override_scope_field": "region_id",
+        },
+        None,
+        "events",
+    )
+
+    assert [(event.entity_id, event.start_time) for event in events.items] == [
+        ("far_car", 1.5)
+    ]
 
 
 def test_regions_merge_preserves_every_configured_region():
@@ -149,6 +352,52 @@ def test_phrase_group_filter_is_a_generic_explicit_object_partition():
 
     assert [item.id for item in included.items] == ["bin"]
     assert [item.id for item in excluded.items] == ["litter"]
+
+
+def test_object_level_phrase_filter_projects_track_history_to_visual_objects():
+    """EntitySet accepts tracks, but an ObjectSet output must contain boxes."""
+
+    from operators.filtering import objects_filter_by_phrase
+
+    first = obj("vehicle_1", (0.1, 0.1, 0.2, 0.2), frame=1)
+    first.phrase = "vehicle"
+    first.track_id = "track_1"
+    second = obj("vehicle_2", (0.2, 0.2, 0.3, 0.3), frame=2)
+    second.phrase = "vehicle"
+    second.track_id = "track_1"
+    tracks = TrackSet([Track("track_1", "target", [first, second])])
+
+    selected = objects_filter_by_phrase(
+        {"objects": tracks},
+        {"phrases": ["vehicle"], "mode": "include"},
+        None,
+        "vehicles",
+    )
+
+    assert isinstance(selected, ObjectSet)
+    assert [item.id for item in selected.items] == ["vehicle_1", "vehicle_2"]
+    assert all(isinstance(item, VisualObject) for item in selected.items)
+
+
+def test_object_merge_projects_mixed_entity_sets_without_track_pollution():
+    from operators.objects import objects_merge
+
+    sample = obj("vehicle_1", (0.1, 0.1, 0.2, 0.2), frame=1)
+    sample.track_id = "track_1"
+    merged = objects_merge(
+        {
+            "objects": [
+                TrackSet([Track("track_1", "target", [sample])]),
+                ObjectSet([obj("vehicle_2", (0.3, 0.3, 0.4, 0.4), frame=1)]),
+            ]
+        },
+        {},
+        None,
+        "merged",
+    )
+
+    assert [item.id for item in merged.items] == ["vehicle_1", "vehicle_2"]
+    assert all(isinstance(item, VisualObject) for item in merged.items)
 
 
 def test_mutual_match_requires_same_instance_overlap_in_both_directions():
@@ -306,6 +555,61 @@ def test_subject_relative_region_can_extend_above_box_and_stay_source_local():
         "owner": True,
         "neighbor": True,
     }
+
+
+def test_subject_center_can_be_matched_to_another_objects_relative_region():
+    from operators.spatial import spatial_associate
+
+    overflow = ObjectSet([
+        obj("above_bin", (0.40, 0.20, 0.50, 0.30)),
+        obj("ground_litter", (0.40, 0.70, 0.50, 0.80)),
+        obj("far_above", (0.75, 0.20, 0.85, 0.30)),
+    ])
+    containers = ObjectSet([
+        obj("bin", (0.35, 0.30, 0.55, 0.80)),
+    ])
+
+    result = spatial_associate(
+        {"subjects": overflow, "objects": containers},
+        {
+            "relation": "center_in_object_region",
+            "threshold": 0.0,
+            "subject_region": [0.0, 0.0, 1.0, 1.0],
+            "object_region": [-0.25, -0.5, 1.25, 0.4],
+            "same_source_only": False,
+        },
+        None,
+        "overflow_above_container",
+    )
+
+    assert {item.key: item.value for item in result.items} == {
+        "above_bin": True,
+        "ground_litter": False,
+        "far_above": False,
+    }
+
+
+def test_pairs_same_source_only_matches_identity_not_neighboring_geometry():
+    from operators.pairs import pairs_build
+
+    people = ObjectSet([
+        obj("person_a", (0.1, 0.1, 0.5, 0.9)),
+        obj("person_b", (0.45, 0.1, 0.85, 0.9)),
+    ])
+    red_upper = ObjectSet([
+        obj("person_a", (0.1, 0.1, 0.5, 0.9), source_entity_id="person_a"),
+    ])
+
+    pairs = pairs_build(
+        {"subjects": people, "objects": red_upper},
+        {"same_source_only": True},
+        None,
+        "same_person",
+    )
+
+    assert [(item.subject_id, item.object_id) for item in pairs.items] == [
+        ("person_a", "person_a")
+    ]
 
 
 def test_count_speed_logic_and_filter_keep_keys_explainable():
@@ -1042,6 +1346,106 @@ def test_compare_heading_uses_each_tracks_lane_reference():
     }
 
 
+def test_heading_and_persistence_support_independent_region_parameters():
+    from core.context import Region, RegionSet, VectorSet
+    from operators.logic import logic_compare_heading_by_lane
+    from operators.temporal import temporal_persist
+
+    tracks = TrackSet([
+        Track("lane_a_car", "vehicle", [
+            obj("a", (0.10, 0.40, 0.20, 0.50), frame=0, timestamp=0.0),
+        ]),
+        Track("lane_b_car", "vehicle", [
+            obj("b", (0.70, 0.40, 0.80, 0.50), frame=0, timestamp=0.0),
+        ]),
+    ])
+    headings = VectorSet([
+        TimedValue("lane_a_car", 0.0, (-0.5, 0.866), 0),
+        TimedValue("lane_b_car", 0.0, (-0.5, 0.866), 0),
+    ])
+    lanes = RegionSet([
+        Region("lane_a", [(0, 0), (0.5, 0), (0.5, 1), (0, 1)], "A"),
+        Region("lane_b", [(0.5, 0), (1, 0), (1, 1), (0.5, 1)], "B"),
+    ])
+    references = VectorSet([
+        TimedValue("lane_a", 0.0, (1.0, 0.0), None),
+        TimedValue("lane_b", 0.0, (1.0, 0.0), None),
+    ])
+
+    compared = logic_compare_heading_by_lane(
+        {"tracks": tracks, "headings": headings, "lanes": lanes,
+         "references": references},
+        {
+            "threshold": -0.5,
+            "relation": "opposite",
+            "membership_mode": "latest_center",
+            "scope_overrides": {
+                "lane_a": {"threshold": -0.7},
+                "lane_b": {"threshold": -0.3},
+            },
+        },
+        None,
+        "regional_direction",
+    )
+
+    assert {item.key: item.value for item in compared.items} == {
+        "lane_a_car": False,
+        "lane_b_car": True,
+    }
+    assert {item.key: item.metadata["region_id"] for item in compared.items} == {
+        "lane_a_car": "lane_a",
+        "lane_b_car": "lane_b",
+    }
+
+    persisted = temporal_persist(
+        {"condition": compared},
+        {
+            "seconds": 1.0,
+            "scope": "track",
+            "gap_tolerance_seconds": 0.6,
+            "trigger_mode": "once",
+            "override_scope_field": "region_id",
+            "scope_overrides": {"lane_b": {"seconds": 0.0}},
+        },
+        None,
+        "regional_persist",
+    )
+    assert len(persisted.items) == 1
+    assert persisted.items[0].entity_id == "lane_b_car"
+    assert persisted.items[0].metadata["region_id"] == "lane_b"
+
+
+def test_temporal_persist_preserves_region_evidence_without_custom_overrides():
+    from operators.temporal import temporal_persist
+
+    conditions = ConditionSet([
+        TimedValue(
+            "track_1",
+            0.0,
+            True,
+            0,
+            metadata={"region_id": "lane_1"},
+        )
+    ])
+
+    events = temporal_persist(
+        {"condition": conditions},
+        {
+            "seconds": 0.0,
+            "scope": "track",
+            "gap_tolerance_seconds": 0.0,
+            "trigger_mode": "once",
+            "scope_overrides": {},
+            "override_scope_field": "region_id",
+        },
+        None,
+        "persist",
+    )
+
+    assert len(events.items) == 1
+    assert events.items[0].metadata["region_id"] == "lane_1"
+
+
 def test_object_and_event_atomic_operators_make_reusable_typed_outputs():
     from operators.events import event_from_condition, event_relabel
     from operators.objects import objects_from_tracks, objects_relabel
@@ -1215,6 +1619,65 @@ def test_yellow_semantic_color_includes_fluorescent_yellow_green_not_orange():
     assert [item.value for item in result.items] == [True, False, False]
 
 
+def test_semantic_yellow_tolerance_accepts_golden_evidence_not_pure_orange():
+    """Model-grounded yellow evidence may be golden at the hue boundary."""
+
+    from core.context import Frame, FrameSet
+    from operators.appearance import visual_color_fraction
+
+    image = Image.new("RGB", (40, 20), "black")
+    image.paste((255, 150, 0), (0, 0, 20, 20))  # golden yellow, hue ~25
+    image.paste((255, 90, 0), (20, 0, 40, 20))  # saturated orange, hue ~15
+    result = visual_color_fraction(
+        {
+            "frames": FrameSet([Frame(image, image.size)]),
+            "objects": ObjectSet([
+                obj("golden", (0.0, 0.0, 0.5, 1.0)),
+                obj("orange", (0.5, 0.0, 1.0, 1.0)),
+            ]),
+        },
+        {
+            "color": "yellow",
+            "subject_region": [0.0, 0.0, 1.0, 1.0],
+            "min_fraction": 0.8,
+            "color_tolerance": "semantic",
+        },
+        None,
+        "semantic_yellow",
+    )
+    assert [item.value for item in result.items] == [True, False]
+
+
+def test_semantic_color_tolerance_handles_other_adjacent_hue_families():
+    """The evidence-aware boundary policy is not special-cased to yellow."""
+
+    from core.context import Frame, FrameSet
+    from operators.appearance import visual_color_fraction
+
+    image = Image.new("HSV", (40, 20), (0, 0, 0))
+    image.paste((142, 220, 220), (0, 0, 20, 20))  # cyan-blue boundary
+    image.paste((120, 220, 220), (20, 0, 40, 20))  # clearly cyan
+    image = image.convert("RGB")
+    result = visual_color_fraction(
+        {
+            "frames": FrameSet([Frame(image, image.size)]),
+            "objects": ObjectSet([
+                obj("blue_boundary", (0.0, 0.0, 0.5, 1.0)),
+                obj("cyan", (0.5, 0.0, 1.0, 1.0)),
+            ]),
+        },
+        {
+            "color": "blue",
+            "subject_region": [0.0, 0.0, 1.0, 1.0],
+            "min_fraction": 0.8,
+            "color_tolerance": "semantic",
+        },
+        None,
+        "semantic_blue",
+    )
+    assert [item.value for item in result.items] == [True, False]
+
+
 @pytest.mark.parametrize(
     ("color", "rgb"),
     [
@@ -1320,6 +1783,64 @@ def test_visual_geometry_filters_horizontal_pose_by_bbox_aspect_ratio():
     )
 
     assert [item.value for item in horizontal.items] == [False, True]
+
+
+def test_object_projection_can_follow_any_number_of_annotated_regions():
+    from core.context import Region, RegionSet
+    from operators.spatial import objects_filter_by_regions
+
+    objects = ObjectSet([
+        obj("lane_a_vehicle", (0.05, 0.20, 0.20, 0.40)),
+        obj("lane_b_vehicle", (0.65, 0.20, 0.80, 0.40)),
+        obj("outside_false_positive", (0.42, 0.20, 0.52, 0.40)),
+    ])
+    regions = RegionSet([
+        Region("lane_a", [(0, 0), (0.3, 0), (0.3, 1), (0, 1)]),
+        Region("lane_b", [(0.6, 0), (1, 0), (1, 1), (0.6, 1)]),
+    ])
+
+    result = objects_filter_by_regions(
+        {"objects": objects, "regions": regions},
+        {"membership_mode": "center", "keep": "inside"},
+        None,
+        "vehicles_in_lanes",
+    )
+
+    assert [item.id for item in result.items] == [
+        "lane_a_vehicle", "lane_b_vehicle"
+    ]
+
+    fallback = objects_filter_by_regions(
+        {"objects": objects, "regions": RegionSet([])},
+        {"membership_mode": "center", "keep": "inside", "empty_regions": "passthrough"},
+        None,
+        "optional_regions",
+    )
+    assert [item.id for item in fallback.items] == [
+        "lane_a_vehicle", "lane_b_vehicle", "outside_false_positive"
+    ]
+
+
+def test_visual_geometry_uses_source_pixels_for_aspect_ratio():
+    from operators.appearance import visual_geometry
+
+    # Normalized width/height is 0.5, but on a 16:9 source the actual pixel
+    # ratio is 0.5 * 16/9 = 0.89 and should satisfy a 0.6 vehicle-box rule.
+    candidate = obj("vehicle", (0.20, 0.20, 0.40, 0.60))
+    candidate.original_size = (1600, 900)
+
+    horizontal = visual_geometry(
+        {"objects": ObjectSet([candidate])},
+        {
+            "dimension": "aspect_ratio",
+            "value": "horizontal",
+            "aspect_ratio_threshold": 0.6,
+        },
+        None,
+        "horizontal_pixels",
+    )
+
+    assert horizontal.items[0].value is True
 
 
 def test_visual_geometry_filters_horizontal_pose_for_track_history():

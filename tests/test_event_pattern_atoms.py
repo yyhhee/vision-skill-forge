@@ -74,6 +74,29 @@ def test_join_distinguishes_simultaneously_active_from_completed_in_window():
     assert len(completed.items) == 1
 
 
+def test_exclusive_join_uses_only_the_first_completed_branch():
+    later = _events(("later", "分支A", "global", 5, 5))
+    earlier = _events(("earlier", "分支B", "global", 2, 2))
+
+    result = temporal_join(
+        {"events": [later, earlier]},
+        {
+            "mode": "exclusive",
+            "required_count": None,
+            "window_seconds": None,
+            "correlation_scope": "global",
+            "correlation_fields": [],
+            "maximum_matches": 10,
+            "label": "互斥阶段",
+        },
+        None,
+        "exclusive",
+    )
+
+    assert len(result.items) == 1
+    assert result.items[0].metadata["branch_event_ids"] == ["earlier"]
+
+
 def test_sequence_supports_independent_transition_windows():
     stages = [
         _events(("a", "A", "person_1", 0, 1)),

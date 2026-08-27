@@ -215,9 +215,14 @@
             "asset_id": "bf7538ff72b25de9a52cc19ad91224db1289ec89e3d507c800f92b566597837e",
             "original_name": "P12_positive_transition.mp4",
             "stored_path": "C:\\yhe_user\\detection_project\\vision_skill\\data\\media_assets\\bf7538ff72b25de9a52cc19ad91224db1289ec89e3d507c800f92b566597837e\\original.mp4"
+          },
+          {
+            "asset_id": "476131da2a9ef9855ec46df2ebfb2d2d20a3ea8ebb16ca0fa30919795e3cf822",
+            "original_name": "摔倒.mp4",
+            "stored_path": "C:\\yhe_user\\detection_project\\vision_skill\\data\\media_assets\\476131da2a9ef9855ec46df2ebfb2d2d20a3ea8ebb16ca0fa30919795e3cf822\\original.mp4"
           }
         ],
-        "default_asset_id": "bf7538ff72b25de9a52cc19ad91224db1289ec89e3d507c800f92b566597837e"
+        "default_asset_id": "476131da2a9ef9855ec46df2ebfb2d2d20a3ea8ebb16ca0fa30919795e3cf822"
       }
     },
     "P13_bridge_damage": {
@@ -227,9 +232,14 @@
             "asset_id": "4d8896a94fc38258f5360b2e7616b0aa1bfb4b6b305d78dc3f93204527e540d8",
             "original_name": "P13.png",
             "stored_path": "C:\\yhe_user\\detection_project\\vision_skill\\data\\media_assets\\4d8896a94fc38258f5360b2e7616b0aa1bfb4b6b305d78dc3f93204527e540d8\\original.png"
+          },
+          {
+            "asset_id": "458c8f88e1a867651803eaef0bf5b06f43333baf146968450b0e7cffac727736",
+            "original_name": "P13.png",
+            "stored_path": "C:\\yhe_user\\detection_project\\vision_skill\\data\\media_assets\\458c8f88e1a867651803eaef0bf5b06f43333baf146968450b0e7cffac727736\\original.png"
           }
         ],
-        "default_asset_id": "4d8896a94fc38258f5360b2e7616b0aa1bfb4b6b305d78dc3f93204527e540d8"
+        "default_asset_id": "458c8f88e1a867651803eaef0bf5b06f43333baf146968450b0e7cffac727736"
       },
       "video": {
         "candidates": [

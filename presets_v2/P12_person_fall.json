@@ -102,37 +102,6 @@
           "enabled": true
         },
         {
-          "id": "people_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "targets": [
-              {
-                "label": "人员",
-                "phrases": [
-                  "person"
-                ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "people",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$people_raw"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
-          },
-          "enabled": true
-        },
-        {
           "id": "fallen_people_raw",
           "op": "rex.ground@1.1",
           "inputs": {
@@ -141,8 +110,11 @@
           "params": {
             "targets": [
               {
-                "label": "倒地人员",
+                "label": "摔倒人员",
                 "phrases": [
+                  "person actively falling toward the ground",
+                  "person losing balance and collapsing",
+                  "person bent low while falling",
                   "person lying on the ground"
                 ]
               }
@@ -167,7 +139,7 @@
           "id": "tracks",
           "op": "track.iou@1.0",
           "inputs": {
-            "objects": "$people"
+            "objects": "$fallen_people"
           },
           "params": {
             "iou_threshold": 0.2,
@@ -177,54 +149,21 @@
           "enabled": true
         },
         {
-          "id": "fallen_state",
-          "op": "spatial.associate@1.0",
+          "id": "fallen_present",
+          "op": "reduce.exists@1.0",
           "inputs": {
-            "subjects": "$tracks",
-            "objects": "$fallen_people"
+            "sets": "$tracks"
           },
           "params": {
-            "relation": "overlap",
-            "threshold": 0.3,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ]
+            "scope": "entity"
           },
-          "enabled": true
-        },
-        {
-          "id": "fallen_pose_geometry",
-          "op": "visual.geometry@1.0",
-          "inputs": {
-            "objects": "$tracks"
-          },
-          "params": {
-            "dimension": "aspect_ratio",
-            "value": "horizontal",
-            "aspect_ratio_threshold": 0.6
-          },
-          "enabled": true
-        },
-        {
-          "id": "fallen_qualified",
-          "op": "logic.all@1.0",
-          "inputs": {
-            "conditions": [
-              "$fallen_state",
-              "$fallen_pose_geometry"
-            ]
-          },
-          "params": {},
           "enabled": true
         },
         {
           "id": "events",
           "op": "temporal.persist@1.0",
           "inputs": {
-            "condition": "$fallen_qualified"
+            "condition": "$fallen_present"
           },
           "params": {
             "seconds": 1.0,
@@ -254,7 +193,8 @@
           },
           "params": {
             "show_labels": true,
-            "show_track_id": true
+            "show_track_id": true,
+            "event_time_window": "track_history"
           },
           "enabled": true
         }
@@ -262,19 +202,18 @@
       "outputs": {
         "media": "$draw",
         "objects": "$tracks",
-        "events": "$alerts"
+        "events": "$alerts",
+        "tracks": "$tracks"
       },
       "atom_bindings": {
         "atom_1": [
           "fallen_people_raw",
           "fallen_people",
           "tracks",
-          "fallen_state",
-          "fallen_pose_geometry",
-          "fallen_qualified"
+          "fallen_present"
         ],
         "atom_2": [
-          "fallen_qualified",
+          "fallen_present",
           "events",
           "alerts"
         ]

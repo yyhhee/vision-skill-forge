@@ -74,6 +74,7 @@ class BusinessParameterDefinition(StrictModel):
         "source_select",
         "boolean",
         "condition_tree",
+        "readonly",
     ]
     help: str = Field(min_length=1)
     default: Any = None
@@ -274,6 +275,12 @@ def build_business_capability_registry(
                 source,
                 _p("part", "判断部位", "select", "选择整体、上衣或裤子。", default="whole", choices=["whole", "upper_clothing", "lower_clothing"]),
                 _p("color", "颜色", "select", "选择用户要判断的颜色。", required=True),
+                # A tiny default fraction treats bright background pixels as
+                # clothing (for example, a white chair inside a person's
+                # detector box).  Keep the tuning exposed, but use the same
+                # conservative 20% baseline as the deterministic semantic
+                # compiler; users can still lower it explicitly when a
+                # partial-colour task really needs that behaviour.
                 _p("minimum_fraction", "颜色至少占该部位", "percentage", "占比越高判定越严格。", default=20, unit="%", minimum=0, maximum=100, level="tuning", maps_to=["visual.color_fraction@1.0.min_fraction"], value_transform="percent_to_ratio"),
             ],
             compiler_recipe="visible_color",
@@ -411,6 +418,7 @@ def build_business_capability_registry(
                 _p("match_requirement", "同一目标匹配要求", "percentage", "调低更容易接续，调高更严格。", default=40, unit="%", level="tuning", maps_to=["track.iou@1.0.iou_threshold"], value_transform="percent_to_ratio"),
                 _p("minimum_hits", "至少命中多少帧", "frames", "达到该帧数后才确认轨迹。", default=2, unit="帧", level="tuning"),
                 _p("missing_frames", "暂时消失可保留多少帧", "frames", "帧数越大越能跨越遮挡，但串轨风险增加。", default=5, unit="帧", level="tuning"),
+                _p("motion_prediction", "使用运动预测接续轨迹", "boolean", "同时比较当前位置和预测位置，适合透视变化大或移动较快的目标。", default=False, level="tuning", maps_to=["track.iou@1.0.motion_prediction"]),
             ],
             media_requirements=["video"],
             compiler_recipe="track_confirm",
@@ -431,6 +439,7 @@ def build_business_capability_registry(
                 _p("relation", "方向关系", "select", "选择同向、逆向或允许偏差。", default="same", choices=["same", "opposite", "within_angle"]),
                 _p("angle", "方向角度要求", "angle_degrees", "用角度设置方向严格度，内部自动转换余弦。", default=60, unit="度", minimum=0, maximum=180, value_transform="degrees_to_cosine"),
                 _p("minimum_displacement", "判定已移动的最小距离", "percentage", "减少静止框抖动误判。", default=2, unit="%画面对角线", level="tuning", value_transform="screen_diagonal_percent"),
+                _p("small_target_displacement_ratio", "远处小目标位移灵敏度", "percentage", "按目标框尺寸降低远处小目标的位移门槛；数值越小越灵敏。", default=20, unit="%目标框对角线", minimum=0, maximum=100, level="tuning", maps_to=["measure.heading@1.0.min_displacement_box_ratio"], value_transform="percent_to_ratio"),
             ],
             media_requirements=["video"],
             resource_requirements=["direction"],
@@ -451,6 +460,8 @@ def build_business_capability_registry(
                 _p("reference", "正常行驶方向", "direction_resource_select", "选择 02 为该区域绘制的正常方向。", required=True, level="resource"),
                 _p("minimum_reverse_angle", "逆行最小夹角", "angle_degrees", "运动方向与正常方向夹角达到该值才判为逆行。", default=120, unit="度", minimum=90, maximum=180, value_transform="degrees_to_cosine"),
                 _p("minimum_displacement", "判定车辆已移动的最小距离", "percentage", "减少静止框抖动误报。", default=2, unit="%画面对角线", level="tuning", value_transform="screen_diagonal_percent"),
+                _p("motion_prediction", "使用运动预测接续轨迹", "boolean", "同时比较当前位置和预测位置，减少高速或远处车辆轨迹断裂。", default=True, level="tuning", maps_to=["track.iou@1.0.motion_prediction"]),
+                _p("small_target_displacement_ratio", "远处小目标位移灵敏度", "percentage", "按车辆框尺寸降低远处小车方向门槛；数值越小越灵敏。", default=20, unit="%目标框对角线", minimum=0, maximum=100, level="tuning", maps_to=["measure.heading@1.0.min_displacement_box_ratio"], value_transform="percent_to_ratio"),
             ],
             media_requirements=["video"],
             resource_requirements=["region", "direction"],
@@ -539,7 +550,7 @@ def build_business_capability_registry(
             output_contract="EventSet",
             parameters=[
                 _p("branches", "参与分支", "multi_select", "选择参与本次汇合的业务分支。", required=True),
-                _p("mode", "汇合方式", "select", "选择同时有效、全部完成、窗口内完成、任一或至少N项。", default="all_active", choices=["all_active", "all_completed", "all_completed_within_window", "any", "n_of_m"]),
+                _p("mode", "汇合方式", "select", "选择并行完成、互斥选择、任意完成或至少N项完成。", default="all_completed", choices=["all_completed", "exclusive", "any", "n_of_m"]),
                 _p("window", "完成时间窗口", "duration", "窗口内完成模式使用该媒体时间。", unit="秒"),
                 _p("required_count", "至少完成分支数", "number", "N选M模式需要填写。", minimum=1),
                 _p("correlation_scope", "多个事件按什么对象关联", "select", "本期支持全局、同一目标、轨迹、目标对或区域。", default="global", choices=["global", "object", "track", "pair", "region"]),

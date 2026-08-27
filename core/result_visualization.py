@@ -90,11 +90,12 @@ def compile_result_visualization(
         if name in compiled_outputs
     ]
 
-    def candidates(output_type: str) -> list[str]:
+    def candidates(*output_types: str) -> list[str]:
+        accepted = set(output_types)
         selected = [
             node_id
             for node_id in requested_nodes
-            if node_types.get(node_id) == output_type
+            if node_types.get(node_id) in accepted
         ]
         if selected:
             return list(dict.fromkeys(selected))
@@ -103,12 +104,15 @@ def compile_result_visualization(
         fallback = [
             item["id"]
             for item in compiled_nodes
-            if node_types.get(item["id"]) == output_type
+            if node_types.get(item["id"]) in accepted
         ]
         return fallback[-1:] if fallback else []
 
     draw_inputs: dict[str, Any] = {"frames": frames_ref}
-    object_nodes = candidates("ObjectSet")
+    # output.draw accepts the EntitySet family.  Filter/join operators return
+    # EntitySet while raw grounding returns ObjectSet; excluding the former
+    # made visualization silently fall back to every raw detection.
+    object_nodes = candidates("ObjectSet", "EntitySet")
     if not object_nodes:
         track_nodes = candidates("TrackSet")
         for track_node in track_nodes:

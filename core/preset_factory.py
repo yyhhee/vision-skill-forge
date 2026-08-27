@@ -112,14 +112,28 @@ def apply_context_confirmation(
     if draw is None:
         raise ValueError("context confirmation requires an output.draw node")
 
-    # Reapply at the old branch position so downstream counters/events remain
-    # after the confirmed result. A first-time branch is placed before draw.
+    current_ref = clean_outputs["objects"]
+    downstream_ids.update(
+        item["id"]
+        for item in clean_nodes
+        if item["id"] != "draw"
+        and _contains_reference(item.get("inputs", {}), current_ref)
+    )
+    first_downstream_index = next(
+        (
+            index
+            for index, item in enumerate(clean_nodes)
+            if item["id"] in downstream_ids
+        ),
+        clean_nodes.index(draw),
+    )
+    # Reapply at the old branch position. A first-time branch is inserted
+    # before counters or other consumers so they use the confirmed result.
     insert_at = (
         min(existing_index, clean_nodes.index(draw))
         if existing_index is not None
-        else clean_nodes.index(draw)
+        else first_downstream_index
     )
-    current_ref = clean_outputs["objects"]
     prefix = "context_confirmation"
     branch = [
         node(f"{prefix}_candidates", "objects.filter_by_phrase@1.0", {"objects": current_ref}, {"phrases": candidate_phrases, "mode": "include"}),
@@ -243,6 +257,7 @@ def append_grounding(
     *,
     metric: str = "ios",
     threshold: float = 0.5,
+    keep: str = "first",
 ) -> tuple[str, list[str]]:
     raw_id = f"{node_id}_raw"
     nodes.extend([
@@ -256,7 +271,7 @@ def append_grounding(
             node_id,
             "objects.deduplicate@1.0",
             {"objects": f"${raw_id}"},
-            {"metric": metric, "threshold": threshold, "keep": "first"},
+            {"metric": metric, "threshold": threshold, "keep": keep},
         ),
     ])
     return f"${node_id}", [raw_id, node_id]
@@ -430,6 +445,7 @@ def visible_builder(
             targets,
             metric=dedup_metric,
             threshold=dedup_threshold,
+            keep="best_localization" if tile else "first",
         )
         events_ref = None
         if media_type == "video" and alert_label:
@@ -690,6 +706,130 @@ def exclude_visible_evidence(
             draft.outputs,
             draft.bindings_by_span,
             draft.configuration_slots,
+        )
+
+    return build
+
+
+def shared_grounding_exclusion_builder(
+    node_id: str,
+    targets: list[dict[str, Any]],
+    exclusions: list[dict[str, Any]],
+    *,
+    tile: bool = False,
+    tile_include_full_frame: bool = True,
+    tile_params: dict[str, Any] | None = None,
+    dedup_threshold: float = 0.5,
+    association_relation: str = "overlap",
+    association_threshold: float = 0.5,
+    share_grounding: bool = True,
+) -> Callable[[str], VariantDraft]:
+    """Detect positive labels and apply explicit visual exclusions.
+
+    The exclusion remains an explicit, editable NOT branch.  Grounding is
+    shared by default to minimize model calls.  Semantically confusable target
+    families may opt out so negative phrases cannot distort positive-category
+    localization; label partitioning, association and filtering stay visible
+    as ordinary reusable operators in both modes.
+    """
+
+    def build(media_type: str) -> VariantDraft:
+        nodes, display_frames, detection_frames = start_nodes(
+            media_type,
+            tile=tile,
+            tile_include_full_frame=tile_include_full_frame,
+            tile_params=tile_params,
+        )
+        combined_targets = (
+            [
+                *deepcopy(targets),
+                *(deepcopy(item["target"]) for item in exclusions),
+            ]
+            if share_grounding
+            else deepcopy(targets)
+        )
+        detected_ref, ground_nodes = append_grounding(
+            nodes,
+            node_id,
+            detection_frames,
+            combined_targets,
+            threshold=dedup_threshold,
+            keep="best_localization" if tile else "first",
+        )
+        positive_labels = [item["label"] for item in targets]
+        positive_id = f"{node_id}_positive"
+        nodes.append(node(
+            positive_id,
+            "objects.filter_by_label@1.0",
+            {"objects": detected_ref},
+            {"labels": positive_labels, "mode": "include"},
+        ))
+        current_ref = f"${positive_id}"
+        bound_by_span: dict[str, list[str]] = {}
+        for index, exclusion in enumerate(exclusions, start=1):
+            prefix = f"{exclusion.get('id', node_id)}_exclusion_{index}"
+            exclusion_id = f"{prefix}_exclusion"
+            match_id = f"{prefix}_matches"
+            not_id = f"{prefix}_not"
+            filtered_id = f"{prefix}_filtered"
+            exclusion_source_ref = detected_ref
+            exclusion_ground_nodes: list[str] = []
+            if not share_grounding:
+                exclusion_source_ref, exclusion_ground_nodes = append_grounding(
+                    nodes,
+                    f"{prefix}_objects",
+                    detection_frames,
+                    [deepcopy(exclusion["target"])],
+                    threshold=dedup_threshold,
+                    keep="best_localization" if tile else "first",
+                )
+            nodes.extend([
+                node(
+                    exclusion_id,
+                    "objects.filter_by_label@1.0",
+                    {"objects": exclusion_source_ref},
+                    {
+                        "labels": [exclusion["target"]["label"]],
+                        "mode": "include",
+                    },
+                ),
+                node(
+                    match_id,
+                    "spatial.associate@1.0",
+                    {
+                        "subjects": current_ref,
+                        "objects": f"${exclusion_id}",
+                    },
+                    {
+                        "relation": association_relation,
+                        "threshold": association_threshold,
+                        "subject_region": [0.0, 0.0, 1.0, 1.0],
+                        "same_source_only": False,
+                    },
+                ),
+                node(not_id, "logic.not@1.0", {"condition": f"${match_id}"}),
+                node(
+                    filtered_id,
+                    "filter.apply@1.0",
+                    {"objects": current_ref, "condition": f"${not_id}"},
+                ),
+            ])
+            current_ref = f"${filtered_id}"
+            span = exclusion.get("source_span")
+            if span:
+                bound_by_span.setdefault(span, []).extend([
+                    *ground_nodes,
+                    *exclusion_ground_nodes,
+                    positive_id,
+                    exclusion_id,
+                    match_id,
+                    not_id,
+                    filtered_id,
+                ])
+        return VariantDraft(
+            nodes,
+            draw_outputs(nodes, display_frames, current_ref),
+            bound_by_span,
         )
 
     return build

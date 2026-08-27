@@ -17,6 +17,13 @@ from .editor_schema import (
 )
 from .registry import OperatorRegistry
 from .schema import ConfigurationBinding, ConfigurationSlot
+from .visual_catalog import (
+    CARRIER_ALIASES,
+    CARRIER_CATALOG,
+    CARRIER_TEXT_ALIASES,
+    COLOR_ALIASES,
+    COLOR_MIN_FRACTIONS,
+)
 
 
 class BusinessRuleCompileError(ValueError):
@@ -52,6 +59,27 @@ def _safe_id(*parts: str) -> str:
     if not text or not text[0].isalpha():
         text = "rule_" + text
     return text[:180]
+
+
+def _float_or_default(value: Any, default: float) -> float:
+    """Treat an explicit JSON null like an omitted optional numeric parameter."""
+    return float(default if value is None else value)
+
+
+def _canonical_color(value: Any) -> str:
+    """Normalize Chinese/English color aliases before an operator executes.
+
+    The business editor normally stores catalog values (``red``, ``white``,
+    ...), but imported or hand-authored drafts can still contain values such
+    as ``白色`` or ``grey``.  Keeping this normalization at the compiler
+    boundary makes every color condition use the same operator vocabulary.
+    Unknown open-vocabulary values are preserved so validation can report the
+    unsupported value instead of silently changing the user's intent.
+    """
+
+    text = re.sub(r"\s+", " ", str(value or "").strip().lower())
+    compact = text.replace(" ", "")
+    return COLOR_ALIASES.get(text, COLOR_ALIASES.get(compact, text))
 
 
 def _kind_for_output(output_type: str) -> str:
@@ -134,10 +162,22 @@ class _GraphBuilder:
                 "历史条件引用的执行节点已不存在；请重新新增该业务条件。"
             )
         output_type = self.registry.require(node.operator).output_type
+        # Imported/pre-set business branches proxy an already verified graph node.
+        # The branch owns the full dependency closure, not just its root.  Keeping
+        # only the root made the 03 condition tree collapse to “0 conditions” after
+        # validate/apply even though the runtime graph was still present.
+        dependencies = {node_id}
+        changed = True
+        while changed:
+            changed = False
+            for edge in self.graph.edges:
+                if edge.target in dependencies and edge.source not in dependencies:
+                    dependencies.add(edge.source)
+                    changed = True
         return CompiledValue(
             node_id=node_id,
             output_type=output_type,
-            node_ids={node_id},
+            node_ids=dependencies,
             measurement_node_id=node_id if output_type == "ScalarSet" else None,
             entity_node_id=node_id if output_type in {"ObjectSet", "EntitySet"} else None,
             track_node_id=node_id if output_type == "TrackSet" else None,
@@ -430,6 +470,12 @@ class BusinessRuleCompiler:
                 if branch.media_type == media_type and branch.enabled:
                     compile_branch(branch)
 
+            self._expose_branch_evidence(
+                template.business_branches,
+                media_type,
+                builder,
+                compiled_expressions,
+            )
             self._bind_outputs(
                 result,
                 media_type,
@@ -456,6 +502,80 @@ class BusinessRuleCompiler:
         if hasattr(self, "_active_document"):
             del self._active_document
         return compiled
+
+    @staticmethod
+    def _expose_branch_evidence(
+        branches: list[BusinessBranch],
+        media_type: str,
+        builder: _GraphBuilder,
+        expressions: dict[str, CompiledValue],
+    ) -> None:
+        existing_outputs = {
+            name
+            for node in builder.graph.nodes
+            for name in ([node.output_name] if node.output_name else []) + node.output_names
+        }
+        if "objects" not in existing_outputs:
+            priorities = {
+                "spatial.membership": 50,
+                "subject.same_attributes": 40,
+                "state.detect": 35,
+                "state.transition": 35,
+                "attribute.color": 30,
+                "attribute.classify": 30,
+                "target.detect": 10,
+            }
+            selected = []
+            for branch in branches:
+                if branch.media_type != media_type or not branch.enabled:
+                    continue
+                if branch.condition_root is None:
+                    continue
+                candidates = []
+                for index, expression in enumerate(_walk(branch.condition_root)):
+                    value = expressions.get(expression.expression_id)
+                    if value is None or value.entity_node_id is None:
+                        continue
+                    candidates.append(
+                        (
+                            priorities.get(expression.capability_id or "", 0),
+                            index,
+                            value.entity_node_id,
+                        )
+                    )
+                if candidates:
+                    selected.append(max(candidates)[2])
+            selected = list(dict.fromkeys(selected))
+            if len(selected) == 1:
+                builder.expose(selected[0], "objects")
+            elif selected:
+                merged = builder.add(
+                    node_id=_safe_id("business", "branch_evidence", "objects"),
+                    operator="objects.merge@1.0",
+                    display_name="业务分支目标证据",
+                    inputs={"objects": [builder.existing(item) for item in selected]},
+                    business_source_refs=["node:system:branch_entity_evidence"],
+                )
+                builder.expose(merged.node_id, "objects")
+
+        if "regions" not in existing_outputs:
+            region_nodes = [
+                node.node_id
+                for node in builder.graph.nodes
+                if node.operator in {"region.manual@1.0", "region.manual_set@1.0"}
+            ]
+            region_nodes = list(dict.fromkeys(region_nodes))
+            if len(region_nodes) == 1:
+                builder.expose(region_nodes[0], "regions")
+            elif region_nodes:
+                merged = builder.add(
+                    node_id=_safe_id("business", "scene", "regions"),
+                    operator="regions.merge@1.0",
+                    display_name="业务场景区域",
+                    inputs={"regions": [builder.existing(item) for item in region_nodes]},
+                    business_source_refs=["node:system:scene_region_evidence"],
+                )
+                builder.expose(merged.node_id, "regions")
 
     def _compile_atom(
         self,
@@ -531,15 +651,200 @@ class BusinessRuleCompiler:
             )
         if capability == "attribute.color":
             upstream = source()
+            color_value = _canonical_color(p.get("color"))
+            carrier_key, carrier_phrase = self._infer_color_carrier(
+                p, expression.display_name
+            )
+            if carrier_key is not None:
+                # A raw HSV crop of a person/object box contains background
+                # and other attributes.  First ask the open-vocabulary model
+                # for the *coloured carrier itself* (red shirt, grey trousers,
+                # yellow helmet, ...), verify that tight evidence box, then
+                # project it back to the original target.  This is important
+                # for both generic clothing and named garments: asking for
+                # “person wearing red upper body clothing” often returns the
+                # whole person box and defeats the colour verification.
+                generic_clothing = carrier_key == "clothing"
+                subject_phrase = f"{color_value} {carrier_phrase}".strip()
+                catalog_default = max(
+                    10,
+                    100 * COLOR_MIN_FRACTIONS.get(color_value, 0.2) * 0.75,
+                )
+                # Natural-language drafts materialize omitted tuning fields
+                # with the capability default (20%).  For generic clothing
+                # that default is too strict for small/partially visible
+                # garment boxes, so only the planner-inferred value uses the
+                # carrier-aware 15% baseline; an explicit editor value remains
+                # authoritative.
+                inferred_default = generic_clothing and getattr(
+                    expression.parameter_sources.get("minimum_fraction"),
+                    "source",
+                    None,
+                ) == "llm_business_draft"
+                default_fraction = catalog_default if inferred_default else 20
+                minimum_fraction = (
+                    default_fraction
+                    if inferred_default
+                    else _float_or_default(
+                        p.get("minimum_fraction"), default_fraction
+                    )
+                )
+                evidence = builder.add(
+                    node_id=_safe_id(base, "wearing_evidence"),
+                    operator="rex.ground@1.1",
+                    display_name=f"{expression.display_name}语义证据",
+                    params={
+                        "targets": [{
+                            "label": expression.display_name,
+                            "phrases": [subject_phrase],
+                        }],
+                    },
+                    business_source_refs=[source_ref],
+                )
+                color_condition = builder.add(
+                    node_id=_safe_id(base, "color"),
+                    operator="visual.color_fraction@1.0",
+                    display_name=expression.display_name,
+                    inputs={"objects": evidence},
+                    params={
+                        "color": color_value,
+                        # The grounding result is already the carrier box;
+                        # never reapply a person-oriented upper/lower crop to
+                        # it, or a small garment can be cropped away.
+                        "subject_region": [0, 0, 1, 1],
+                        "min_fraction": minimum_fraction / 100.0,
+                        # Rex has already provided a named attribute box. A
+                        # fraction is therefore a consistency check rather
+                        # than the primary classifier, keeping the rule
+                        # robust to multicolour, shaded and partially visible
+                        # garments or equipment.
+                        "selection_mode": "fraction",
+                        "dominance_margin": 0.05,
+                        # This check corroborates an already grounded
+                        # attribute box.  It can therefore tolerate the
+                        # narrow yellow/orange boundary used for mustard and
+                        # golden garments without weakening raw box checks.
+                        "color_tolerance": "semantic",
+                    },
+                    business_source_refs=[source_ref],
+                )
+                colored_evidence = builder.add(
+                    node_id=_safe_id(base, "colored_evidence"),
+                    operator="filter.apply@1.0",
+                    display_name=f"{expression.display_name}颜色证据",
+                    inputs={"objects": evidence, "condition": color_condition},
+                    params={"output_label": None},
+                    business_source_refs=[source_ref],
+                )
+                owner_condition = builder.add(
+                    node_id=_safe_id(base, "owner"),
+                    operator="spatial.associate@1.0",
+                    display_name=f"{expression.display_name}归属目标",
+                    inputs={
+                        "subjects": upstream,
+                        "objects": colored_evidence,
+                    },
+                    # Carrier evidence is normally smaller than its person or
+                    # vehicle. Select the best enclosing target rather than
+                    # requiring a symmetric overlap between two differently
+                    # sized boxes.
+                    params={"relation": "best_owner", "threshold": 0.1},
+                    business_source_refs=[source_ref],
+                )
+                return builder.add(
+                    node_id=_safe_id(base, "apply"),
+                    operator="filter.apply@1.0",
+                    display_name=f"符合{expression.display_name}的目标",
+                    inputs={"objects": upstream, "condition": owner_condition},
+                    params={"output_label": None},
+                    business_source_refs=[source_ref],
+                )
+            # A colour without an explicit carrier is still an attribute of
+            # the detected target (for example “红色汽车” or “蓝色背包”).
+            # Do not classify the whole upstream box by HSV alone: the box
+            # may include background, neighbouring objects, or a person's
+            # other garments.  Ask Rex for the coloured target evidence,
+            # verify that evidence deterministically, then bind the surviving
+            # evidence back to the original target boxes.  This keeps the
+            # result geometry/labels on the target set while making the same
+            # evidence-first strategy available outside clothing tasks.
+            target_phrase = self._grounding_phrase(builder, upstream)
+            if target_phrase:
+                evidence = builder.add(
+                    node_id=_safe_id(base, "attribute_evidence"),
+                    operator="rex.ground@1.1",
+                    display_name=f"{expression.display_name}语义证据",
+                    params={
+                        "targets": [{
+                            "label": expression.display_name,
+                            "phrases": [f"{color_value} {target_phrase}"],
+                        }],
+                    },
+                    business_source_refs=[source_ref],
+                )
+                color_condition = builder.add(
+                    node_id=_safe_id(base, "color"),
+                    operator="visual.color_fraction@1.0",
+                    display_name=expression.display_name,
+                    inputs={"objects": evidence},
+                    params={
+                        "color": color_value,
+                        "subject_region": self._subject_region(p.get("part", "whole")),
+                        "min_fraction": _float_or_default(
+                            p.get("minimum_fraction"), 20
+                        )
+                        / 100.0,
+                        # The model supplies the semantic/attribute box;
+                        # fraction is only a colour-consistency check.  A
+                        # fraction test tolerates multicolour objects and
+                        # partial visibility without requiring one dominant
+                        # hue to fill the entire evidence crop.
+                        "selection_mode": "fraction",
+                        "dominance_margin": 0.05,
+                        "color_tolerance": "semantic",
+                    },
+                    business_source_refs=[source_ref],
+                )
+                colored_evidence = builder.add(
+                    node_id=_safe_id(base, "colored_evidence"),
+                    operator="filter.apply@1.0",
+                    display_name=f"{expression.display_name}颜色证据",
+                    inputs={"objects": evidence, "condition": color_condition},
+                    params={"output_label": None},
+                    business_source_refs=[source_ref],
+                )
+                owner_condition = builder.add(
+                    node_id=_safe_id(base, "owner"),
+                    operator="spatial.associate@1.0",
+                    display_name=f"{expression.display_name}归属目标",
+                    inputs={"subjects": upstream, "objects": colored_evidence},
+                    params={"relation": "best_owner", "threshold": 0.1},
+                    business_source_refs=[source_ref],
+                )
+                return builder.add(
+                    node_id=_safe_id(base, "apply"),
+                    operator="filter.apply@1.0",
+                    display_name=f"符合{expression.display_name}的目标",
+                    inputs={"objects": upstream, "condition": owner_condition},
+                    params={"output_label": None},
+                    business_source_refs=[source_ref],
+                )
+
+            # Keep a defensive fallback for hand-authored graphs whose source
+            # is not a Rex grounding node and therefore has no phrase to send
+            # to the open-vocabulary detector.
             condition = builder.add(
                 node_id=_safe_id(base, "color"),
                 operator="visual.color_fraction@1.0",
                 display_name=expression.display_name,
                 inputs={"objects": upstream},
                 params={
-                    "color": p["color"],
+                    "color": color_value,
                     "subject_region": self._subject_region(p.get("part", "whole")),
-                    "min_fraction": float(p.get("minimum_fraction", 20)) / 100.0,
+                    "min_fraction": _float_or_default(
+                        p.get("minimum_fraction"), 20,
+                    )
+                    / 100.0,
                     "selection_mode": "fraction",
                     "dominance_margin": 0.05,
                 },
@@ -556,7 +861,7 @@ class BusinessRuleCompiler:
         if capability == "attribute.geometry":
             upstream = source()
             dimension = p.get("dimension", "size")
-            threshold = float(p.get("threshold", 1))
+            threshold = _float_or_default(p.get("threshold"), 1)
             params = {"dimension": dimension}
             if dimension == "aspect_ratio":
                 params.update(
@@ -591,6 +896,10 @@ class BusinessRuleCompiler:
                     operator="pairs.build@1.0",
                     display_name=f"{expression.display_name}目标对",
                     inputs={"subjects": current, "objects": evidence},
+                    params={
+                        "same_source_only": capability
+                        == "subject.same_attributes"
+                    },
                     business_source_refs=[source_ref],
                 )
                 measured = builder.add(
@@ -608,8 +917,11 @@ class BusinessRuleCompiler:
                     params={
                         "metric": "ios",
                         "operator": ">=",
-                        "threshold": float(
-                            p.get("minimum_overlap", p.get("association", 30))
+                        "threshold": _float_or_default(
+                            p.get("minimum_overlap"),
+                            p.get("association")
+                            if p.get("association") is not None
+                            else 30,
                         )
                         / 100.0,
                     },
@@ -637,7 +949,10 @@ class BusinessRuleCompiler:
                 inputs={"objects": upstream, "region": region},
                 params={
                     "mode": "center" if p.get("membership") == "center" else "overlap",
-                    "overlap_threshold": float(p.get("minimum_overlap", 30)) / 100.0,
+                    "overlap_threshold": _float_or_default(
+                        p.get("minimum_overlap"), 30
+                    )
+                    / 100.0,
                 },
                 business_source_refs=[source_ref],
             )
@@ -689,7 +1004,8 @@ class BusinessRuleCompiler:
                 params={
                     "metric": metric,
                     "operator": "<=" if relation == "near" else ">=",
-                    "threshold": float(p.get("threshold", 30)) / (1.0 if relation == "near" else 100.0),
+                    "threshold": _float_or_default(p.get("threshold"), 30)
+                    / (1.0 if relation == "near" else 100.0),
                 },
                 business_source_refs=[source_ref],
             )
@@ -724,8 +1040,8 @@ class BusinessRuleCompiler:
                 display_name=expression.display_name,
                 inputs={"left": measurement},
                 params={
-                    "operator": "==" if p.get("operator") == "=" else p.get("operator", ">="),
-                    "value": float(p.get("threshold", 1)),
+                    "operator": "==" if p.get("operator") == "=" else (p.get("operator") or ">="),
+                    "value": _float_or_default(p.get("threshold"), 1),
                 },
                 business_source_refs=[source_ref],
             )
@@ -752,7 +1068,10 @@ class BusinessRuleCompiler:
                 operator="logic.compare@1.0",
                 display_name=expression.display_name,
                 inputs={"left": measurement},
-                params={"operator": p.get("operator", ">="), "value": float(p.get("threshold", 1))},
+                params={
+                    "operator": p.get("operator", ">="),
+                    "value": _float_or_default(p.get("threshold"), 1),
+                },
                 business_source_refs=[source_ref],
             )
             condition.measurement_node_id = measurement.node_id
@@ -765,9 +1084,13 @@ class BusinessRuleCompiler:
                 display_name=expression.display_name,
                 inputs={"objects": upstream},
                 params={
-                    "iou_threshold": float(p.get("match_requirement", 40)) / 100.0,
+                    "iou_threshold": _float_or_default(
+                        p.get("match_requirement"), 40
+                    )
+                    / 100.0,
                     "max_missing_frames": int(p.get("missing_frames", 5)),
                     "same_label_only": True,
+                    "motion_prediction": bool(p.get("motion_prediction", False)),
                 },
                 business_source_refs=[source_ref],
             )
@@ -807,7 +1130,17 @@ class BusinessRuleCompiler:
                     operator="track.iou@1.0",
                     display_name=f"{expression.display_name}轨迹",
                     inputs={"objects": upstream},
-                    params={"iou_threshold": 0.4, "max_missing_frames": 5, "same_label_only": True},
+                    params={
+                        "iou_threshold": 0.4,
+                        "max_missing_frames": 5,
+                        "same_label_only": True,
+                        "motion_consistency": capability == "motion.wrong_way",
+                        "motion_prediction": bool(
+                            p.get("motion_prediction", capability == "motion.wrong_way")
+                        ),
+                        "min_direction_cosine": 0.0,
+                        "min_motion_pixels": 5.0,
+                    },
                     business_source_refs=[source_ref],
                 )
             headings = builder.add(
@@ -815,7 +1148,13 @@ class BusinessRuleCompiler:
                 operator="measure.heading@1.0",
                 display_name=f"{expression.display_name}运动方向",
                 inputs={"tracks": tracks},
-                params={"window_frames": 5, "min_displacement_pixels": 0.0},
+                params={
+                    "window_frames": 5,
+                    "min_displacement_pixels": 8.0,
+                    "min_displacement_box_ratio": _float_or_default(
+                        p.get("small_target_displacement_ratio"), 20
+                    ) / 100.0,
+                },
                 business_source_refs=[source_ref],
             )
             directions = self._direction_value(
@@ -823,11 +1162,17 @@ class BusinessRuleCompiler:
             )
             if capability == "motion.wrong_way":
                 operator = "opposite_direction"
-                threshold = cos(radians(float(p.get("minimum_reverse_angle", 120))))
+                threshold = cos(
+                    radians(
+                        _float_or_default(p.get("minimum_reverse_angle"), 120)
+                    )
+                )
             else:
                 relation = p.get("relation", "same")
                 operator = "opposite_direction" if relation == "opposite" else "aligned_direction"
-                threshold = cos(radians(float(p.get("angle", 60))))
+                threshold = cos(
+                    radians(_float_or_default(p.get("angle"), 60))
+                )
             value = builder.add(
                 node_id=_safe_id(base, "compare"),
                 operator="logic.compare@1.0",
@@ -856,7 +1201,10 @@ class BusinessRuleCompiler:
                 operator="logic.compare@1.0",
                 display_name=expression.display_name,
                 inputs={"left": measurement},
-                params={"operator": p.get("operator", ">="), "value": float(p.get("threshold", 1))},
+                params={
+                    "operator": p.get("operator", ">="),
+                    "value": _float_or_default(p.get("threshold"), 1),
+                },
                 business_source_refs=[source_ref],
             )
             condition.measurement_node_id = measurement.node_id
@@ -888,7 +1236,7 @@ class BusinessRuleCompiler:
                 params={
                     "from_state": p["from_state"],
                     "to_state": p["to_state"],
-                    "max_seconds": float(p.get("maximum_seconds") or 5),
+                    "max_seconds": _float_or_default(p.get("maximum_seconds"), 5),
                     "consume_source": True,
                 },
                 business_source_refs=[source_ref],
@@ -929,9 +1277,11 @@ class BusinessRuleCompiler:
                 display_name=expression.display_name,
                 inputs={"condition": condition},
                 params={
-                    "seconds": float(p.get("duration", 1)),
+                    "seconds": _float_or_default(p.get("duration"), 1),
                     "scope": p.get("identity_scope", "global") if p.get("identity_scope") in {"global", "track", "region"} else "global",
-                    "gap_tolerance_seconds": float(p.get("allowed_gap", 0.5)),
+                    "gap_tolerance_seconds": _float_or_default(
+                        p.get("allowed_gap"), 0.5
+                    ),
                     "trigger_mode": "once",
                 },
                 business_source_refs=[source_ref],
@@ -1064,11 +1414,142 @@ class BusinessRuleCompiler:
         return result
 
     @staticmethod
+    def _grounding_phrase(builder: _GraphBuilder, value: CompiledValue) -> str | None:
+        """Find the affirmative base phrase feeding an entity value.
+
+        Business conditions can pass through relabel, class and geometry
+        operators before an attribute is compiled.  Walking incoming graph
+        edges keeps the garment evidence tied to the actual target without
+        assuming a particular number or order of intermediate filters.
+        """
+
+        pending = [value.node_id]
+        visited: set[str] = set()
+        while pending:
+            node_id = pending.pop()
+            if node_id in visited:
+                continue
+            visited.add(node_id)
+            node = builder.nodes.get(node_id)
+            if node is None:
+                continue
+            if node.operator and node.operator.startswith("rex.ground@"):
+                targets = node.params.get("targets") or []
+                for target in targets:
+                    if not isinstance(target, dict):
+                        continue
+                    phrases = target.get("phrases") or []
+                    if phrases and str(phrases[0]).strip():
+                        return str(phrases[0]).strip()
+            pending.extend(
+                edge.source
+                for edge in builder.graph.edges
+                if edge.target == node_id
+            )
+        return None
+
+    @staticmethod
+    def _infer_color_carrier(
+        parameters: dict[str, Any], display_name: str
+    ) -> tuple[str | None, str | None]:
+        """Return a garment carrier when a colour describes a body part.
+
+        The business-draft schema intentionally keeps ``attribute.color``
+        compact (source/part/color/threshold).  Recover an optional specific
+        garment from an LLM display name when present, and otherwise use the
+        normalized part.  Whole-object colours stay on the original generic
+        fraction path.
+        """
+
+        explicit = parameters.get("carrier") or parameters.get("carrier_span")
+        part = str(parameters.get("part") or "whole").strip().lower()
+        aliases = {
+            **CARRIER_TEXT_ALIASES,
+            **CARRIER_ALIASES,
+        }
+        # Preserve a specific visible carrier in the open-vocabulary phrase
+        # whenever one is available.  The catalog still supplies the
+        # canonical carrier and crop for aliases that do not have a more
+        # specific English wording.
+        phrase_overrides = {
+            "衣服": "clothing", "衣物": "clothing", "服装": "clothing",
+            "clothing": "clothing", "clothes": "clothing", "garment": "clothing",
+            "上衣": "upper body clothing", "上装": "upper body clothing",
+            "衬衫": "shirt", "衬衣": "shirt", "shirt": "shirt",
+            "短袖": "short sleeves", "t-shirt": "t-shirt", "tee": "t-shirt",
+            "夹克": "jacket", "jacket": "jacket",
+            "外套": "coat", "coat": "coat",
+            "裤子": "trousers", "长裤": "trousers", "短裤": "shorts",
+            "pants": "pants", "trousers": "trousers",
+            "裙子": "skirt", "skirt": "skirt",
+            "反光衣": "reflective vest", "反光背心": "reflective vest",
+            "reflective vest": "reflective vest",
+            "安全帽": "helmet", "头盔": "helmet", "帽子": "hat",
+            "helmet": "helmet", "safety helmet": "helmet", "hat": "hat",
+            "鞋": "shoes", "鞋子": "shoes", "靴子": "boots",
+            "shoe": "shoe", "shoes": "shoes", "boots": "boots",
+            "车身": "vehicle body", "车辆主体": "vehicle body",
+            "vehicle body": "vehicle body",
+        }
+        phrase_aliases = {
+            **aliases,
+            # These phrases are common planner output but are intentionally
+            # not required as UI parameters.
+            "safety helmet": "headwear",
+            "short sleeves": "upper_body_clothing",
+            "t-shirt": "upper_body_clothing",
+            "tee": "upper_body_clothing",
+        }
+
+        def resolve(raw: Any) -> tuple[str | None, str | None]:
+            text = str(raw or "").strip()
+            if not text:
+                return None, None
+            canonical = phrase_aliases.get(
+                text.lower(), text.lower().replace(" ", "_")
+            )
+            if canonical not in CARRIER_CATALOG:
+                return None, None
+            phrase = phrase_overrides.get(text.lower()) or CARRIER_CATALOG[canonical]["phrase"]
+            return canonical, phrase
+
+        if explicit:
+            resolved = resolve(explicit)
+            if resolved[0] is not None:
+                return resolved
+
+        # Prefer a specific named garment in the condition title, preserving
+        # phrases such as “白色衬衫” instead of reducing everything to clothing.
+        # Scan the complete catalog alias set so this remains open to new
+        # garment/carrier names rather than being hard-coded to one example.
+        title = str(display_name or "").strip().lower()
+        title_aliases = set(phrase_aliases) | set(phrase_overrides)
+        for raw in sorted(title_aliases, key=len, reverse=True):
+            if raw.lower() in title:
+                canonical = phrase_aliases.get(
+                    raw.lower(), raw.lower().replace(" ", "_")
+                )
+                if canonical in CARRIER_CATALOG:
+                    return canonical, phrase_overrides.get(
+                        raw.lower(), CARRIER_CATALOG[canonical]["phrase"]
+                    )
+
+        if part in {"upper_clothing", "upper_body_clothing", "upper_body", "top"}:
+            return "upper_body_clothing", CARRIER_CATALOG["upper_body_clothing"]["phrase"]
+        if part in {"lower_clothing", "lower_body_clothing", "lower_body", "bottom"}:
+            return "lower_body_clothing", CARRIER_CATALOG["lower_body_clothing"]["phrase"]
+        return None, None
+
+    @staticmethod
     def _subject_region(part: str) -> list[float]:
         return {
             "whole": [0.0, 0.0, 1.0, 1.0],
             "upper_clothing": [0.0, 0.05, 1.0, 0.58],
+            "upper_body_clothing": [0.0, 0.05, 1.0, 0.58],
+            "upper_body": [0.0, 0.05, 1.0, 0.58],
             "lower_clothing": [0.0, 0.42, 1.0, 1.0],
+            "lower_body_clothing": [0.0, 0.42, 1.0, 1.0],
+            "lower_body": [0.0, 0.42, 1.0, 1.0],
         }.get(part, [0.0, 0.0, 1.0, 1.0])
 
     def _active_profile(self, document: SkillEditorDocument):
@@ -1121,7 +1602,13 @@ class BusinessRuleCompiler:
         key, items, requirement = self._resource_items(
             self._document_for_builder, reference, "region"
         )
-        node_id = _safe_id(branch.branch_id, expression.expression_id, "regions", key)
+        node_id = _safe_id("resource", key, "regions")
+        if node_id in builder.nodes:
+            node = builder.nodes[node_id]
+            source_ref = f"condition:{expression.expression_id}"
+            if source_ref not in node.business_source_refs:
+                node.business_source_refs.append(source_ref)
+            return builder.existing(node_id)
         regions = [
             {
                 "id": item.resource_id,
@@ -1165,7 +1652,13 @@ class BusinessRuleCompiler:
         key, items, requirement = self._resource_items(
             self._document_for_builder, reference, "direction"
         )
-        node_id = _safe_id(branch.branch_id, expression.expression_id, "directions", key)
+        node_id = _safe_id("resource", key, "directions")
+        if node_id in builder.nodes:
+            node = builder.nodes[node_id]
+            source_ref = f"condition:{expression.expression_id}"
+            if source_ref not in node.business_source_refs:
+                node.business_source_refs.append(source_ref)
+            return builder.existing(node_id)
         directions = []
         for item in items:
             geometry = item.geometry

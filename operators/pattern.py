@@ -119,6 +119,29 @@ def temporal_join(inputs, params, services, node_id):
     if not isinstance(event_sets, list) or not event_sets:
         raise ValueError("temporal.join requires one or more EventSet inputs")
     mode = params["mode"]
+    if mode == "exclusive":
+        scope = params["correlation_scope"]
+        fields = params.get("correlation_fields", [])
+        grouped = {}
+        for branch_index, event_set in enumerate(event_sets):
+            for event in event_set.items:
+                grouped.setdefault(_key(event, scope, fields), []).append(
+                    (event.start_time, branch_index, event.id, event)
+                )
+        selected_events = [
+            min(candidates)[3]
+            for _, candidates in sorted(grouped.items(), key=lambda item: str(item[0]))
+        ]
+        return EventSet([
+            _joined_event(
+                node_id,
+                index,
+                [selected],
+                params["label"],
+                _key(selected, scope, fields),
+            )
+            for index, selected in enumerate(selected_events, start=1)
+        ])
     required = int(params.get("required_count") or len(event_sets))
     if mode == "any":
         required = 1

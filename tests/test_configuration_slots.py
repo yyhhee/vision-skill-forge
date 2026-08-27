@@ -219,6 +219,39 @@ def test_binding_polygon_writes_node_value_and_promotes_variant_to_ready():
     assert validate_executable_skill_package(bound, build_default_registry()) == []
 
 
+def test_clear_annotations_removes_saved_regions_and_directions_and_reopens_slots():
+    binder = ConfigurationBinder(build_default_registry())
+    package = _lane_package()
+
+    cleared = binder.clear_annotations(package, media_type="video")
+    nodes = {node.id: node for node in cleared.variants["video"].nodes}
+
+    assert nodes["lane_regions"].params == {"regions": []}
+    assert nodes["lane_references"].params == {"directions": []}
+    status = {
+        item["slot_id"]: item for item in configuration_status(cleared)
+    }
+    assert status["lane_regions"]["configured"] is False
+    assert status["lane_directions"]["configured"] is False
+    assert cleared.variants["video"].status == "needs_configuration"
+    assert validate_skill_package(cleared, build_default_registry()) == []
+
+
+def test_binding_region_with_empty_allowed_shapes_uses_general_defaults():
+    package = _pending_package().model_copy(deep=True)
+    package.variants["video"].configuration_slots[0].allowed_shapes = []
+
+    bound = ConfigurationBinder(build_default_registry()).bind_region(
+        package,
+        media_type="video",
+        slot_id="no_parking_region",
+        shape="rectangle",
+        points=[[0.1, 0.2], [0.9, 0.8]],
+    )
+
+    assert configuration_status(bound)[0]["configured"] is True
+
+
 def test_runtime_rejects_pending_configuration_before_creating_a_run(tmp_path):
     class NeverCalledRex:
         def detect(self, image, phrases):

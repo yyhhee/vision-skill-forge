@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from functools import lru_cache
 from typing import Any, Iterable
 from uuid import uuid4
 
@@ -27,10 +28,13 @@ from .editor_schema import (
     ResolvableValue,
     ResultProjection,
     ResultSpec,
+    RuleEdge,
+    RuleNode,
     SkillEditorDocument,
     TriggerPolicy,
     TemporalQualifierSpec,
 )
+from .parameter_presentations import parameter_presentation
 from .registry import OperatorRegistry
 from .result_presentation_schema import PresentationSpec
 
@@ -73,6 +77,18 @@ _OPERATOR_CAPABILITY_PRIORITY: tuple[tuple[str, str], ...] = (
 )
 
 _IMPORTED_STEP_PREFIX = "existing_node:"
+_IMPORTED_PARAMETER_PREFIX = "atom_parameter:"
+
+_RELATION_LABELS = {
+    "overlap": "与{object}重叠",
+    "contains": "包含{object}",
+    "inside": "位于{object}内部",
+    "near": "接近{object}",
+    "bidirectional": "与{object}双向匹配",
+    "source_entity": "具有{object}",
+    "center_in_subject_region": "位于{object}的主体指定区域",
+    "center_in_object_region": "中心位于{object}的{region}",
+}
 
 _RESULT_KIND_SCHEMA: dict[str, tuple[str, str, str]] = {
     "decision": ("decision", "single", "status"),
@@ -123,6 +139,22 @@ def _replace_tree(
         for child in expression.children
     ]
     return ConditionExpression.model_validate(data)
+
+
+def _find_parent(
+    expression: ConditionExpression | None, expression_id: str
+) -> ConditionExpression | None:
+    """Return the direct parent of an expression in a recursive condition tree."""
+
+    if expression is None or expression.expression_id == expression_id:
+        return None
+    for child in expression.children:
+        if child.expression_id == expression_id:
+            return expression
+        parent = _find_parent(child, expression_id)
+        if parent is not None:
+            return parent
+    return None
 
 
 def _delete_from_tree(
@@ -329,6 +361,10 @@ class BusinessRuleEditor:
             branch.condition_root = _replace_tree(
                 root, parent_group_id, ConditionExpression.model_validate(data)
             )
+        elif root.operator == "AND":
+            data = root.model_dump(mode="python")
+            data["children"].append(expression.model_dump(mode="python"))
+            branch.condition_root = ConditionExpression.model_validate(data)
         else:
             branch.condition_root = ConditionExpression(
                 expression_id=_new_id("group"),
@@ -388,24 +424,71 @@ class BusinessRuleEditor:
         required_count: int | None = None,
     ) -> tuple[SkillEditorDocument, str]:
         operator = operator.upper()
-        if operator not in {"AND", "OR", "N_OF_M"}:
-            raise BusinessRuleEditError("多个条件只能使用 AND、OR 或至少N项组合。")
+        if operator not in {"AND", "OR", "NOT", "N_OF_M"}:
+            raise BusinessRuleEditError("条件编排仅支持 AND、OR、NOT 或至少N项。")
         ids = list(dict.fromkeys(expression_ids))
-        if len(ids) < 2:
-            raise BusinessRuleEditError("请至少选择两个同级条件进行组合。")
+        if operator == "NOT" and len(ids) != 1:
+            raise BusinessRuleEditError("NOT 只能作用于一个条件或一个条件组。")
+        if operator != "NOT" and len(ids) < 2:
+            raise BusinessRuleEditError("AND、OR 和至少N项需要选择两个或更多同级节点。")
         result = self.prepare(document).model_copy(deep=True)
         branch = self._branch(result, branch_id)
         root = branch.condition_root
         if root is None:
             raise BusinessRuleEditError("当前分支没有可组合条件。")
-        if root.operator not in {"AND", "OR", "N_OF_M"}:
-            if set(ids) != {root.expression_id}:
-                raise BusinessRuleEditError("所选条件必须位于同一条件组。")
-            raise BusinessRuleEditError("请先新增第二个条件。")
-        direct = {item.expression_id: item for item in root.children}
-        if not set(ids).issubset(direct):
-            raise BusinessRuleEditError("当前版本要求所选条件位于同一层级。")
-        selected = [direct[item] for item in ids]
+
+        if operator == "NOT":
+            target = _find(root, ids[0])
+            parent = _find_parent(root, target.expression_id)
+            # Reapplying NOT is a user-friendly way to cancel an existing
+            # negation instead of producing a confusing double-negative tree.
+            if parent is not None and parent.operator == "NOT":
+                branch.condition_root = _replace_tree(
+                    root, parent.expression_id, target
+                )
+                replacement = target
+            elif target.operator == "NOT":
+                replacement = target.children[0]
+                branch.condition_root = _replace_tree(
+                    root, target.expression_id, replacement
+                )
+            else:
+                replacement = ConditionExpression(
+                    expression_id=_new_id("group"),
+                    operator="NOT",
+                    display_name="条件取反（NOT）",
+                    capability_id="logic.group",
+                    parameters={"operator": "NOT"},
+                    children=[target],
+                )
+                branch.condition_root = _replace_tree(
+                    root, target.expression_id, replacement
+                )
+            result.version += 1
+            return refresh_document_hashes(result), replacement.expression_id
+
+        selected_ids = set(ids)
+        parent = next(
+            (
+                candidate
+                for candidate in _walk(root)
+                if candidate.operator in {"AND", "OR", "N_OF_M"}
+                and selected_ids.issubset(
+                    {child.expression_id for child in candidate.children}
+                )
+            ),
+            None,
+        )
+        if parent is None:
+            raise BusinessRuleEditError(
+                "所选节点不在同一个条件组内。请按界面标注的同一层级选择后再组合。"
+            )
+        selected = [
+            child for child in parent.children
+            if child.expression_id in selected_ids
+        ]
+        if operator == "N_OF_M" and not 1 <= int(required_count or 1) <= len(selected):
+            raise BusinessRuleEditError("至少满足项数必须在 1 和所选节点数量之间。")
         group = ConditionExpression(
             expression_id=_new_id("group"),
             operator=operator,  # type: ignore[arg-type]
@@ -415,20 +498,377 @@ class BusinessRuleEditor:
             children=selected,
             required_count=(required_count or 1) if operator == "N_OF_M" else None,
         )
-        data = root.model_dump(mode="python")
+        direct_ids = {item.expression_id for item in parent.children}
+        if selected_ids == direct_ids:
+            branch.condition_root = _replace_tree(root, parent.expression_id, group)
+            result.version += 1
+            return refresh_document_hashes(result), group.expression_id
+        data = parent.model_dump(mode="python")
         new_children = []
         inserted = False
-        for child in root.children:
-            if child.expression_id in ids:
+        for child in parent.children:
+            if child.expression_id in selected_ids:
                 if not inserted:
                     new_children.append(group.model_dump(mode="python"))
                     inserted = True
             else:
                 new_children.append(child.model_dump(mode="python"))
         data["children"] = new_children
-        branch.condition_root = ConditionExpression.model_validate(data)
+        if data["operator"] == "N_OF_M":
+            data["required_count"] = min(
+                data.get("required_count") or 1, len(new_children)
+            )
+        replacement = ConditionExpression.model_validate(data)
+        branch.condition_root = _replace_tree(root, parent.expression_id, replacement)
         result.version += 1
         return refresh_document_hashes(result), group.expression_id
+
+    def expression_logic_groups(
+        self, document: SkillEditorDocument, branch_id: str
+    ) -> list[dict[str, Any]]:
+        """Describe every editable group in a generated recursive condition tree."""
+
+        prepared = self.prepare(document)
+        branch = self._branch(prepared, branch_id)
+        root = branch.condition_root
+        if root is None:
+            return []
+        depths: dict[str, int] = {}
+
+        def record_depth(item: ConditionExpression, depth: int) -> None:
+            depths[item.expression_id] = depth
+            for child in item.children:
+                record_depth(child, depth + 1)
+
+        record_depth(root, 0)
+        rows = []
+        for item in _walk(root):
+            if item.operator == "ATOM":
+                continue
+            parent = _find_parent(root, item.expression_id)
+            # A NOT wrapper around a multi-child group is represented by the
+            # child group with negated=True, so users edit one semantic group.
+            if item.operator == "NOT" and item.children[0].operator != "ATOM":
+                continue
+            negated = bool(
+                parent
+                and parent.operator == "NOT"
+                and len(parent.children) == 1
+                and parent.children[0].expression_id == item.expression_id
+            )
+            rows.append(
+                {
+                    "group_id": item.expression_id,
+                    "display_name": item.display_name,
+                    "operator": item.operator,
+                    "required_count": item.required_count or 1,
+                    "condition_count": len(item.children),
+                    "members": [child.display_name for child in item.children],
+                    "negated": negated or item.operator == "NOT",
+                    "summary": self.expression_summary(
+                        parent if negated else item
+                    ),
+                    "depth": depths.get(item.expression_id, 0),
+                }
+            )
+        return rows
+
+    def update_expression_logic_group(
+        self,
+        document: SkillEditorDocument,
+        branch_id: str,
+        group_id: str,
+        operator: str,
+        *,
+        required_count: int = 1,
+        negated: bool = False,
+    ) -> SkillEditorDocument:
+        """Edit a generated group relation and its optional NOT wrapper."""
+
+        result = self.prepare(document).model_copy(deep=True)
+        branch = self._branch(result, branch_id)
+        root = branch.condition_root
+        if root is None:
+            raise BusinessRuleEditError("当前分支没有可编辑条件组。")
+        target = _find(root, group_id)
+        parent = _find_parent(root, group_id)
+
+        if target.operator == "NOT":
+            if negated:
+                return result
+            branch.condition_root = _replace_tree(root, group_id, target.children[0])
+            result.version += 1
+            return refresh_document_hashes(result)
+
+        operator = operator.upper()
+        if operator not in {"AND", "OR", "N_OF_M"}:
+            raise BusinessRuleEditError("多项条件组只能使用 AND、OR 或至少N项。")
+        count = len(target.children)
+        if count < 2:
+            raise BusinessRuleEditError("多项条件组至少需要两个成员。")
+        if operator == "N_OF_M" and not 1 <= int(required_count) <= count:
+            raise BusinessRuleEditError("至少满足项数必须在 1 和组内成员数量之间。")
+        data = target.model_dump(mode="python")
+        data.update(
+            operator=operator,
+            display_name=self._logic_label(operator),
+            capability_id="logic.group",
+            parameters={"operator": operator},
+            required_count=int(required_count) if operator == "N_OF_M" else None,
+        )
+        replacement = ConditionExpression.model_validate(data)
+        updated_root = _replace_tree(root, group_id, replacement)
+        currently_negated = bool(parent and parent.operator == "NOT")
+        if negated and not currently_negated:
+            wrapper = ConditionExpression(
+                expression_id=_new_id("group"),
+                operator="NOT",
+                display_name="条件组取反（NOT）",
+                capability_id="logic.group",
+                parameters={"operator": "NOT"},
+                children=[replacement],
+            )
+            updated_root = _replace_tree(updated_root, group_id, wrapper)
+        elif not negated and currently_negated:
+            updated_root = _replace_tree(updated_root, parent.expression_id, replacement)
+        branch.condition_root = updated_root
+        result.version += 1
+        return refresh_document_hashes(result)
+
+    def imported_logic_groups(
+        self, document: SkillEditorDocument, branch_id: str
+    ) -> list[dict[str, Any]]:
+        """Describe editable logic groups preserved from a preset/history DAG."""
+
+        prepared = self.prepare(document)
+        branch = self._branch(prepared, branch_id)
+        graph = prepared.skill_template.rule_graphs.get(branch.media_type)
+        if graph is None:
+            return []
+        nodes = {item.node_id: item for item in graph.nodes}
+        incoming = {}
+        for edge in graph.edges:
+            incoming.setdefault(edge.target, []).append(edge)
+        supported = {
+            "logic.all@1.0": "AND",
+            "logic.any@1.0": "OR",
+            "reduce.quantify@1.0": "N_OF_M",
+        }
+        rows = []
+        hidden_inner = {
+            edge.source
+            for node in graph.nodes
+            if node.operator == "logic.not@1.0"
+            for edge in incoming.get(node.node_id, [])
+            if edge.port == "condition"
+        }
+
+        def member_label(node_id: str) -> str:
+            member = nodes.get(node_id)
+            if member is None:
+                return node_id
+            label = member.display_name
+            if not label or label == member.node_id:
+                definition = self.operators.get(member.operator)
+                label = definition.display_name if definition else member.node_id
+            if member.operator == "logic.compare@1.0":
+                source_edge = next(
+                    (
+                        edge for edge in incoming.get(member.node_id, [])
+                        if edge.port in {
+                            "lhs", "left", "value", "measurement"
+                        }
+                    ),
+                    None,
+                )
+                source = nodes.get(source_edge.source) if source_edge else None
+                if source is not None:
+                    definition = self.operators.get(source.operator)
+                    source_label = (
+                        source.display_name
+                        if source.display_name and source.display_name != source.node_id
+                        else (definition.display_name if definition else source.node_id)
+                    )
+                    label = (
+                        f"{source_label} {member.params.get('operator', '')} "
+                        f"{member.params.get('value', '')}"
+                    ).strip()
+            return label
+        for node in graph.nodes:
+            if node.node_id not in branch.node_ids or node.node_id in hidden_inner:
+                continue
+            negated = node.operator == "logic.not@1.0"
+            base = node
+            if negated:
+                child_edge = next(
+                    (
+                        edge for edge in incoming.get(node.node_id, [])
+                        if edge.port == "condition"
+                    ),
+                    None,
+                )
+                base = nodes.get(child_edge.source) if child_edge else None
+            if base is None or base.operator not in supported:
+                continue
+            operator = supported[base.operator]
+            if base.operator == "reduce.quantify@1.0":
+                mode = base.params.get("mode", "n_of_m")
+                if mode == "all":
+                    operator = "AND"
+                elif mode == "any":
+                    operator = "OR"
+            count = len(
+                [edge for edge in incoming.get(base.node_id, []) if edge.port == "conditions"]
+            )
+            member_edges = [
+                edge for edge in incoming.get(base.node_id, [])
+                if edge.port == "conditions"
+            ]
+            if not count:
+                binding = base.input_bindings.get("conditions", [])
+                count = len(binding) if isinstance(binding, list) else int(bool(binding))
+            members = [
+                member_label(edge.source)
+                for edge in member_edges
+            ]
+            if not members:
+                binding = base.input_bindings.get("conditions", [])
+                refs = binding if isinstance(binding, list) else [binding]
+                members = [
+                    member_label(str(ref).lstrip("$"))
+                    for ref in refs if ref
+                ]
+            rows.append(
+                {
+                    "group_id": node.node_id,
+                    "display_name": (
+                        node.display_name
+                        if node.display_name != node.node_id
+                        else f"{branch.display_name}条件组"
+                    ),
+                    "operator": operator,
+                    "required_count": int(base.params.get("required_count", 1)),
+                    "condition_count": count,
+                    "members": members,
+                    "negated": negated,
+                }
+            )
+        return rows
+
+    def update_imported_logic_group(
+        self,
+        document: SkillEditorDocument,
+        branch_id: str,
+        group_id: str,
+        operator: str,
+        *,
+        required_count: int = 1,
+        negated: bool = False,
+    ) -> SkillEditorDocument:
+        """Change AND/OR/N-of-M and optional whole-group NOT in an imported DAG."""
+
+        operator = operator.upper()
+        if operator not in {"AND", "OR", "N_OF_M"}:
+            raise BusinessRuleEditError("条件关系只能选择 AND、OR 或至少N项。")
+        result = self.prepare(document).model_copy(deep=True)
+        branch = self._branch(result, branch_id)
+        graph = result.skill_template.rule_graphs.get(branch.media_type)
+        if graph is None:
+            raise BusinessRuleEditError("当前分支没有可编辑的执行规则。")
+        nodes = {item.node_id: item for item in graph.nodes}
+        wrapper = nodes.get(group_id)
+        if wrapper is None or group_id not in branch.node_ids:
+            raise BusinessRuleEditError("找不到当前条件组，请刷新后重试。")
+
+        base = wrapper
+        child_id = None
+        if wrapper.operator == "logic.not@1.0":
+            child_edge = next(
+                (
+                    edge for edge in graph.edges
+                    if edge.target == group_id and edge.port == "condition"
+                ),
+                None,
+            )
+            child_id = child_edge.source if child_edge else None
+            base = nodes.get(child_id) if child_id else None
+        if base is None or base.operator not in {
+            "logic.all@1.0", "logic.any@1.0", "reduce.quantify@1.0"
+        }:
+            raise BusinessRuleEditError("当前步骤不是可编辑的条件组。")
+        incoming = [
+            edge for edge in graph.edges
+            if edge.target == base.node_id and edge.port == "conditions"
+        ]
+        count = len(incoming)
+        if count < 2:
+            raise BusinessRuleEditError("至少需要两个条件才能修改组合关系。")
+        if operator == "N_OF_M" and not 1 <= int(required_count) <= count:
+            raise BusinessRuleEditError(f"N 必须在 1 到 {count} 之间。")
+
+        if operator == "AND":
+            base.operator = "logic.all@1.0"
+            base.params = {"combine_scope": base.params.get("combine_scope", "by_key")}
+            base.display_name = "全部满足（AND）"
+        elif operator == "OR":
+            base.operator = "logic.any@1.0"
+            base.params = {"combine_scope": base.params.get("combine_scope", "by_key")}
+            base.display_name = "任一满足（OR）"
+        else:
+            base.operator = "reduce.quantify@1.0"
+            base.params = {
+                "mode": "n_of_m",
+                "required_count": int(required_count),
+                "combine_scope": base.params.get("combine_scope", "by_key"),
+            }
+            base.display_name = f"至少满足 {int(required_count)} 项（N-of-M）"
+
+        currently_negated = wrapper.operator == "logic.not@1.0"
+        if negated and not currently_negated:
+            inner_id = f"{group_id}__positive"
+            suffix = 2
+            while inner_id in nodes:
+                inner_id = f"{group_id}__positive_{suffix}"
+                suffix += 1
+            inner = base.model_copy(
+                deep=True,
+                update={
+                    "node_id": inner_id,
+                    "output_name": None,
+                    "output_names": [],
+                    "business_source_refs": [],
+                },
+            )
+            graph.nodes.append(inner)
+            for edge in graph.edges:
+                if edge.target == group_id and edge.port == "conditions":
+                    edge.target = inner_id
+            graph.edges.append(
+                RuleEdge(source=inner_id, target=group_id, port="condition")
+            )
+            wrapper.operator = "logic.not@1.0"
+            wrapper.input_bindings = {}
+            wrapper.params = {}
+            wrapper.display_name = "条件组取反（NOT）"
+            branch.node_ids.append(inner_id)
+        elif not negated and currently_negated:
+            assert child_id is not None
+            child = nodes[child_id]
+            graph.edges = [
+                edge for edge in graph.edges
+                if not (edge.source == child_id and edge.target == group_id)
+            ]
+            for edge in graph.edges:
+                if edge.target == child_id:
+                    edge.target = group_id
+            wrapper.operator = child.operator
+            wrapper.input_bindings = deepcopy(child.input_bindings)
+            wrapper.params = deepcopy(child.params)
+            wrapper.display_name = child.display_name
+            graph.nodes = [item for item in graph.nodes if item.node_id != child_id]
+            branch.node_ids = [item for item in branch.node_ids if item != child_id]
+        result.version += 1
+        return refresh_document_hashes(result)
 
     def copy_condition(
         self, document: SkillEditorDocument, branch_id: str, expression_id: str
@@ -444,15 +884,23 @@ class BusinessRuleEditor:
             raise BusinessRuleEditError("当前分支没有可复制条件。")
         target = _find(root, expression_id)
         clone = self._clone_expression(target)
-        if root.operator in {"AND", "OR", "N_OF_M"}:
-            data = root.model_dump(mode="python")
+        parent = _find_parent(root, expression_id)
+        if parent and parent.operator in {"AND", "OR", "N_OF_M"}:
+            data = parent.model_dump(mode="python")
             index = next(
                 index
-                for index, child in enumerate(root.children)
+                for index, child in enumerate(parent.children)
                 if child.expression_id == expression_id
             )
             data["children"].insert(index + 1, clone.model_dump(mode="python"))
-            branch.condition_root = ConditionExpression.model_validate(data)
+            replacement = ConditionExpression.model_validate(data)
+            branch.condition_root = _replace_tree(
+                root, parent.expression_id, replacement
+            )
+        elif parent and parent.operator == "NOT":
+            raise BusinessRuleEditError(
+                "NOT 组只能包含一个成员；请先取消 NOT，再复制该条件。"
+            )
         else:
             branch.condition_root = ConditionExpression(
                 expression_id=_new_id("group"),
@@ -466,7 +914,12 @@ class BusinessRuleEditor:
         return refresh_document_hashes(result), clone.expression_id
 
     def delete_condition(
-        self, document: SkillEditorDocument, branch_id: str, expression_id: str
+        self,
+        document: SkillEditorDocument,
+        branch_id: str,
+        expression_id: str,
+        *,
+        cascade: bool = False,
     ) -> SkillEditorDocument:
         if expression_id.startswith(_IMPORTED_STEP_PREFIX):
             raise BusinessRuleEditError(
@@ -477,9 +930,49 @@ class BusinessRuleEditor:
         if branch.condition_root is None:
             raise BusinessRuleEditError("当前分支没有可删除条件。")
         _find(branch.condition_root, expression_id)
-        branch.condition_root = _delete_from_tree(
-            branch.condition_root, expression_id
-        )
+        targets = {expression_id}
+
+        def references_target(value: Any) -> bool:
+            if isinstance(value, str):
+                return value.startswith("condition:") and value.split(":", 1)[1] in targets
+            if isinstance(value, list):
+                return any(references_target(item) for item in value)
+            if isinstance(value, dict):
+                return any(references_target(item) for item in value.values())
+            return False
+
+        while True:
+            dependents = {
+                item.expression_id
+                for candidate_branch in result.skill_template.business_branches
+                for item in _walk(candidate_branch.condition_root)
+                if item.expression_id not in targets
+                and references_target(item.parameters)
+            }
+            new_dependents = dependents - targets
+            if not new_dependents:
+                break
+            if not cascade:
+                names = [
+                    item.display_name
+                    for candidate_branch in result.skill_template.business_branches
+                    for item in _walk(candidate_branch.condition_root)
+                    if item.expression_id in new_dependents
+                ]
+                raise BusinessRuleEditError(
+                    "该条件仍被以下条件引用："
+                    + "、".join(names)
+                    + "。请先删除依赖条件，或选择“删除（含依赖）”。"
+                )
+            targets.update(new_dependents)
+
+        for candidate_branch in result.skill_template.business_branches:
+            root = candidate_branch.condition_root
+            if root is None:
+                continue
+            for target_id in list(targets):
+                root = _delete_from_tree(root, target_id) if root is not None else None
+            candidate_branch.condition_root = root
         result.version += 1
         return refresh_document_hashes(result)
 
@@ -516,7 +1009,12 @@ class BusinessRuleEditor:
             if enabled is not None:
                 node.enabled = enabled
             if parameters is not None:
-                known = {item.parameter_id: item for item in definition.parameters}
+                imported_parameters = self._imported_parameter_definitions(
+                    definition, node
+                )
+                known = {
+                    item.parameter_id: item for item in imported_parameters
+                }
                 unknown = set(parameters) - set(known)
                 if unknown:
                     raise BusinessRuleEditError(
@@ -527,7 +1025,12 @@ class BusinessRuleEditor:
                     for key, value in parameters.items()
                     if value not in (None, "")
                 }
-                self._apply_existing_node_parameters(node, definition, normalized)
+                imported_definition = definition.model_copy(
+                    update={"parameters": imported_parameters}
+                )
+                self._apply_existing_node_parameters(
+                    node, imported_definition, normalized
+                )
             result.version += 1
             return refresh_document_hashes(result)
         if branch.condition_root is None:
@@ -577,46 +1080,68 @@ class BusinessRuleEditor:
             for branch in result.skill_template.business_branches
             if branch.media_type == media_type
         }
-        selected = list(dict.fromkeys(branch_ids or []))
-        unknown = set(selected) - set(branches)
-        if unknown:
-            raise BusinessRuleEditError("复杂编排引用了已不存在的分支，请重新选择。")
-        existing_for_media = {
-            branch.branch_id for branch in branches.values()
-        }
-        result.skill_template.event_patterns = [
-            pattern
-            for pattern in result.skill_template.event_patterns
-            if not any(
-                stage.source_ref in {f"branch:{item}" for item in existing_for_media}
-                for stage in pattern.stages
+        # Backwards compatible with the original branch-id-only API while also
+        # accepting event:<pattern_id> so one orchestration group can be reused
+        # as an input of another group.
+        selected = list(
+            dict.fromkeys(
+                item if ":" in item else f"branch:{item}"
+                for item in (branch_ids or [])
             )
-        ]
+        )
+        patterns = {
+            pattern.pattern_id: pattern
+            for pattern in result.skill_template.event_patterns
+            if pattern.media_type == media_type
+        }
+        unknown = []
+        for source_ref in selected:
+            prefix, source_id = source_ref.split(":", 1)
+            if prefix == "branch" and source_id in branches:
+                continue
+            if prefix == "event" and source_id in patterns:
+                continue
+            unknown.append(source_ref)
+        if unknown:
+            raise BusinessRuleEditError("分支编排引用了已不存在的分支或编排组，请重新选择。")
         if mode == "none":
+            result.skill_template.event_patterns = [
+                pattern
+                for pattern in result.skill_template.event_patterns
+                if pattern.media_type != media_type
+            ]
             result.version += 1
             return refresh_document_hashes(result)
-        if media_type != "video":
-            raise BusinessRuleEditError("跨分支时间编排需要视频流程；图片可使用 AND / OR 条件组合。")
+        if media_type != "video" and mode == "sequence":
+            raise BusinessRuleEditError("顺序关系需要视频流程；图片分支可使用并行、互斥、任意或部分汇聚。")
         minimum = 1 if mode == "repeat" else 2
         if len(selected) < minimum:
             raise BusinessRuleEditError(f"当前编排方式至少需要选择{minimum}个分支。")
         if mode == "absence" and len(selected) != 2:
             raise BusinessRuleEditError("“未发生”需要依次选择锚点分支和禁止发生分支。")
-        if mode in {"all_completed_within_window", "sequence", "absence", "repeat"}:
+        if mode in {"all_completed_within_window", "absence", "repeat"}:
             if window_seconds is None or float(window_seconds) <= 0:
                 raise BusinessRuleEditError("当前编排方式需要填写大于0秒的时间窗口。")
         if mode == "n_of_m":
             if required_count is None or not 1 <= int(required_count) <= len(selected):
                 raise BusinessRuleEditError("至少完成分支数 N 必须在1和已选分支数之间。")
-        stages = [
-            PatternStage(
-                stage_id=f"stage_{index}",
-                display_name=branches[branch_id].display_name,
-                source_rule_id=branches[branch_id].root_node_id or branch_id,
-                source_ref=f"branch:{branch_id}",
+        stages = []
+        for index, source_ref in enumerate(selected, start=1):
+            prefix, source_id = source_ref.split(":", 1)
+            if prefix == "branch":
+                source = branches[source_id]
+                source_rule_id = source.root_node_id or source_id
+            else:
+                source = patterns[source_id]
+                source_rule_id = f"event_{source_id}"
+            stages.append(
+                PatternStage(
+                    stage_id=f"stage_{index}",
+                    display_name=source.display_name,
+                    source_rule_id=source_rule_id,
+                    source_ref=source_ref,
+                )
             )
-            for index, branch_id in enumerate(selected, start=1)
-        ]
         transitions = []
         gateways = []
         pattern_type = "join"
@@ -629,11 +1154,20 @@ class BusinessRuleEditor:
                     target_stage_id=stages[index + 1].stage_id,
                     relation="after",
                     minimum_delay_seconds=0,
-                    maximum_delay_seconds=ResolvableValue(
-                        state="explicit",
-                        value=float(window_seconds),
-                        source="user",
-                        required_before="never",
+                    maximum_delay_seconds=(
+                        ResolvableValue(
+                            state="explicit",
+                            value=float(window_seconds),
+                            source="user",
+                            required_before="never",
+                        )
+                        if window_seconds is not None and float(window_seconds) > 0
+                        else ResolvableValue(
+                            state="not_applicable",
+                            value=None,
+                            source="system",
+                            required_before="never",
+                        )
                     ),
                 )
                 for index in range(len(stages) - 1)
@@ -672,6 +1206,17 @@ class BusinessRuleEditor:
                     window_seconds=window,
                 )
             ]
+        # Saving the same ordered inputs edits that group; using a different
+        # set creates another reusable group.  This permits sequence(A,B) and
+        # sequence(C,D) to coexist and later participate in a parent join.
+        result.skill_template.event_patterns = [
+            pattern
+            for pattern in result.skill_template.event_patterns
+            if not (
+                pattern.media_type == media_type
+                and [stage.source_ref for stage in pattern.stages] == selected
+            )
+        ]
         result.skill_template.event_patterns.append(
             EventPattern(
                 pattern_id=_new_id("pattern"),
@@ -1062,12 +1607,72 @@ class BusinessRuleEditor:
         prepared = self.prepare(document)
         branch = self._branch(prepared, branch_id)
         rows: list[dict[str, Any]] = []
+        expressions = {
+            expression.expression_id: expression
+            for expression in _walk(branch.condition_root)
+        }
+
+        def condition_reference(value: Any) -> str:
+            if isinstance(value, str) and value.startswith("condition:"):
+                source = expressions.get(value.split(":", 1)[1])
+                return source.display_name if source else "前序条件"
+            if isinstance(value, list):
+                return "、".join(condition_reference(item) for item in value)
+            return str(value)
+
+        def condition_card_text(
+            item: ConditionExpression,
+            definition: BusinessCapabilityDefinition,
+        ) -> tuple[str, str]:
+            params = item.parameters
+            object_values: list[str] = []
+            for parameter_id in (
+                "targets", "labels", "business_label", "source", "subject",
+                "object", "equipment", "color", "part", "relation", "dimension",
+            ):
+                value = params.get(parameter_id)
+                if value in (None, "", [], {}):
+                    continue
+                text = condition_reference(value)
+                if text and text not in object_values:
+                    object_values.append(text)
+            details = "、".join(object_values)
+            if item.display_name != definition.display_name:
+                title = item.display_name
+            elif details:
+                title = f"{definition.display_name}：{details}"
+            else:
+                title = definition.display_name
+            if details:
+                summary = f"针对「{details}」执行“{definition.display_name}”。"
+            else:
+                configured = [
+                    f"{parameter.label}={condition_reference(params.get(parameter.parameter_id))}"
+                    for parameter in definition.parameters
+                    if parameter.parameter_id in params
+                    and params.get(parameter.parameter_id) not in (None, "", [], {})
+                    and parameter.parameter_id not in {
+                        "source", "scope", "operator", "threshold"
+                    }
+                ]
+                suffix = "；".join(configured[:3])
+                summary = (
+                    f"执行“{definition.display_name}”"
+                    + (f"（{suffix}）" if suffix else "，等待补充具体对象。")
+                    + "。"
+                )
+            return title, summary
 
         def visit(item: ConditionExpression, parent: str | None, depth: int) -> None:
             definition = (
                 self.capabilities.require(item.capability_id)
                 if item.capability_id and item.operator == "ATOM"
                 else None
+            )
+            name, summary = (
+                condition_card_text(item, definition)
+                if definition is not None
+                else (item.display_name, self.expression_summary(item, compact=True))
             )
             rows.append(
                 {
@@ -1076,9 +1681,10 @@ class BusinessRuleEditor:
                     "depth": depth,
                     "kind": "条件" if item.operator == "ATOM" else "条件组",
                     "logic": item.operator,
+                    "capability_id": item.capability_id,
                     "category": definition.category if definition else "逻辑组合",
-                    "name": item.display_name,
-                    "summary": self.expression_summary(item, compact=True),
+                    "name": name,
+                    "summary": summary,
                     "enabled": item.enabled,
                     "status": self._condition_status(item, definition),
                 }
@@ -1095,11 +1701,259 @@ class BusinessRuleEditor:
         )
         if root is not None:
             visit(root, None, 0)
+            generated_rows = {
+                row["condition_id"]: row
+                for row in rows
+                if not row.get("imported_step")
+            }
+            for row in list(generated_rows.values()):
+                if row["kind"] != "条件组":
+                    continue
+                members = [
+                    child
+                    for child in generated_rows.values()
+                    if child.get("parent_id") == row["condition_id"]
+                ]
+                if not members:
+                    continue
+                relation = row["logic"]
+                if relation == "N_OF_M":
+                    expression = _find(root, row["condition_id"])
+                    relation = f"至少 {expression.required_count or 1} 项满足"
+                row["member_summaries"] = [
+                    child["summary"] for child in members
+                ]
+                row["logic_relation_label"] = relation
+                for index, child in enumerate(members):
+                    child["logic_member_label"] = (
+                        f"条件 {chr(65 + index)}"
+                        if index < 26
+                        else f"条件 {index + 1}"
+                    )
             if is_imported_proxy:
                 rows[0]["kind"] = "导入判定"
                 rows[0]["category"] = "已验证业务流程"
                 rows[0]["status"] = "保持原有执行效果"
+                rows[0]["formula_kind"] = "workflow"
                 graph = prepared.skill_template.rule_graphs.get(branch.media_type)
+                imported_rows: dict[str, dict[str, Any]] = {}
+                logic_members: dict[str, list[str]] = {}
+                graph_nodes = {
+                    node.node_id: node for node in (graph.nodes if graph else [])
+                }
+                incoming_edges: dict[str, list[RuleEdge]] = {}
+                for edge in (graph.edges if graph else []):
+                    incoming_edges.setdefault(edge.target, []).append(edge)
+
+                def incoming_nodes(node_id: str, *ports: str) -> list[RuleNode]:
+                    accepted = set(ports)
+                    return [
+                        graph_nodes[edge.source]
+                        for edge in incoming_edges.get(node_id, [])
+                        if edge.source in graph_nodes
+                        and (not accepted or edge.port in accepted)
+                    ]
+
+                @lru_cache(maxsize=None)
+                def node_labels(node_id: str) -> tuple[str, ...]:
+                    node = graph_nodes.get(node_id)
+                    if node is None:
+                        return ()
+                    output_label = node.params.get("output_label")
+                    if isinstance(output_label, str) and output_label.strip():
+                        return (output_label.strip(),)
+                    targets = node.params.get("targets")
+                    if isinstance(targets, list):
+                        labels = [
+                            str(target.get("label", "")).strip()
+                            for target in targets
+                            if isinstance(target, dict)
+                            and str(target.get("label", "")).strip()
+                        ]
+                        if labels:
+                            return tuple(dict.fromkeys(labels))
+                    selected = node.params.get("labels")
+                    if isinstance(selected, list) and selected:
+                        selected_labels = tuple(
+                            dict.fromkeys(
+                                str(label).strip()
+                                for label in selected
+                                if str(label).strip()
+                            )
+                        )
+                        if node.params.get("mode", "include") == "include":
+                            return selected_labels
+                        upstream = [
+                            label
+                            for source in incoming_nodes(node_id, "objects", "entities")
+                            for label in node_labels(source.node_id)
+                            if label not in selected_labels
+                        ]
+                        if upstream:
+                            return tuple(dict.fromkeys(upstream))
+                    preferred_ports = (
+                        "objects", "entities", "subjects", "tracks", "pairs",
+                        "condition", "conditions", "value", "measurement", "left",
+                    )
+                    labels = [
+                        label
+                        for source in incoming_nodes(node_id, *preferred_ports)
+                        for label in node_labels(source.node_id)
+                    ]
+                    return tuple(dict.fromkeys(labels))
+
+                def input_label(
+                    node: RuleNode, ports: tuple[str, ...], fallback: str
+                ) -> str:
+                    labels = [
+                        label
+                        for source in incoming_nodes(node.node_id, *ports)
+                        for label in node_labels(source.node_id)
+                    ]
+                    return "、".join(dict.fromkeys(labels)) or fallback
+
+                def object_region_name(value: Any) -> str:
+                    if value == [0.0, 0.0, 1.0, 1.0]:
+                        return "完整范围"
+                    if (
+                        isinstance(value, list)
+                        and len(value) == 4
+                        and all(isinstance(item, (int, float)) for item in value)
+                        and value[1] < 0
+                        and value[3] <= 0.5
+                    ):
+                        return "上沿区域"
+                    return "指定相对区域"
+
+                def describe_imported_node(
+                    node: RuleNode, definition: BusinessCapabilityDefinition
+                ) -> tuple[str, str]:
+                    labels = "、".join(node_labels(node.node_id)) or "前序结果"
+                    operator = node.operator or ""
+                    if operator.startswith("rex.ground@"):
+                        return f"检测：{labels}", f"从画面中识别「{labels}」。"
+                    if operator.startswith("objects.filter_by_label@"):
+                        selected = (
+                            "、".join(str(item) for item in node.params.get("labels", []))
+                            or "指定类别"
+                        )
+                        source = input_label(
+                            node, ("objects", "entities"), "前序检测结果"
+                        )
+                        action = (
+                            "保留"
+                            if node.params.get("mode", "include") == "include"
+                            else "排除"
+                        )
+                        return (
+                            f"{action}：{selected}",
+                            f"从「{source}」中{action}「{selected}」。",
+                        )
+                    if operator.startswith(
+                        ("spatial.associate@", "pairs.filter@")
+                    ):
+                        subject = input_label(
+                            node, ("subjects", "subject"), "主体目标"
+                        )
+                        obj = input_label(
+                            node, ("objects", "object"), "关联目标"
+                        )
+                        relation = str(node.params.get("relation", "关联"))
+                        template = _RELATION_LABELS.get(
+                            relation, "与{object}满足“" + relation + "”关系"
+                        )
+                        relation_text = template.format(
+                            object=obj,
+                            region=object_region_name(
+                                node.params.get("object_region")
+                            ),
+                        )
+                        return (
+                            f"判断：{subject}{relation_text}",
+                            f"以「{subject}」为主体，判断其是否{relation_text}。",
+                        )
+                    if operator.startswith(
+                        ("measure.count@", "measure.region_count@", "reduce.count@")
+                    ):
+                        source = input_label(
+                            node, ("entities", "objects", "tracks"), labels
+                        )
+                        group = (
+                            "，并按类别分组"
+                            if node.params.get("group_by") == "label"
+                            else ""
+                        )
+                        return (
+                            f"统计：{source}数量",
+                            f"统计「{source}」的数量{group}。",
+                        )
+                    if operator.startswith("temporal.persist@"):
+                        seconds = float(node.params.get("seconds", 0))
+                        source = input_label(
+                            node, ("condition", "conditions"), labels
+                        )
+                        return (
+                            f"持续判断：{source}",
+                            f"要求「{source}」持续 {seconds:g} 秒。",
+                        )
+                    if operator.startswith("logic.not@"):
+                        source = input_label(
+                            node, ("condition", "conditions"), labels
+                        )
+                        return (
+                            f"排除：{source}",
+                            f"仅保留不满足「{source}」的结果。",
+                        )
+                    return (
+                        f"{definition.display_name}：{labels}",
+                        f"对「{labels}」执行“{definition.display_name}”："
+                        f"{definition.description}",
+                    )
+
+                def comparison_subject(node: RuleNode) -> tuple[str, str]:
+                    """Return a business label and unit for an imported comparison."""
+
+                    source_edge = next(
+                        (
+                            edge
+                            for edge in incoming_edges.get(node.node_id, [])
+                            if edge.port in {"left", "value", "measurement"}
+                        ),
+                        None,
+                    )
+                    if source_edge is None:
+                        source_edge = next(
+                            iter(incoming_edges.get(node.node_id, [])), None
+                        )
+                    source = graph_nodes.get(source_edge.source) if source_edge else None
+                    if source is None:
+                        return "数值", ""
+                    label_and_unit = {
+                        "measure.region_count@1.0": ("每个区域的目标数量", ""),
+                        "measure.count@1.0": ("目标数量", ""),
+                        "reduce.count@1.0": ("目标数量", ""),
+                        "measure.region_speed@1.0": (
+                            "每个区域的目标速度",
+                            " 像素/秒"
+                            if source.params.get("unit") == "pixels_per_second"
+                            else "",
+                        ),
+                        "measure.speed@1.0": (
+                            "目标速度",
+                            " 像素/秒"
+                            if source.params.get("unit") == "pixels_per_second"
+                            else "",
+                        ),
+                    }
+                    if source.operator in label_and_unit:
+                        return label_and_unit[source.operator]
+                    capability_id = self._matched_capability_for_operator(
+                        source.operator
+                    )
+                    if capability_id:
+                        return self.capabilities.require(capability_id).display_name, ""
+                    return source.display_name, ""
+
                 for node in (graph.nodes if graph else []):
                     if node.node_id not in branch.node_ids or not node.enabled:
                         continue
@@ -1107,26 +1961,173 @@ class BusinessRuleEditor:
                     if capability_id is None:
                         continue
                     definition = self.capabilities.require(capability_id)
-                    rows.append(
-                        {
+                    logic = {
+                        "logic.all@1.0": "AND",
+                        "logic.any@1.0": "OR",
+                        "logic.not@1.0": "NOT",
+                        "reduce.quantify@1.0": "N_OF_M",
+                    }.get(node.operator, "ATOM")
+                    display_name, summary = describe_imported_node(node, definition)
+                    if node.operator == "logic.compare@1.0":
+                        value = node.params.get("value", node.params.get("threshold"))
+                        subject, unit = comparison_subject(node)
+                        summary = (
+                            f"{subject} {node.params.get('operator', '>=')} {value:g}{unit}"
+                            if isinstance(value, (int, float))
+                            else definition.display_name
+                        )
+                        display_name = f"{subject}判断"
+                    elif node.operator in {
+                        "temporal.persist@1.0", "event.from_condition@1.0"
+                    }:
+                        summary = f"持续 {float(node.params.get('seconds', 0)):g} 秒"
+                    imported_rows[node.node_id] = {
                             "condition_id": f"{_IMPORTED_STEP_PREFIX}{node.node_id}",
                             "parent_id": root.expression_id,
                             "depth": 1,
-                            "kind": "条件",
-                            "logic": "ATOM",
+                            "kind": "条件组" if logic != "ATOM" else "条件",
+                            "logic": logic,
                             "category": definition.category,
-                            "name": (
-                                node.display_name
-                                if node.display_name != node.node_id
-                                else definition.display_name
-                            ),
-                            "summary": definition.display_name,
+                            "name": display_name,
+                            "summary": summary,
                             "enabled": node.enabled,
-                            "status": "原有流程步骤，可修改关键参数",
+                            "status": (
+                                "当前生效逻辑，可在下方修改"
+                                if logic != "ATOM"
+                                else "原有流程步骤，可修改关键参数"
+                            ),
                             "capability_id": capability_id,
                             "imported_step": True,
+                            # Data-flow dependency is not a user-facing nesting
+                            # level. Imported executable steps are rendered as
+                            # one aligned sequence; actual AND/OR/NOT nodes keep
+                            # their badges and are edited in the logic control.
+                            "display_depth": 0,
                         }
-                    )
+                if graph:
+                    consumers: dict[str, list[str]] = {}
+                    for edge in graph.edges:
+                        if edge.source in imported_rows and edge.target in imported_rows:
+                            consumers.setdefault(edge.source, []).append(edge.target)
+                    for node_id, row in imported_rows.items():
+                        candidates = consumers.get(node_id, [])
+                        if candidates:
+                            parent_node_id = candidates[-1]
+                            row["parent_id"] = imported_rows[parent_node_id]["condition_id"]
+
+                    def imported_depth(node_id: str, seen: set[str] | None = None) -> int:
+                        seen = set() if seen is None else seen
+                        if node_id in seen:
+                            return 1
+                        seen.add(node_id)
+                        parent = imported_rows[node_id]["parent_id"]
+                        if parent == root.expression_id:
+                            return 1
+                        parent_id = parent[len(_IMPORTED_STEP_PREFIX):]
+                        return 1 + imported_depth(parent_id, seen)
+
+                    for node_id, row in imported_rows.items():
+                        row["depth"] = imported_depth(node_id)
+
+                    for node_id, row in imported_rows.items():
+                        if row["kind"] != "条件组":
+                            continue
+                        members = [
+                            edge.source
+                            for edge in incoming_edges.get(node_id, [])
+                            if edge.source in imported_rows
+                            and edge.port in {"conditions", "condition"}
+                        ]
+                        if not members:
+                            members = [
+                                child_id
+                                for child_id, child in imported_rows.items()
+                                if child["parent_id"] == row["condition_id"]
+                            ]
+                        logic_members[node_id] = members
+
+                    def logic_summary(
+                        node_id: str, seen: set[str] | None = None
+                    ) -> str:
+                        seen = set() if seen is None else set(seen)
+                        if node_id in seen:
+                            return imported_rows[node_id]["summary"]
+                        seen.add(node_id)
+                        row = imported_rows[node_id]
+                        members = logic_members.get(node_id, [])
+                        if row["kind"] != "条件组" or not members:
+                            return row["summary"]
+                        member_summaries = [
+                            logic_summary(member_id, seen)
+                            for member_id in members
+                        ]
+                        relation = row["logic"]
+                        if relation == "N_OF_M":
+                            source_node = graph_nodes[node_id]
+                            relation = (
+                                f"至少 {source_node.params.get('required_count', 1)} 项满足"
+                            )
+                        if relation == "NOT":
+                            summary = f"NOT（{member_summaries[0]}）"
+                            member_id = logic_members.get(node_id, [None])[0]
+                            member_name = (
+                                imported_rows[member_id]["name"]
+                                if member_id in imported_rows
+                                else member_summaries[0]
+                            )
+                            row["name"] = f"排除：{member_name.removeprefix('判断：')}"
+                        else:
+                            summary = f" {relation} ".join(member_summaries)
+                        row["summary"] = summary
+                        row["member_summaries"] = member_summaries
+                        row["logic_relation_label"] = relation
+                        for index, member_id in enumerate(members):
+                            imported_rows[member_id]["logic_member_label"] = (
+                                f"条件 {chr(65 + index)}"
+                                if index < 26
+                                else f"条件 {index + 1}"
+                            )
+                        return summary
+
+                    for node_id in logic_members:
+                        logic_summary(node_id)
+                rows.extend(imported_rows.values())
+                for index, row in enumerate(imported_rows.values(), start=1):
+                    row["workflow_index"] = index
+                logic_rows = [
+                    row for row in imported_rows.values()
+                    if row["kind"] == "条件组"
+                ]
+                if logic_rows:
+                    logical_result = logic_rows[-1]["summary"]
+                else:
+                    logical_result = ""
+                grouped_member_ids = {
+                    member_id
+                    for member_ids in logic_members.values()
+                    for member_id in member_ids
+                }
+                workflow_parts = []
+                for node_id, row in imported_rows.items():
+                    # A logic operand is represented inside its parenthesized
+                    # group. Repeating it as another arrow step is ambiguous.
+                    if node_id in grouped_member_ids:
+                        continue
+                    # Label filters and NOT wrappers are executable
+                    # bookkeeping, not separate business actions. Showing
+                    # them as arrows made generated workflows look longer
+                    # than their actual intent (for example, "保留垃圾容器
+                    # → 排除垃圾堆"). Keep the concrete detection,
+                    # relation, counting and temporal steps visible instead.
+                    if row["name"].startswith(("保留：", "排除：")):
+                        continue
+                    if row["kind"] == "条件组":
+                        workflow_parts.append(f"（{row['summary']}）")
+                    elif row["summary"].startswith("持续 "):
+                        workflow_parts.append(row["summary"])
+                    else:
+                        workflow_parts.append(row["name"])
+                rows[0]["summary"] = " → ".join(workflow_parts) or logical_result
         return rows
 
     def parameter_rows(
@@ -1152,9 +2153,14 @@ class BusinessRuleEditor:
             if node is None or capability_id is None:
                 return []
             definition = self.capabilities.require(capability_id)
-            values = self._parameters_from_node(capability_id, node)
+            parameter_definitions = self._imported_parameter_definitions(
+                definition, node
+            )
+            values = self._parameters_from_node(
+                capability_id, node, parameter_definitions
+            )
             rows = []
-            for parameter in definition.parameters:
+            for parameter in parameter_definitions:
                 if parameter.level == "derived":
                     continue
                 if parameter.level == "tuning" and not include_tuning:
@@ -1257,9 +2263,24 @@ class BusinessRuleEditor:
                 if value not in (None, "", [], {}):
                     details.append(str(value))
             return expression.display_name + (f"（{'，'.join(details)}）" if details else "")
-        children = [self.expression_summary(child, compact=True) for child in expression.children]
+        children = []
+        for child in expression.children:
+            summary = self.expression_summary(child, compact=True)
+            if child.operator in {"AND", "OR", "N_OF_M"}:
+                summary = f"({summary})"
+            children.append(summary)
         if expression.operator == "NOT":
-            return f"NOT {children[0]}"
+            child = children[0]
+            if expression.children[0].operator == "NOT":
+                child = f"({child})"
+            return f"NOT {child}"
+        if expression.operator == "N_OF_M":
+            summary = (
+                f"至少 {expression.required_count or 1} 项满足（"
+                + "；".join(children)
+                + "）"
+            )
+            return summary if compact else f"({summary})"
         connector = f" {expression.operator} "
         summary = connector.join(children)
         return summary if compact else f"({summary})"
@@ -1457,12 +2478,30 @@ class BusinessRuleEditor:
             return cos(radians(float(value)))
         return value
 
-    def _parameters_from_node(self, capability_id: str, node) -> dict[str, Any]:
+    def _parameters_from_node(
+        self,
+        capability_id: str,
+        node,
+        parameters: list[BusinessParameterDefinition] | None = None,
+    ) -> dict[str, Any]:
         if node is None:
             return {}
         definition = self.capabilities.require(capability_id)
         result = {}
-        for parameter in definition.parameters:
+        for parameter in parameters or definition.parameters:
+            if parameter.parameter_id.startswith(_IMPORTED_PARAMETER_PREFIX):
+                atom_parameter = parameter.parameter_id[len(_IMPORTED_PARAMETER_PREFIX):]
+                operator = self.operators.require(node.operator)
+                if atom_parameter in node.params:
+                    value = node.params[atom_parameter]
+                elif atom_parameter in operator.defaults:
+                    value = operator.defaults[atom_parameter]
+                else:
+                    continue
+                if parameter.value_transform == "percent_to_ratio":
+                    value = float(value) * 100.0
+                result[parameter.parameter_id] = value
+                continue
             for mapping in parameter.maps_to:
                 operator, atom_parameter = mapping.rsplit(".", 1)
                 if operator == node.operator and atom_parameter in node.params:
@@ -1482,6 +2521,136 @@ class BusinessRuleEditor:
             ]
             if phrases and len(targets) == 1:
                 result["phrases"] = ", ".join(phrases)
+        return result
+
+    def _imported_parameter_definitions(
+        self,
+        definition: BusinessCapabilityDefinition,
+        node,
+    ) -> list[BusinessParameterDefinition]:
+        """Expose every safe scalar atom parameter with a business-language editor.
+
+        Capability mappings remain the preferred contract.  Historical and preset
+        graphs can contain additional operator parameters, so scalar values missing
+        from that contract are projected through the shared parameter-presentation
+        catalog instead of disappearing or exposing technical JSON names.
+        """
+
+        result = list(definition.parameters)
+        mapped = set()
+        for parameter in definition.parameters:
+            for mapping in parameter.maps_to:
+                operator, atom_parameter = mapping.rsplit(".", 1)
+                if operator == node.operator:
+                    mapped.add(atom_parameter)
+        operator = self.operators.require(node.operator)
+        available = set(operator.parameters) | set(operator.defaults) | set(node.params)
+        editable_kinds = {
+            "boolean",
+            "integer",
+            "integer_or_null",
+            "number",
+            "number_or_null",
+            "string",
+            "string_or_null",
+            "string_list",
+            "nonempty_string_list",
+        }
+        # Structured parameters are still part of the effective atom contract, but
+        # most of them are maintained by 02 annotation or a dedicated business
+        # editor (for example per-region overrides).  Keep them visible as read-only
+        # evidence instead of silently dropping them or exposing raw JSON editing.
+        visible_readonly_kinds = {
+            "direction_list",
+            "json",
+            "named_region_list",
+            "normalized_box",
+            "numeric_mapping",
+            "point_list",
+            "point_or_null",
+            "relative_box",
+            "string_mapping",
+            "target_list",
+            "vector2",
+        }
+        used_labels = {parameter.label for parameter in result}
+        for name in sorted(available - mapped):
+            spec = operator.parameters.get(name)
+            if spec is None or spec.kind not in editable_kinds | visible_readonly_kinds:
+                continue
+            if name not in node.params and operator.defaults.get(name) is None:
+                continue
+            if (
+                node.operator == "logic.compare@1.0"
+                and name == "threshold"
+                and "value" in node.params
+                and "threshold" not in node.params
+            ):
+                continue
+            if (
+                node.operator == "logic.compare@1.0"
+                and name == "value"
+                and "threshold" in node.params
+                and "value" not in node.params
+            ):
+                continue
+            presentation = parameter_presentation(
+                name, spec, operator_help=operator.fixed_rule_text
+            )
+            if spec.kind in visible_readonly_kinds:
+                editor = "readonly"
+            elif spec.kind == "boolean":
+                editor = "boolean"
+            elif spec.kind in {"integer", "integer_or_null"}:
+                editor = "frames" if ("frame" in name or name == "min_hits") else "number"
+            elif spec.kind in {"number", "number_or_null"}:
+                editor = (
+                    "percentage"
+                    if presentation.value_transform == "percent_to_ratio"
+                    else "duration"
+                    if "seconds" in name
+                    else "number"
+                )
+            elif spec.kind in {"string_list", "nonempty_string_list"}:
+                editor = "multi_select"
+            else:
+                editor = "select" if spec.choices else "text"
+            label = presentation.label
+            if label in used_labels:
+                label = f"{label}（当前步骤）"
+            used_labels.add(label)
+            value_transform = (
+                presentation.value_transform
+                if presentation.value_transform == "percent_to_ratio"
+                else None
+            )
+            result.append(
+                BusinessParameterDefinition(
+                    parameter_id=f"{_IMPORTED_PARAMETER_PREFIX}{name}",
+                    label=label,
+                    editor=editor,
+                    help=presentation.short_help,
+                    unit=(
+                        "像素"
+                        if presentation.value_transform == "screen_diagonal_percent"
+                        else presentation.unit
+                    ),
+                    choices=list(spec.choices),
+                    minimum=(
+                        spec.minimum * 100
+                        if value_transform == "percent_to_ratio" and spec.minimum is not None
+                        else spec.minimum
+                    ),
+                    maximum=(
+                        spec.maximum * 100
+                        if value_transform == "percent_to_ratio" and spec.maximum is not None
+                        else spec.maximum
+                    ),
+                    required=spec.required,
+                    level=presentation.level,
+                    value_transform=value_transform,
+                )
+            )
         return result
 
     def _capability_for_operator(self, operator: str | None) -> str:
@@ -1504,6 +2673,16 @@ class BusinessRuleEditor:
             if parameter.parameter_id not in parameters:
                 continue
             value = parameters[parameter.parameter_id]
+            if parameter.parameter_id.startswith(_IMPORTED_PARAMETER_PREFIX):
+                atom_parameter = parameter.parameter_id[len(_IMPORTED_PARAMETER_PREFIX):]
+                node.params[atom_parameter] = self._to_compiled_value(parameter, value)
+                node.parameter_sources[atom_parameter] = ResolvableValue(
+                    state="explicit",
+                    value=deepcopy(node.params[atom_parameter]),
+                    source="user",
+                    required_before="never",
+                )
+                continue
             for mapping in parameter.maps_to:
                 operator, atom_parameter = mapping.rsplit(".", 1)
                 if node.operator == operator:

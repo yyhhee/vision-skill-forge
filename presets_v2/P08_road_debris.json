@@ -103,7 +103,7 @@
               }
             ]
           },
-          "enabled": false
+          "enabled": true
         },
         {
           "id": "roads",
@@ -116,7 +116,7 @@
             "threshold": 0.5,
             "keep": "first"
           },
-          "enabled": false
+          "enabled": true
         },
         {
           "id": "debris_raw",
@@ -152,22 +152,13 @@
           "enabled": true
         },
         {
-          "id": "road_regions_auto",
+          "id": "road_regions",
           "op": "region.from_objects@1.0",
           "inputs": {
             "objects": "$roads"
           },
           "params": {
             "mode": "all"
-          },
-          "enabled": false
-        },
-        {
-          "id": "road_regions",
-          "op": "region.manual_set@1.0",
-          "inputs": {},
-          "params": {
-            "regions": []
           },
           "enabled": true
         },
@@ -225,29 +216,7 @@
           "violations"
         ]
       },
-      "configuration_slots": [
-        {
-          "slot_id": "road_regions",
-          "kind": "region_set",
-          "label": "道路检测区域",
-          "required": true,
-          "binding": {
-            "node_id": "road_regions",
-            "parameter": "regions"
-          },
-          "allowed_shapes": [
-            "rectangle",
-            "polygon"
-          ],
-          "minimum_items": 1,
-          "source_atom_ids": [
-            "atom_1"
-          ],
-          "help_text": "请在 02 标注中手工圈出需要检测抛洒物的道路区域，可添加多个区域。",
-          "active_when_op": null,
-          "key_source_slot_id": null
-        }
-      ],
+      "configuration_slots": [],
       "issue": null
     },
     "video": {
@@ -304,7 +273,7 @@
               }
             ]
           },
-          "enabled": false
+          "enabled": true
         },
         {
           "id": "roads",
@@ -317,7 +286,7 @@
             "threshold": 0.5,
             "keep": "first"
           },
-          "enabled": false
+          "enabled": true
         },
         {
           "id": "debris_raw",
@@ -353,22 +322,13 @@
           "enabled": true
         },
         {
-          "id": "road_regions_auto",
+          "id": "road_regions",
           "op": "region.from_objects@1.0",
           "inputs": {
             "objects": "$roads"
           },
           "params": {
             "mode": "all"
-          },
-          "enabled": false
-        },
-        {
-          "id": "road_regions",
-          "op": "region.manual_set@1.0",
-          "inputs": {},
-          "params": {
-            "regions": []
           },
           "enabled": true
         },
@@ -464,29 +424,7 @@
           "violations"
         ]
       },
-      "configuration_slots": [
-        {
-          "slot_id": "road_regions",
-          "kind": "region_set",
-          "label": "道路检测区域",
-          "required": true,
-          "binding": {
-            "node_id": "road_regions",
-            "parameter": "regions"
-          },
-          "allowed_shapes": [
-            "rectangle",
-            "polygon"
-          ],
-          "minimum_items": 1,
-          "source_atom_ids": [
-            "atom_1"
-          ],
-          "help_text": "请在 02 标注中手工圈出需要检测抛洒物的道路区域，可添加多个区域。",
-          "active_when_op": null,
-          "key_source_slot_id": null
-        }
-      ],
+      "configuration_slots": [],
       "issue": null
     }
   },

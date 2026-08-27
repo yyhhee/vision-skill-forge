@@ -271,11 +271,11 @@ def build_default_registry() -> OperatorRegistry:
             {"objects": "EntitySet"},
             "ObjectSet",
             {"metric": "ios", "threshold": 0.5, "keep": "first"},
-            "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；按来源顺序保留首个框，不使用跨类别置信度竞争。",
+            "只在同帧、同 canonical label 内按 IoS 或 IoU 去重；可按来源顺序保留首框，或优先保留未被切片边界截断的高分辨率定位框。",
             {
                 "metric": _p("string", choices=("ios", "iou")),
                 "threshold": _p("number", minimum=0.0, maximum=1.0),
-                "keep": _p("string", choices=("first",)),
+                "keep": _p("string", choices=("first", "best_localization")),
             },
         ),
         OperatorDefinition(
@@ -314,6 +314,26 @@ def build_default_registry() -> OperatorRegistry:
             "按输入分支顺序合并多个显式 ObjectSet；不做隐藏去重或跨类别置信度竞争。",
         ),
         OperatorDefinition(
+            "objects.filter_by_regions@1.0",
+            "按标注区域筛选目标",
+            "frame",
+            {"objects": "EntitySet", "regions": "RegionSet"},
+            "ObjectSet",
+            {
+                "membership_mode": "center",
+                "overlap_threshold": 0.1,
+                "keep": "inside",
+                "empty_regions": "exclude",
+            },
+            "按全部实际标注区域的并集筛选目标；区域数量运行时确定，可用于检测结果、跟踪、统计和证据框的统一业务范围。空区域可明确选择排除全部或透传全部目标。",
+            {
+                "membership_mode": _p("string", choices=("center", "overlap")),
+                "overlap_threshold": _p("number", minimum=0.0, maximum=1.0),
+                "keep": _p("string", choices=("inside", "outside")),
+                "empty_regions": _p("string", choices=("exclude", "passthrough")),
+            },
+        ),
+        OperatorDefinition(
             "visual.color_fraction@1.0",
             "实体区域颜色占比",
             "frame",
@@ -325,6 +345,7 @@ def build_default_registry() -> OperatorRegistry:
                 "min_fraction": 0.2,
                 "selection_mode": "fraction",
                 "dominance_margin": 0.05,
+                "color_tolerance": "strict",
             },
             "在每个实体框的归一化子区域内按固定 HSV 色域计算颜色像素占比，并与显式阈值比较。",
             {
@@ -335,6 +356,7 @@ def build_default_registry() -> OperatorRegistry:
                 "min_fraction": _p("number", minimum=0.0, maximum=1.0),
                 "selection_mode": _p("string", choices=("fraction", "dominant")),
                 "dominance_margin": _p("number", minimum=0.0, maximum=1.0),
+                "color_tolerance": _p("string", choices=("strict", "semantic")),
             },
         ),
         OperatorDefinition(
@@ -348,7 +370,7 @@ def build_default_registry() -> OperatorRegistry:
                 "small_max_area": 0.02, "large_min_area": 0.12,
                 "position_margin": 0.33, "aspect_ratio_threshold": 1.0,
             },
-            "根据归一化框面积、中心点位置或宽高比执行固定、可配置的几何判断。",
+            "根据归一化框面积、中心点位置或原媒体像素宽高比执行固定、可配置的几何判断。",
             {
                 "dimension": _p("string", choices=("size", "position", "aspect_ratio")),
                 "value": _p("string", choices=(
@@ -455,12 +477,24 @@ def build_default_registry() -> OperatorRegistry:
             "stream",
             {"objects": "EntitySet"},
             "TrackSet",
-            {"iou_threshold": 0.3, "max_missing_frames": 3, "same_label_only": True},
-            "同标签目标按最大 IoU 匹配；丢失阈值按抽样序列位置计算，不误用原视频帧号。",
+            {
+                "iou_threshold": 0.3,
+                "max_missing_frames": 3,
+                "same_label_only": True,
+                "motion_consistency": False,
+                "motion_prediction": False,
+                "min_direction_cosine": -1.0,
+                "min_motion_pixels": 5.0,
+            },
+            "按全帧一对一匹配当前位置 IoU；可叠加运动预测 IoU 与方向连续性，减少透视运动断轨及密集目标串轨。丢失阈值按抽样序列位置计算。",
             {
                 "iou_threshold": _p("number", minimum=0.0, maximum=1.0),
                 "max_missing_frames": _p("integer", minimum=0),
                 "same_label_only": _p("boolean"),
+                "motion_consistency": _p("boolean"),
+                "motion_prediction": _p("boolean"),
+                "min_direction_cosine": _p("number", minimum=-1.0, maximum=1.0),
+                "min_motion_pixels": _p("number", minimum=0.0),
             },
         ),
         OperatorDefinition(
@@ -499,17 +533,20 @@ def build_default_registry() -> OperatorRegistry:
                 "relation": "overlap",
                 "threshold": 0.1,
                 "subject_region": [0.0, 0.0, 1.0, 0.35],
+                "object_region": [0.0, 0.0, 1.0, 1.0],
                 "same_source_only": False,
             },
-            "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或客体中心所在主体相对区域产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
+            "按来源实体 ID、单向覆盖、双向同实例覆盖、near，或一个目标中心是否落在另一个目标的相对区域内产生逐主体关联条件；可显式限定局部证据只能回绑其来源主体。",
             {
                 "relation": _p("string", choices=(
                     "source_entity", "overlap", "inside", "contains", "mutual_match", "near", "center_in_subject_region",
+                    "center_in_object_region",
                     "best_owner",
                     "left_of", "right_of", "above", "below",
                 )),
                 "threshold": _p("number", minimum=0.0),
                 "subject_region": _p("relative_box"),
+                "object_region": _p("relative_box"),
                 "same_source_only": _p("boolean"),
             },
         ),
@@ -584,11 +621,16 @@ def build_default_registry() -> OperatorRegistry:
             "stream",
             {"tracks": "TrackSet"},
             "VectorSet",
-            {"window_frames": 5, "min_displacement_pixels": 10.0},
-            "用轨迹窗口首尾中心点差得到归一化方向向量。",
+            {
+                "window_frames": 5,
+                "min_displacement_pixels": 10.0,
+                "min_displacement_box_ratio": 0.0,
+            },
+            "用轨迹窗口首尾中心点差得到归一化方向向量；可按目标框尺寸自适应小目标位移门槛。",
             {
                 "window_frames": _p("integer", minimum=2),
                 "min_displacement_pixels": _p("number", minimum=0.0),
+                "min_displacement_box_ratio": _p("number", minimum=0.0, maximum=1.0),
             },
         ),
         OperatorDefinition(
@@ -652,8 +694,8 @@ def build_default_registry() -> OperatorRegistry:
                 "references": "VectorSet",
             },
             "ConditionSet",
-            {"threshold": -0.5, "membership_mode": "majority_center", "relation": "opposite"},
-            "按轨迹所在命名区域选择参考方向，以显式 aligned/opposite 关系比较方向余弦；global 参考方向可作为广播后备。",
+            {"threshold": -0.5, "membership_mode": "majority_center", "relation": "opposite", "scope_overrides": {}},
+            "按轨迹所在命名区域选择参考方向，以显式 aligned/opposite 关系比较方向余弦；global 参考方向可作为广播后备；阈值和方向关系可按实际标注区域覆盖。",
             {
                 "threshold": _p("number", minimum=-1.0, maximum=1.0),
                 "membership_mode": _p(
@@ -661,6 +703,7 @@ def build_default_registry() -> OperatorRegistry:
                     choices=("majority_center", "latest_center", "sample_center"),
                 ),
                 "relation": _p("string", choices=("aligned", "opposite")),
+                "scope_overrides": _p("json"),
             },
         ),
         OperatorDefinition(
@@ -801,13 +844,15 @@ def build_default_registry() -> OperatorRegistry:
             "stream",
             {"condition": "ConditionSet"},
             "EventSet",
-            {"seconds": 2.0, "scope": "track", "gap_tolerance_seconds": 0.5, "trigger_mode": "once"},
-            "按 track 或 global key 连续满足条件达到时间后产生事件。",
+            {"seconds": 2.0, "scope": "track", "gap_tolerance_seconds": 0.5, "trigger_mode": "once", "scope_overrides": {}, "override_scope_field": "region_id"},
+            "按 track 或 global key 连续满足条件达到时间后产生事件；上游携带区域身份时，持续、容错和触发方式可按实际标注区域覆盖。",
             {
                 "seconds": _p("number", minimum=0.0),
                 "scope": _p("string", choices=("track", "global", "region")),
                 "gap_tolerance_seconds": _p("number", minimum=0.0),
                 "trigger_mode": _p("string", choices=("once", "repeat")),
+                "scope_overrides": _p("json"),
+                "override_scope_field": _p("string"),
             },
         ),
         OperatorDefinition(
@@ -878,7 +923,7 @@ def build_default_registry() -> OperatorRegistry:
             },
             "支持同时有效、全部完成、窗口内完成、任一和N选M的动态多分支汇合。",
             {
-                "mode": _p("string", choices=("all_active", "all_completed", "all_completed_within_window", "any", "n_of_m", "overlap")),
+                "mode": _p("string", choices=("all_active", "all_completed", "all_completed_within_window", "any", "n_of_m", "exclusive", "overlap")),
                 "required_count": _p("integer_or_null", minimum=1),
                 "window_seconds": _p("number_or_null", minimum=0),
                 "correlation_scope": _p("string", choices=("global", "object", "track", "pair", "region", "camera", "scene", "field")),
@@ -978,11 +1023,13 @@ def build_default_registry() -> OperatorRegistry:
             "RenderedMedia",
             {
                 "show_labels": True,
+                "show_event_labels": True,
                 "show_track_id": True,
                 "show_trajectory": False,
                 "show_regions": True,
                 "show_directions": True,
                 "show_measurements": True,
+                "event_time_window": "event",
                 "output_size_mode": "source",
                 "output_width": None,
                 "output_height": None,
@@ -992,11 +1039,15 @@ def build_default_registry() -> OperatorRegistry:
             "在原始媒体坐标上绘制目标、轨迹、区域和事件。",
             {
                 "show_labels": _p("boolean"),
+                "show_event_labels": _p("boolean"),
                 "show_track_id": _p("boolean"),
                 "show_trajectory": _p("boolean"),
                 "show_regions": _p("boolean"),
                 "show_directions": _p("boolean"),
                 "show_measurements": _p("boolean"),
+                "event_time_window": _p(
+                    "string", choices=("event", "track_history")
+                ),
                 "output_size_mode": _p(
                     "string", choices=("source", "processed", "fixed")
                 ),
@@ -1110,8 +1161,9 @@ def build_default_registry() -> OperatorRegistry:
             "aggregate",
             {"sets": "CountableSet"},
             "ConditionSet",
-            {},
-            "将目标、轨迹、目标对或动态分组显式归约为存在条件。",
+            {"scope": "global"},
+            "将目标、轨迹、目标对或动态分组显式归约为存在条件；可保留实体身份供逐目标持续判断。",
+            {"scope": _p("string", choices=("global", "entity"))},
         ),
         OperatorDefinition(
             "reduce.all@1.0",
@@ -1138,11 +1190,12 @@ def build_default_registry() -> OperatorRegistry:
             "aggregate",
             {"conditions": "ConditionSet"},
             "ConditionSet",
-            {"mode": "for_each", "required_count": 1},
+            {"mode": "for_each", "required_count": 1, "combine_scope": "by_key"},
             "对未知数量的动态范围执行逐范围、任一、全部或至少N个量词。",
             {
                 "mode": _p("string", choices=("for_each", "any", "all", "n_of_m")),
                 "required_count": _p("integer", minimum=1),
+                "combine_scope": _p("string", choices=("by_key", "frame_any")),
             },
         ),
         OperatorDefinition(

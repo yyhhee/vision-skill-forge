@@ -3,7 +3,7 @@
   "skill_id": "bridge_damage",
   "version": 1,
   "display_name": "桥梁病害",
-  "original_instruction": "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋，排除规则施工缝。",
+  "original_instruction": "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋。",
   "compile_status": "compiled",
   "input": {
     "requested_accept": [
@@ -21,83 +21,66 @@
   },
   "semantic_ir": {
     "schema_version": "1.0",
-    "mode": "entity_query",
+    "mode": "direct_grounding",
     "target": {
       "concept": "bridge_damage",
       "source_span": "裂纹、锈蚀、渗水、混凝土剥落和露筋",
       "phrases": [
-        "bridge crack",
-        "concrete crack",
-        "bridge corrosion",
-        "rust on bridge",
-        "visible rust corrosion on bridge surface",
-        "water seepage",
-        "water stain on concrete",
-        "concrete spalling",
-        "exposed rebar",
-        "exposed steel reinforcement bar",
-        "visible reinforcement steel in concrete"
+        "thin irregular crack line on a concrete bridge surface",
+        "localized visible concrete crack",
+        "brown orange rust streak on a concrete bridge pier",
+        "localized rusty corrosion stain below exposed metal",
+        "dark vertical water seepage stain on concrete",
+        "wet leakage mark on a bridge pier surface",
+        "broken concrete surface with missing cover",
+        "localized concrete spalling patch",
+        "exposed steel reinforcement in damaged bridge concrete",
+        "visible reinforcing bar protruding from a concrete bridge pier",
+        "small dark exposed reinforcing steel ends in concrete"
       ],
       "classes": [
         {
           "label": "裂纹",
           "phrases": [
-            "bridge crack",
-            "concrete crack"
+            "thin irregular crack line on a concrete bridge surface",
+            "localized visible concrete crack"
           ]
         },
         {
           "label": "锈蚀",
           "phrases": [
-            "bridge corrosion",
-            "rust on bridge",
-            "visible rust corrosion on bridge surface"
+            "brown orange rust streak on a concrete bridge pier",
+            "localized rusty corrosion stain below exposed metal"
           ]
         },
         {
           "label": "渗水",
           "phrases": [
-            "water seepage",
-            "water stain on concrete"
+            "dark vertical water seepage stain on concrete",
+            "wet leakage mark on a bridge pier surface"
           ]
         },
         {
           "label": "混凝土剥落",
           "phrases": [
-            "concrete spalling"
+            "broken concrete surface with missing cover",
+            "localized concrete spalling patch"
           ]
         },
         {
           "label": "露筋",
           "phrases": [
-            "exposed rebar",
-            "exposed steel reinforcement bar",
-            "visible reinforcement steel in concrete"
+            "exposed steel reinforcement in damaged bridge concrete",
+            "visible reinforcing bar protruding from a concrete bridge pier",
+            "small dark exposed reinforcing steel ends in concrete"
           ]
         }
       ]
     },
-    "constraints": [
-      {
-        "atom_id": "atom_1",
-        "kind": "entity_exclusion",
-        "value": "regular_construction_joint",
-        "source": "排除规则施工缝",
-        "source_span": "规则施工缝",
-        "polarity": "absent",
-        "carrier": null,
-        "carrier_span": null,
-        "phrases": [
-          "regular construction joint",
-          "straight concrete seam",
-          "intact concrete with construction joints"
-        ],
-        "temporal": false
-      }
-    ],
+    "constraints": [],
     "logic": "all",
     "unresolved": [],
-    "semantic_hash": "70f452c792a6d0a85510805b26218caed26f2e00140c619f49ae7886b67cc3ec"
+    "semantic_hash": "c83b7d68daef25d6ccec2f2c947e32ecdc087a4550dd2b312ca0d7fbb778e765"
   },
   "variants": {
     "image": {
@@ -121,7 +104,7 @@
           },
           "params": {
             "mode": "long_side",
-            "long_side": 1280
+            "long_side": 2048
           },
           "enabled": true
         },
@@ -132,11 +115,11 @@
             "frames": "$resized"
           },
           "params": {
-            "tile_width": 640,
-            "tile_height": 640,
-            "overlap_x": 0.2,
-            "overlap_y": 0.2,
-            "include_full_frame": false
+            "tile_width": 768,
+            "tile_height": 768,
+            "overlap_x": 0.25,
+            "overlap_y": 0.25,
+            "include_full_frame": true
           },
           "enabled": true
         },
@@ -151,37 +134,37 @@
               {
                 "label": "裂纹",
                 "phrases": [
-                  "bridge crack",
-                  "concrete crack"
+                  "thin irregular crack line on a concrete bridge surface",
+                  "localized visible concrete crack"
                 ]
               },
               {
                 "label": "锈蚀",
                 "phrases": [
-                  "bridge corrosion",
-                  "rust on bridge",
-                  "visible rust corrosion on bridge surface"
+                  "brown orange rust streak on a concrete bridge pier",
+                  "localized rusty corrosion stain below exposed metal"
                 ]
               },
               {
                 "label": "渗水",
                 "phrases": [
-                  "water seepage",
-                  "water stain on concrete"
+                  "dark vertical water seepage stain on concrete",
+                  "wet leakage mark on a bridge pier surface"
                 ]
               },
               {
                 "label": "混凝土剥落",
                 "phrases": [
-                  "concrete spalling"
+                  "broken concrete surface with missing cover",
+                  "localized concrete spalling patch"
                 ]
               },
               {
                 "label": "露筋",
                 "phrases": [
-                  "exposed rebar",
-                  "exposed steel reinforcement bar",
-                  "visible reinforcement steel in concrete"
+                  "exposed steel reinforcement in damaged bridge concrete",
+                  "visible reinforcing bar protruding from a concrete bridge pier",
+                  "small dark exposed reinforcing steel ends in concrete"
                 ]
               }
             ]
@@ -196,81 +179,9 @@
           },
           "params": {
             "metric": "ios",
-            "threshold": 0.35,
-            "keep": "first"
+            "threshold": 0.55,
+            "keep": "best_localization"
           },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_exclusion_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "targets": [
-              {
-                "label": "规则施工缝",
-                "phrases": [
-                  "regular construction joint",
-                  "straight concrete seam",
-                  "intact concrete with construction joints"
-                ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_exclusion",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$bridge_damage_exclusion_1_exclusion_raw"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
-          },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_matches",
-          "op": "spatial.associate@1.0",
-          "inputs": {
-            "subjects": "$bridge_damage",
-            "objects": "$bridge_damage_exclusion_1_exclusion"
-          },
-          "params": {
-            "relation": "mutual_match",
-            "threshold": 0.5,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ],
-            "same_source_only": false
-          },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_not",
-          "op": "logic.not@1.0",
-          "inputs": {
-            "condition": "$bridge_damage_exclusion_1_matches"
-          },
-          "params": {},
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_filtered",
-          "op": "filter.apply@1.0",
-          "inputs": {
-            "objects": "$bridge_damage",
-            "condition": "$bridge_damage_exclusion_1_not"
-          },
-          "params": {},
           "enabled": true
         },
         {
@@ -278,7 +189,7 @@
           "op": "output.draw@1.0",
           "inputs": {
             "frames": "$resized",
-            "objects": "$bridge_damage_exclusion_1_filtered"
+            "objects": "$bridge_damage"
           },
           "params": {
             "show_labels": true,
@@ -289,17 +200,9 @@
       ],
       "outputs": {
         "media": "$draw",
-        "objects": "$bridge_damage_exclusion_1_filtered"
+        "objects": "$bridge_damage"
       },
-      "atom_bindings": {
-        "atom_1": [
-          "bridge_damage_exclusion_1_exclusion_raw",
-          "bridge_damage_exclusion_1_exclusion",
-          "bridge_damage_exclusion_1_matches",
-          "bridge_damage_exclusion_1_not",
-          "bridge_damage_exclusion_1_filtered"
-        ]
-      },
+      "atom_bindings": {},
       "configuration_slots": [],
       "issue": null
     },
@@ -336,7 +239,7 @@
           },
           "params": {
             "mode": "long_side",
-            "long_side": 1280
+            "long_side": 2048
           },
           "enabled": true
         },
@@ -347,11 +250,11 @@
             "frames": "$resized"
           },
           "params": {
-            "tile_width": 640,
-            "tile_height": 640,
-            "overlap_x": 0.2,
-            "overlap_y": 0.2,
-            "include_full_frame": false
+            "tile_width": 768,
+            "tile_height": 768,
+            "overlap_x": 0.25,
+            "overlap_y": 0.25,
+            "include_full_frame": true
           },
           "enabled": true
         },
@@ -366,37 +269,37 @@
               {
                 "label": "裂纹",
                 "phrases": [
-                  "bridge crack",
-                  "concrete crack"
+                  "thin irregular crack line on a concrete bridge surface",
+                  "localized visible concrete crack"
                 ]
               },
               {
                 "label": "锈蚀",
                 "phrases": [
-                  "bridge corrosion",
-                  "rust on bridge",
-                  "visible rust corrosion on bridge surface"
+                  "brown orange rust streak on a concrete bridge pier",
+                  "localized rusty corrosion stain below exposed metal"
                 ]
               },
               {
                 "label": "渗水",
                 "phrases": [
-                  "water seepage",
-                  "water stain on concrete"
+                  "dark vertical water seepage stain on concrete",
+                  "wet leakage mark on a bridge pier surface"
                 ]
               },
               {
                 "label": "混凝土剥落",
                 "phrases": [
-                  "concrete spalling"
+                  "broken concrete surface with missing cover",
+                  "localized concrete spalling patch"
                 ]
               },
               {
                 "label": "露筋",
                 "phrases": [
-                  "exposed rebar",
-                  "exposed steel reinforcement bar",
-                  "visible reinforcement steel in concrete"
+                  "exposed steel reinforcement in damaged bridge concrete",
+                  "visible reinforcing bar protruding from a concrete bridge pier",
+                  "small dark exposed reinforcing steel ends in concrete"
                 ]
               }
             ]
@@ -411,88 +314,16 @@
           },
           "params": {
             "metric": "ios",
-            "threshold": 0.35,
-            "keep": "first"
+            "threshold": 0.55,
+            "keep": "best_localization"
           },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_exclusion_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "targets": [
-              {
-                "label": "规则施工缝",
-                "phrases": [
-                  "regular construction joint",
-                  "straight concrete seam",
-                  "intact concrete with construction joints"
-                ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_exclusion",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$bridge_damage_exclusion_1_exclusion_raw"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
-          },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_matches",
-          "op": "spatial.associate@1.0",
-          "inputs": {
-            "subjects": "$bridge_damage",
-            "objects": "$bridge_damage_exclusion_1_exclusion"
-          },
-          "params": {
-            "relation": "mutual_match",
-            "threshold": 0.5,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ],
-            "same_source_only": false
-          },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_not",
-          "op": "logic.not@1.0",
-          "inputs": {
-            "condition": "$bridge_damage_exclusion_1_matches"
-          },
-          "params": {},
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_exclusion_1_filtered",
-          "op": "filter.apply@1.0",
-          "inputs": {
-            "objects": "$bridge_damage",
-            "condition": "$bridge_damage_exclusion_1_not"
-          },
-          "params": {},
           "enabled": true
         },
         {
           "id": "result_tracks",
           "op": "track.iou@1.0",
           "inputs": {
-            "objects": "$bridge_damage_exclusion_1_filtered"
+            "objects": "$bridge_damage"
           },
           "params": {
             "iou_threshold": 0.2,
@@ -544,15 +375,7 @@
         "objects": "$confirmed_objects",
         "tracks": "$confirmed_tracks"
       },
-      "atom_bindings": {
-        "atom_1": [
-          "bridge_damage_exclusion_1_exclusion_raw",
-          "bridge_damage_exclusion_1_exclusion",
-          "bridge_damage_exclusion_1_matches",
-          "bridge_damage_exclusion_1_not",
-          "bridge_damage_exclusion_1_filtered"
-        ]
-      },
+      "atom_bindings": {},
       "configuration_slots": [],
       "issue": null
     }

@@ -112,7 +112,9 @@ def test_image_business_tree_compiles_to_atomic_graph_and_semantic_outputs():
             "source": f"condition:{people_id}",
             "part": "upper_clothing",
             "color": "red",
-            "minimum_fraction": 20,
+            # An LLM draft may explicitly emit null for an optional tuning
+            # parameter. Compilation must use the documented default.
+            "minimum_fraction": None,
         },
     )
     document, gray_id = _condition(
@@ -137,7 +139,7 @@ def test_image_business_tree_compiles_to_atomic_graph_and_semantic_outputs():
         {
             "subject": f"condition:{people_id}",
             "attributes": [f"condition:{red_id}", f"condition:{gray_id}"],
-            "minimum_overlap": 30,
+            "minimum_overlap": None,
         },
     )
     document, people_2_id = _condition(
@@ -213,6 +215,38 @@ def test_image_business_tree_compiles_to_atomic_graph_and_semantic_outputs():
 
     assert compiled.validation_report["can_run"] is True
     assert "set.semi_join@1.0" in operators
+    red_color = next(
+        node
+        for node in variant.nodes
+        if node.op == "visual.color_fraction@1.0" and node.params["color"] == "red"
+    )
+    assert red_color.params["min_fraction"] == 0.2
+    assert red_color.params["subject_region"] == [0, 0, 1, 1]
+    red_evidence = next(
+        node
+        for node in variant.nodes
+        if node.op == "rex.ground@1.1"
+        and node.params.get("targets", [{}])[0].get("phrases")
+        == ["red upper body clothing"]
+    )
+    gray_evidence = next(
+        node
+        for node in variant.nodes
+        if node.op == "rex.ground@1.1"
+        and node.params.get("targets", [{}])[0].get("phrases")
+        == ["gray trousers"]
+    )
+    assert red_color.inputs["objects"] == f"${red_evidence.id}"
+    assert any(
+        node.op == "spatial.associate@1.0"
+        and node.params == {"relation": "best_owner", "threshold": 0.1}
+        for node in variant.nodes
+    )
+    assert gray_evidence.id
+    pair_filter = next(
+        node for node in variant.nodes if node.op == "pairs.filter@1.0"
+    )
+    assert pair_filter.params["threshold"] == 0.3
     assert "measure.count@1.0" in operators
     assert "logic.all@1.0" in operators
     assert "final_primary" in variant.outputs
@@ -220,7 +254,39 @@ def test_image_business_tree_compiles_to_atomic_graph_and_semantic_outputs():
     assert "event.trigger@2.0" in operators
     assert "output.draw@1.0" in operators
     assert "media" in variant.outputs
+    assert "objects" in variant.outputs
+    object_output = variant.outputs["objects"].removeprefix("$")
+    object_merge = next(node for node in variant.nodes if node.id == object_output)
+    assert object_merge.op == "objects.merge@1.0"
+    graph_object_merge = next(
+        node
+        for node in compiled.skill_template.rule_graphs["image"].nodes
+        if node.node_id == object_output
+    )
+    assert graph_object_merge.business_source_refs == [
+        "node:system:branch_entity_evidence"
+    ]
     assert all(item.required_outputs for item in compiled.skill_template.result_specs)
+
+    changed = editor.set_trigger_policy(
+        document,
+        mode="on_change",
+        cooldown_seconds=10,
+        severity="high",
+        outputs=["event_record"],
+    )
+    changed_compiled = EditorService(registry).apply(changed)
+    changed_nodes = changed_compiled.effective_skill_package.variants["image"].nodes
+    final_event = next(
+        item for item in changed_nodes
+        if item.op == "event.from_condition@1.0" and item.id.startswith("final_")
+    )
+    final_trigger = next(
+        item for item in changed_nodes
+        if item.op == "event.trigger@2.0" and item.id.startswith("trigger_")
+    )
+    assert final_event.params["trigger_mode"] == "once"
+    assert final_trigger.params["repeat_policy"] == "allow_repeat"
 
     contract = build_runtime_contract(compiled, "image")
     sources = contract["published_sources"]
@@ -236,6 +302,69 @@ def test_image_business_tree_compiles_to_atomic_graph_and_semantic_outputs():
     # The condition remains boolean while its ResultSpec binds to the
     # measurement node selected by the count projection.
     assert sources[f"condition:{count_id}"] != sources[f"result:{count_result.result_id}"]
+
+    reapplied = EditorService(registry).apply(compiled)
+    assert reapplied.validation_report["can_run"] is True
+    assert "objects" in reapplied.effective_skill_package.variants["image"].outputs
+
+
+def test_shared_region_requirement_compiles_one_resource_node_and_slot():
+    registry, editor, document = _document("image")
+    document.skill_template.resource_requirements = [
+        ResourceRequirement(
+            requirement_id="region_1",
+            resource_type="region_collection",
+            display_name="区域1",
+            semantic_role="region_1",
+            cardinality=CardinalitySpec(mode="dynamic", minimum=1),
+            allowed_shapes=["rectangle", "polygon"],
+            required_before="run",
+            media_types=["image"],
+        )
+    ]
+    document.skill_template.business_branches = [
+        BusinessBranch(branch_id="branch_a", display_name="分支A", media_type="image"),
+        BusinessBranch(branch_id="branch_b", display_name="分支B", media_type="image"),
+    ]
+    for branch_id in ("branch_a", "branch_b"):
+        document, people_id = _condition(
+            editor,
+            document,
+            branch_id,
+            "target.detect",
+            "检测人员",
+            {"targets": ["person"], "phrases": "person", "business_label": "人员"},
+        )
+        document, _ = _condition(
+            editor,
+            document,
+            branch_id,
+            "measure.count",
+            "区域人数",
+            {
+                "source": f"condition:{people_id}",
+                "scope": "resource:region_1",
+                "group_by": "total",
+                "operator": ">",
+                "threshold": 1,
+            },
+        )
+    document = editor.set_final_decision(
+        document,
+        "联合告警",
+        "event_decision",
+        "branch:branch_a",
+        source_refs=["branch:branch_a", "branch:branch_b"],
+        combination="AND",
+    )
+
+    compiled = EditorService(registry).apply(document)
+    variant = compiled.effective_skill_package.variants["image"]
+    resource_nodes = [node for node in variant.nodes if node.id == "resource_region_1_regions"]
+    slots = [slot for slot in variant.configuration_slots if slot.slot_id == "slot_region_1"]
+
+    assert len(resource_nodes) == 1
+    assert len(slots) == 1
 
 
 def test_video_branch_qualifier_keeps_frames_and_requires_direction_resource():
@@ -379,3 +508,321 @@ def test_complex_pattern_can_be_the_final_semantic_source():
     contract = build_runtime_contract(compiled, "video")
     assert f"event:{pattern_id}" in contract["published_sources"]
     assert "final:primary" in contract["published_sources"]
+
+
+def test_nested_branch_orchestration_compiles_child_group_before_parent():
+    registry, editor, document = _document("video")
+    document.skill_template.business_branches = [
+        BusinessBranch(branch_id="branch_a", display_name="分支A", media_type="video"),
+        BusinessBranch(branch_id="branch_b", display_name="分支B", media_type="video"),
+        BusinessBranch(branch_id="branch_c", display_name="分支C", media_type="video"),
+    ]
+    for branch_id in ("branch_a", "branch_b", "branch_c"):
+        document, _ = _condition(
+            editor,
+            document,
+            branch_id,
+            "target.detect",
+            branch_id,
+            {"targets": ["vehicle"], "phrases": "vehicle", "business_label": "车辆"},
+        )
+    document = editor.set_complex_pattern(
+        document, "video", "sequence", ["branch_a", "branch_b"],
+        display_name="A后B",
+    )
+    child_id = document.skill_template.event_patterns[-1].pattern_id
+    document = editor.set_complex_pattern(
+        document,
+        "video",
+        "all_completed",
+        [f"event:{child_id}", "branch:branch_c"],
+        display_name="顺序组与C并行",
+    )
+    parent_id = document.skill_template.event_patterns[-1].pattern_id
+    document = editor.set_final_decision(
+        document, "组合完成", "timeline_summary", f"event:{parent_id}"
+    )
+
+    compiled = EditorService(registry).apply(document)
+    variant = compiled.effective_skill_package.variants["video"]
+    child = next(item for item in variant.nodes if item.id == f"pattern_{child_id}_sequence")
+    parent = next(item for item in variant.nodes if item.id == f"pattern_{parent_id}_join")
+    assert parent.inputs["events"][0] == f"${child.id}"
+    assert variant.outputs["final_primary"] == f"${parent.id}"
+
+
+def test_upper_clothing_color_compiles_tight_carrier_evidence_before_hsv_projection():
+    """A garment colour must not be evaluated on the whole person crop."""
+
+    registry, editor, document = _document("image")
+    document.skill_template.business_branches = [
+        BusinessBranch(
+            branch_id="branch_white_shirt",
+            display_name="白色衬衫人员",
+            media_type="image",
+        )
+    ]
+    document, people_id = _condition(
+        editor,
+        document,
+        "branch_white_shirt",
+        "target.detect",
+        "检测人员",
+        {"targets": ["person"], "phrases": "person", "business_label": "人员"},
+    )
+    document, color_id = _condition(
+        editor,
+        document,
+        "branch_white_shirt",
+        "attribute.color",
+        "白色衬衫",
+        {
+            "source": f"condition:{people_id}",
+            "part": "upper_clothing",
+            "color": "white",
+        },
+    )
+    document = editor.set_final_decision(
+        document,
+        "白色衬衫人员",
+        "detection_summary",
+        f"condition:{color_id}",
+    )
+    document = editor.set_result_rows(
+        document,
+        [{
+            "display_name": "白色衬衫人员",
+            "source_ref": f"condition:{color_id}",
+            "result_kind": "entities",
+            "evidence_policy": "required",
+            "save_policy": "always",
+            "show_in_overview": True,
+        }],
+    )
+
+    compiled = EditorService(registry).apply(document)
+    variant = compiled.effective_skill_package.variants["image"]
+    evidence = next(
+        node
+        for node in variant.nodes
+        if node.op == "rex.ground@1.1"
+        and node.params.get("targets", [{}])[0].get("phrases")
+        == ["white shirt"]
+    )
+    color = next(
+        node
+        for node in variant.nodes
+        if node.op == "visual.color_fraction@1.0"
+        and node.params["color"] == "white"
+    )
+    owner = next(
+        node
+        for node in variant.nodes
+        if node.op == "spatial.associate@1.0"
+        and node.params.get("relation") == "best_owner"
+    )
+    assert color.inputs["objects"] == f"${evidence.id}"
+    assert color.params["selection_mode"] == "fraction"
+    assert color.params["subject_region"] == [0, 0, 1, 1]
+    assert color.params["min_fraction"] == 0.2
+    assert owner.inputs["objects"].startswith("$"), owner.inputs
+    # The result is projected back to the original person set after owner
+    # matching, so output boxes remain person boxes rather than shirt boxes.
+    assert variant.outputs["objects"].startswith("$")
+    assert variant.outputs["objects"].removeprefix("$") != evidence.id
+
+
+def test_color_compiler_is_generic_across_carriers_and_aliases():
+    """Every named carrier uses tight coloured evidence and best-owner binding."""
+
+    cases = [
+        (
+            "红色上衣",
+            {"part": "upper_clothing", "color": "红色"},
+            "red upper body clothing",
+            "red",
+        ),
+        (
+            "灰色裤子",
+            {"part": "lower_clothing", "color": "grey"},
+            "gray trousers",
+            "gray",
+        ),
+        (
+            "黄色安全帽",
+            {"part": "whole", "color": "yellow"},
+            "yellow helmet",
+            "yellow",
+        ),
+        (
+            "黑色衣服",
+            {"part": "whole", "color": "black"},
+            "black clothing",
+            "black",
+        ),
+    ]
+    for name, parameters, expected_phrase, expected_color in cases:
+        registry, editor, document = _document("image")
+        document.skill_template.business_branches = [
+            BusinessBranch(
+                branch_id="branch_generic_color",
+                display_name=name,
+                media_type="image",
+            )
+        ]
+        document, people_id = _condition(
+            editor,
+            document,
+            "branch_generic_color",
+            "target.detect",
+            "检测人员",
+            {"targets": ["person"], "phrases": "person", "business_label": "人员"},
+        )
+        document, color_id = _condition(
+            editor,
+            document,
+            "branch_generic_color",
+            "attribute.color",
+            name,
+            {"source": f"condition:{people_id}", **parameters},
+        )
+        document = editor.set_final_decision(
+            document, name, "detection_summary", f"condition:{color_id}"
+        )
+        compiled = EditorService(registry).apply(document)
+        variant = compiled.effective_skill_package.variants["image"]
+        evidence = next(
+            node
+            for node in variant.nodes
+            if node.op == "rex.ground@1.1"
+            and node.params.get("targets", [{}])[0].get("phrases")
+            == [expected_phrase]
+        )
+        color = next(
+            node
+            for node in variant.nodes
+            if node.op == "visual.color_fraction@1.0"
+            and node.params["color"] == expected_color
+        )
+        assert color.inputs["objects"] == f"${evidence.id}"
+        assert color.params["color_tolerance"] == "semantic"
+        assert color.params["selection_mode"] == "fraction"
+        if expected_phrase == "black clothing":
+            # A direct editor value is authoritative; planner-inferred
+            # defaults get the carrier-aware recall baseline (covered below).
+            assert color.params["min_fraction"] == 0.2
+
+
+def test_llm_inferred_generic_clothing_uses_recall_baseline():
+    registry, editor, document = _document("image")
+    document.skill_template.business_branches = [
+        BusinessBranch(
+            branch_id="branch_black_clothing",
+            display_name="黑色衣服人员",
+            media_type="image",
+        )
+    ]
+    document, people_id = _condition(
+        editor,
+        document,
+        "branch_black_clothing",
+        "target.detect",
+        "检测人员",
+        {"targets": ["person"], "phrases": "person", "business_label": "人员"},
+    )
+    document, color_id = _condition(
+        editor,
+        document,
+        "branch_black_clothing",
+        "attribute.color",
+        "黑色衣服",
+        {
+            "source": f"condition:{people_id}",
+            "part": "whole",
+            "color": "black",
+            "minimum_fraction": 20,
+        },
+    )
+    branch = document.skill_template.business_branches[0]
+    color_expression = next(
+        item
+        for item in branch.condition_root.children
+        if item.expression_id == color_id
+    )
+    color_expression.parameter_sources["minimum_fraction"] = ResolvableValue(
+        state="inferred",
+        value=20,
+        source="llm_business_draft",
+        required_before="never",
+    )
+    document = editor.set_final_decision(
+        document, "黑色衣服人员", "detection_summary", f"condition:{color_id}"
+    )
+    compiled = EditorService(registry).apply(document)
+    color = next(
+        node
+        for node in compiled.effective_skill_package.variants["image"].nodes
+        if node.op == "visual.color_fraction@1.0"
+        and node.params["color"] == "black"
+    )
+    assert color.params["min_fraction"] == 0.15
+
+
+def test_color_compiler_uses_attribute_evidence_for_non_clothing_targets():
+    """Whole-object colours use model evidence before colour verification."""
+
+    registry, editor, document = _document("image")
+    document.skill_template.business_branches = [
+        BusinessBranch(
+            branch_id="branch_red_car",
+            display_name="红色汽车",
+            media_type="image",
+        )
+    ]
+    document, car_id = _condition(
+        editor,
+        document,
+        "branch_red_car",
+        "target.detect",
+        "检测汽车",
+        {"targets": ["car"], "phrases": "car", "business_label": "汽车"},
+    )
+    document, color_id = _condition(
+        editor,
+        document,
+        "branch_red_car",
+        "attribute.color",
+        "红色汽车",
+        {"source": f"condition:{car_id}", "part": "whole", "color": "red"},
+    )
+    document = editor.set_final_decision(
+        document, "红色汽车", "detection_summary", f"condition:{color_id}"
+    )
+
+    variant = EditorService(registry).apply(document).effective_skill_package.variants[
+        "image"
+    ]
+    evidence = next(
+        node
+        for node in variant.nodes
+        if node.op == "rex.ground@1.1"
+        and node.params.get("targets", [{}])[0].get("phrases") == ["red car"]
+    )
+    color = next(
+        node
+        for node in variant.nodes
+        if node.op == "visual.color_fraction@1.0"
+        and node.params["color"] == "red"
+    )
+    owner = next(
+        node
+        for node in variant.nodes
+        if node.op == "spatial.associate@1.0"
+        and node.params.get("relation") == "best_owner"
+    )
+    assert color.inputs["objects"] == f"${evidence.id}"
+    assert color.params["selection_mode"] == "fraction"
+    assert owner.inputs["subjects"].startswith("$")
+    assert owner.inputs["objects"].startswith("$")
+    assert variant.outputs["objects"].startswith("$")
+    assert variant.outputs["objects"].removeprefix("$") != evidence.id

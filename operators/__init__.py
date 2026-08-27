@@ -48,7 +48,7 @@ from .region import (
     region_manual_set,
     regions_merge,
 )
-from .spatial import spatial_associate, spatial_inside
+from .spatial import objects_filter_by_regions, spatial_associate, spatial_inside
 from .sets import set_anti_join, set_difference, set_partition, set_semi_join
 from .reduce import (
     reduce_all,
@@ -93,6 +93,7 @@ def build_default_implementations():
         "track.iou@1.0": track_iou,
         "track.confirm@1.0": track_confirm,
         "spatial.inside@1.0": spatial_inside,
+        "objects.filter_by_regions@1.0": objects_filter_by_regions,
         "spatial.associate@1.0": spatial_associate,
         "measure.count@1.0": measure_count,
         "measure.region_count@1.0": measure_region_count,

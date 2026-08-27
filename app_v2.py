@@ -28,9 +28,16 @@ from core.business_rule_draft import (
 from core.business_rule_editor import BusinessRuleEditError, BusinessRuleEditor
 from core.configuration import ConfigurationBinder, configuration_status
 from core.editor_generation import build_editor_document, resolve_pending_decision
+from core.document_hashes import refresh_document_hashes
 from core.editor_migrations import migrate_editor_document
 from core.effective_package_view import build_effective_package_view
-from core.editor_schema import SkillEditorDocument
+from core.editor_schema import (
+    ResourceCollection,
+    ResourceInstance,
+    ResolvableValue,
+    SceneProfile,
+    SkillEditorDocument,
+)
 from core.editor_service import EditorMutationError, EditorService
 from core.media_assets import MediaAssetStore
 from core.media_policy import inspect_execution_policy
@@ -49,9 +56,11 @@ from core.validator import validate_skill_package
 from core.video_sampling import normalize_end_seconds
 from ui.run_results import render_run_result_html
 from ui.event_rule_editor import (
+    friendly_choice_label,
     parameter_table_rows,
     parse_parameter_table,
     render_branch_overview,
+    render_branch_pattern,
     render_condition_tree,
     render_parameter_help,
 )
@@ -78,6 +87,7 @@ SUPPORTED_BUSINESS_PARAMETER_EDITORS = {
     "source_select",
     "boolean",
     "condition_tree",
+    "readonly",
 }
 ANNOTATION_GUIDANCE_MARKDOWN = """
 <section class="vs-section">
@@ -183,6 +193,115 @@ class V2AppController:
         raise gr.Error("当前技能没有可执行的图片或视频流程")
 
     @staticmethod
+    def _instruction_identity(value: str) -> str:
+        """Normalize harmless punctuation/spacing for safe draft reuse."""
+
+        return re.sub(r"[\s，,。.!！?？；;：:]+", "", value or "").casefold()
+
+    def _reuse_matching_manual_annotations(
+        self, package: SkillPackage, previous_effective_json: str
+    ) -> tuple[SkillPackage, int]:
+        """Carry saved scene geometry across regeneration of the same task.
+
+        A natural-language regeneration rebuilds the Effective package from
+        scratch. Manual regions and directions are scene configuration, not
+        rule-generation output, so dropping them makes an unchanged task fail
+        at run time. Reuse is deliberately strict: both skill identity and
+        normalized instruction must match, and every slot must still match by
+        id, kind and label. Unrelated tasks can therefore never inherit stale
+        geometry merely because they use generic names such as ``区域1``.
+        """
+
+        if not (previous_effective_json or "").strip():
+            return package, 0
+        try:
+            previous = SkillPackage.model_validate_json(previous_effective_json)
+        except (ValueError, TypeError):
+            return package, 0
+        if previous.skill_id != package.skill_id:
+            return package, 0
+        if self._instruction_identity(previous.original_instruction) != self._instruction_identity(
+            package.original_instruction
+        ):
+            return package, 0
+
+        configured = {
+            (item["media_type"], item["slot_id"]): item["configured"]
+            for item in configuration_status(previous)
+        }
+        updated = package
+        reused = 0
+        # Regions must be restored before directions that may depend on their
+        # ids. Each bind passes through the normal schema and DAG validator.
+        kind_order = {"region": 0, "region_set": 1, "direction": 2, "direction_set": 3}
+        for media_type, variant in package.variants.items():
+            old_variant = previous.variants.get(media_type)
+            if old_variant is None or old_variant.status == "unsupported":
+                continue
+            old_slots = {slot.slot_id: slot for slot in old_variant.configuration_slots}
+            old_nodes = {node.id: node for node in old_variant.nodes}
+            for slot in sorted(
+                variant.configuration_slots,
+                key=lambda item: kind_order.get(item.kind, 99),
+            ):
+                old_slot = old_slots.get(slot.slot_id)
+                if (
+                    old_slot is None
+                    or old_slot.kind != slot.kind
+                    or old_slot.label != slot.label
+                    or not configured.get((media_type, old_slot.slot_id), False)
+                ):
+                    continue
+                node = old_nodes.get(old_slot.binding.node_id)
+                if node is None:
+                    continue
+                params = node.params
+                try:
+                    if slot.kind == "region":
+                        updated = self.configuration_binder.bind_region(
+                            updated,
+                            media_type=media_type,
+                            slot_id=slot.slot_id,
+                            shape=params["shape"],
+                            points=params["points"],
+                        )
+                    elif slot.kind == "region_set":
+                        for region in params.get("regions", []):
+                            updated = self.configuration_binder.bind_named_region(
+                                updated,
+                                media_type=media_type,
+                                slot_id=slot.slot_id,
+                                region_id=region["id"],
+                                label=region.get("label", region["id"]),
+                                shape=region["shape"],
+                                points=region["points"],
+                            )
+                    elif slot.kind == "direction":
+                        updated = self.configuration_binder.bind_direction(
+                            updated,
+                            media_type=media_type,
+                            slot_id=slot.slot_id,
+                            start=params["start"],
+                            end=params["end"],
+                        )
+                    else:
+                        for direction in params.get("directions", []):
+                            updated = self.configuration_binder.bind_named_direction(
+                                updated,
+                                media_type=media_type,
+                                slot_id=slot.slot_id,
+                                key=direction["key"],
+                                start=direction["start"],
+                                end=direction["end"],
+                            )
+                except (KeyError, TypeError, ValueError):
+                    # A changed slot schema is not compatible; leave that slot
+                    # pending so the user must draw it explicitly.
+                    continue
+                reused += 1
+        return updated, reused
+
+    @staticmethod
     def editor_variant_for_media(media_type: str) -> str:
         return f"{_variant_key(media_type)} variant"
 
@@ -244,8 +363,9 @@ class V2AppController:
             f"✅ 已显式设为默认：{preset_name} / {selected.media_type} / {selected.original_name}",
         )
 
-    def saved_skill_choices(self) -> list[str]:
-        return self.package_store.list_versions()
+    def saved_skill_choices(self, save_root: str = "") -> list[str]:
+        package_store, _ = self._asset_stores(save_root)
+        return package_store.list_versions()
 
     def compile_skill(
         self,
@@ -253,6 +373,7 @@ class V2AppController:
         media_choice: str,
         skill_id: str,
         display_name: str,
+        previous_effective_json: str = "",
     ):
         if self.planner is None:
             raise gr.Error("DeepSeek Planner 尚未配置")
@@ -298,7 +419,6 @@ class V2AppController:
                     business_draft,
                     self.business_capabilities,
                     requested_accept=requested,
-                    final_display_name=name,
                 )
                 try:
                     editor_document = self.editor_service.apply(editor_document)
@@ -320,6 +440,9 @@ class V2AppController:
                 ] = editor_document
             except (BusinessDraftError, ValueError) as exc:
                 raise gr.Error(f"需要人工确认：业务规则草稿无效：{exc}") from exc
+        package, reused_annotations = self._reuse_matching_manual_annotations(
+            package, previous_effective_json
+        )
         package_json = self._dump(package)
         semantic_json = self._dump(package.semantic_ir)
         issues = "；".join(issue.message for issue in package.compatibility_issues)
@@ -329,6 +452,8 @@ class V2AppController:
         )
         if business_draft is not None:
             status += " 已生成可在 03 审核的业务分支、最终判定和业务输出。"
+        if reused_annotations:
+            status += f" 已复用当前任务的 {reused_annotations} 个已保存场景标注。"
         if issues:
             status += f"兼容性说明：{issues}"
         source = (
@@ -406,11 +531,12 @@ class V2AppController:
             self.editor_variant_for_media(media_type),
         )
 
-    def load_saved_skill(self, selection: str):
+    def load_saved_skill(self, selection: str, save_root: str = ""):
         if not selection or "/v" not in selection:
             raise gr.Error("请选择已保存技能")
         skill_id, version = selection.rsplit("/v", 1)
-        package = self.package_store.load(skill_id, int(version))
+        package_store, _ = self._asset_stores(save_root)
+        package = package_store.load(skill_id, int(version))
         text = self._dump(package)
         source = (
             "### 当前实际执行来源\n"
@@ -420,20 +546,47 @@ class V2AppController:
         return text, text, self._dump(package.semantic_ir), f"已加载 {selection}", source
 
     def save_skill(
-        self, effective_json: str, skill_id: str = "", display_name: str = ""
+        self,
+        effective_json: str,
+        skill_id: str = "",
+        display_name: str = "",
+        *,
+        store: PackageStore | None = None,
     ) -> str:
         package = SkillPackage.model_validate_json(effective_json)
         errors = validate_skill_package(package, self.registry)
         if errors:
             raise gr.Error("保存前校验失败：" + "；".join(errors))
         try:
-            return str(self.package_store.save(
+            return str((store or self.package_store).save(
                 package,
                 skill_id=skill_id.strip() or None,
                 display_name=display_name.strip() or None,
             ))
-        except (ValueError, FileNotFoundError) as exc:
+        except (ValueError, FileNotFoundError, OSError) as exc:
             raise gr.Error(str(exc)) from exc
+
+    def asset_save_root(self) -> str:
+        """Return the common editable base directory for saved skill assets."""
+
+        return str(self.package_store.root.parent.resolve())
+
+    def _asset_stores(
+        self, save_root: str
+    ) -> tuple[PackageStore, SkillDocumentStore]:
+        value = str(save_root or "").strip()
+        if not value:
+            return self.package_store, self.document_store
+        root = Path(value).expanduser()
+        if not root.is_absolute():
+            root = ROOT / root
+        root = root.resolve()
+        if root.exists() and not root.is_dir():
+            raise gr.Error(f"资产保存目录不是文件夹：{root}")
+        return (
+            PackageStore(root / "generated_packages"),
+            SkillDocumentStore(root / "skill_documents"),
+        )
 
     def save_skill_bundle(
         self,
@@ -441,26 +594,37 @@ class V2AppController:
         editor_json: str,
         skill_id: str = "",
         display_name: str = "",
+        save_root: str = "",
     ) -> str:
         document = self._editor_document(effective_json, editor_json)
         if document.effective_skill_package is None:
             raise gr.Error("03 中存在未应用草稿，不能保存为正式版本")
-        package_path = self.save_skill(effective_json, skill_id, display_name)
+        package_store, document_store = self._asset_stores(save_root)
+        package_path = self.save_skill(
+            effective_json,
+            skill_id,
+            display_name,
+            store=package_store,
+        )
         try:
-            document_path = self.document_store.save(
+            document_path = document_store.save(
                 document,
                 skill_id=skill_id.strip() or None,
                 display_name=display_name.strip() or None,
             )
-        except (ValueError, FileNotFoundError) as exc:
+        except (ValueError, FileNotFoundError, OSError) as exc:
             raise gr.Error(str(exc)) from exc
         return f"运行包：{package_path}\n可编辑文档：{document_path}"
 
-    def delete_saved_skill(self, selection: str) -> str:
+    def delete_saved_skill(self, selection: str, save_root: str = "") -> str:
         if not selection or "/v" not in selection:
             raise gr.Error("请选择要删除的自定义技能版本")
         skill_id, version = selection.rsplit("/v", 1)
-        self.package_store.delete(skill_id, int(version))
+        package_store, document_store = self._asset_stores(save_root)
+        package_store.delete(skill_id, int(version))
+        document_path = document_store.root / skill_id / f"{int(version)}.json"
+        if document_path.exists():
+            document_path.unlink()
         return f"已删除自定义技能版本：{selection}；预置技能不受影响。"
 
     def validate_json(self, effective_json: str) -> str:
@@ -493,6 +657,206 @@ class V2AppController:
         else:
             lines.append("- 场景资源：当前技能无需手工区域或方向。")
         return self._dump(document), "\n".join(lines)
+
+    def restore_default_editor_document(
+        self, effective_json: str, source_mode: str = "已保存技能"
+    ) -> tuple[str, str]:
+        """Restore the immutable generated/loaded business draft for step 03."""
+
+        if not effective_json:
+            raise gr.Error("请先在 01 生成或加载技能。")
+        package = SkillPackage.model_validate_json(effective_json)
+        source_type = {
+            "自然语言生成": "natural_language",
+            "预置演示技能": "preset",
+            "已保存技能": "legacy",
+        }.get(source_mode, "legacy")
+        baseline = self._generated_editor_documents.get(package.skill_id)
+        if baseline is None:
+            baseline = build_editor_document(package, source_type=source_type)
+            self._generated_editor_documents[package.skill_id] = baseline.model_copy(
+                deep=True
+            )
+        restored = self._sync_editor_scene_resources(
+            baseline.model_copy(deep=True), package
+        )
+        restored.effective_skill_package = package
+        return (
+            self._dump(restored),
+            "✅ 已还原本次 LLM 生成或加载时的默认事件规则；02 场景标注予以保留。",
+        )
+
+    def business_condition_input_help(
+        self,
+        document: SkillEditorDocument,
+        media_type: str,
+        branch_id: str | None,
+        condition_id: str | None,
+    ) -> str:
+        """Explain the concrete upstream values consumed by one condition."""
+
+        if not branch_id or not condition_id:
+            return ""
+        key = _variant_key(media_type)
+        graph = document.skill_template.rule_graphs.get(key)
+        if graph is None:
+            return ""
+
+        if condition_id.startswith("existing_node:"):
+            node_id = condition_id.removeprefix("existing_node:")
+            nodes = {item.node_id: item for item in graph.nodes}
+            node = nodes.get(node_id)
+            if node is None:
+                return ""
+            incoming: dict[str, list[str]] = {}
+            for edge in graph.edges:
+                if edge.target == node_id:
+                    incoming.setdefault(edge.port or "input", []).append(edge.source)
+
+            def describe_node(source_id: str, visited: set[str] | None = None) -> str:
+                visited = set() if visited is None else visited
+                if source_id in visited:
+                    return source_id
+                visited = {*visited, source_id}
+                source = nodes.get(source_id)
+                if source is None:
+                    return source_id
+                if source.operator and source.operator.startswith("rex.ground@"):
+                    labels = [
+                        str(item.get("label"))
+                        for item in source.params.get("targets", [])
+                        if isinstance(item, dict) and item.get("label")
+                    ]
+                    if labels:
+                        return "、".join(dict.fromkeys(labels))
+                labels = source.params.get("labels")
+                if isinstance(labels, list) and labels:
+                    return "、".join(str(item) for item in labels)
+                if source.operator and source.operator.startswith("region."):
+                    regions = source.params.get("regions")
+                    if isinstance(regions, list) and regions:
+                        return "、".join(
+                            str(item.get("label") or item.get("id"))
+                            for item in regions
+                            if isinstance(item, dict)
+                        ) or source.display_name
+                parents = [
+                    edge.source for edge in graph.edges if edge.target == source_id
+                ]
+                descriptions = list(dict.fromkeys(
+                    describe_node(parent, visited) for parent in parents
+                ))
+                if len(descriptions) == 1:
+                    return descriptions[0]
+                if descriptions:
+                    return f"{source.display_name}（{' + '.join(descriptions)}）"
+                return source.display_name
+
+            has_subject_object_pair = "subjects" in incoming and "objects" in incoming
+            port_labels = {
+                "subjects": "目标 A（主体）",
+                "objects": (
+                    "目标 B（关联对象）"
+                    if has_subject_object_pair
+                    else "目标对象"
+                ),
+                "left": "输入 A（左值）",
+                "right": "输入 B（右值）",
+                "condition": "上游条件",
+                "conditions": "上游条件组",
+                "frames": "输入画面",
+                "media": "输入媒体",
+                "video": "输入视频",
+                "regions": "区域",
+                "region": "区域",
+                "directions": "方向",
+                "direction": "方向",
+                "references": "参考方向",
+                "lanes": "区域或车道",
+                "tracks": "目标轨迹",
+                "entities": "待统计目标",
+                "sets": "输入集合",
+                "pairs": "目标配对结果",
+                "values": "输入数值",
+                "states": "输入状态",
+                "events": "输入事件",
+                "evidence": "证据对象",
+            }
+            lines = []
+            for port, source_ids in incoming.items():
+                descriptions = "、".join(
+                    dict.fromkeys(describe_node(source_id) for source_id in source_ids)
+                )
+                lines.append(
+                    f"- **{port_labels.get(port, f'输入 {port}')}**：{descriptions}"
+                )
+            relation = str(node.params.get("relation", ""))
+            threshold = node.params.get("threshold")
+            relation_help = {
+                "mutual_match": "A 覆盖 B、且 B 覆盖 A 的比例都达到阈值，才视为同一位置的匹配目标。",
+                "bidirectional": "A 覆盖 B、且 B 覆盖 A 的比例都达到阈值，才视为同一位置的匹配目标。",
+                "overlap": "A 被 B 覆盖的比例达到阈值即成立。",
+                "inside": "A 位于 B 内的覆盖比例达到阈值即成立。",
+                "contains": "B 位于 A 内的覆盖比例达到阈值即成立。",
+                "near": "A 与 B 的中心距离不超过阈值即成立。",
+                "best_owner": "每个 B 只归给重叠比例最高且达到阈值的 A。",
+                "source_entity": "B 必须来自 A 的局部裁剪或来源实体。",
+                "center_in_subject_region": "B 的中心点必须落在 A 的指定相对部位内。",
+            }.get(relation)
+            if relation_help:
+                suffix = (
+                    f" 当前阈值为 {float(threshold):g}。"
+                    if isinstance(threshold, (int, float))
+                    else ""
+                )
+                lines.append(f"- **当前关系怎么用**：{relation_help}{suffix}")
+            if not lines:
+                return ""
+            return "#### 当前算子作用对象\n" + "\n".join(lines)
+
+        branch = next(
+            (
+                item for item in document.skill_template.business_branches
+                if item.branch_id == branch_id
+            ),
+            None,
+        )
+        if branch is None or branch.condition_root is None:
+            return ""
+        stack = [branch.condition_root]
+        expression = None
+        while stack:
+            current = stack.pop()
+            if current.expression_id == condition_id:
+                expression = current
+                break
+            stack.extend(current.children)
+        if expression is None or not expression.capability_id:
+            return ""
+        definition = self.business_capabilities.require(expression.capability_id)
+        source_parameters = [
+            item for item in definition.parameters if item.editor == "source_select"
+        ]
+        if not source_parameters:
+            return ""
+        choices = {
+            item["value"]: item["label"]
+            for item in self.business_rule_editor.source_choices(
+                document, branch_id, condition_id
+            )
+        }
+        lines = []
+        for parameter in source_parameters:
+            value = expression.parameters.get(parameter.parameter_id)
+            if value:
+                lines.append(
+                    f"- **{parameter.label}**：{choices.get(str(value), str(value))}"
+                )
+        return (
+            "#### 当前条件作用对象\n" + "\n".join(lines)
+            if lines
+            else ""
+        )
 
     def business_rule_view(
         self,
@@ -601,6 +965,12 @@ class V2AppController:
                     condition_name = item.display_name
                     break
                 stack.extend(reversed(item.children))
+        input_help = self.business_condition_input_help(
+            document, key, selected_branch, selected_condition
+        )
+        parameter_help = render_parameter_help(parameter_rows)
+        if input_help:
+            parameter_help = input_help + "\n\n" + parameter_help
         return {
             "document_json": self._dump(document),
             "branches": branches,
@@ -617,7 +987,8 @@ class V2AppController:
             "condition_name": condition_name,
             "parameters": parameter_rows,
             "parameter_table": parameter_table_rows(parameter_rows),
-            "parameter_help": render_parameter_help(parameter_rows),
+            "parameter_help": parameter_help,
+            "input_help": input_help,
             "selected_condition": expression,
         }
 
@@ -655,13 +1026,28 @@ class V2AppController:
             )
             for item in view["capabilities"]
         ]
+        rows_by_id = {
+            item["condition_id"]: item for item in view["conditions"]
+        }
         group_choices = [
             (
-                f"{'　' * item['depth']}{item['name']}",
+                (
+                    f"[整组结果] {item['name']}"
+                    if item.get("parent_id") is None
+                    else "[同层："
+                    + rows_by_id.get(item.get("parent_id"), {}).get("name", "条件组")
+                    + f"] {'　' * item.get('display_depth', item['depth'])}{item['name']}"
+                ),
                 item["condition_id"],
             )
             for item in view["conditions"]
+            if not item.get("imported_step")
+            and item.get("kind") in {"条件", "条件组"}
         ]
+        has_imported_logic = any(
+            item.get("imported_step") and item.get("kind") == "条件组"
+            for item in view["conditions"]
+        )
         return (
             view["document_json"],
             gr.Dropdown(
@@ -685,27 +1071,19 @@ class V2AppController:
             view["condition_name"],
             view["parameter_table"],
             view["parameter_help"],
+            gr.update(visible=bool(group_choices) and not has_imported_logic),
             gr.Dropdown(
                 choices=group_choices,
                 value=[],
                 multiselect=True,
-                label="选择要组合的同级条件",
+                label="选择条件或条件组（AND/OR/N 需同层；NOT 选一项）",
+                interactive=bool(group_choices),
             ),
         )
 
     @staticmethod
     def _friendly_parameter_choices(values: list[Any]) -> list[tuple[str, Any]]:
-        labels = {
-            ">": "大于（>）",
-            ">=": "大于等于（>=）",
-            "==": "等于（==）",
-            "<=": "小于等于（<=）",
-            "<": "小于（<）",
-            "!=": "不等于（!=）",
-            "include": "保留所选类别",
-            "exclude": "排除所选类别",
-        }
-        return [(labels.get(str(value), str(value)), value) for value in values]
+        return [(friendly_choice_label(value), value) for value in values]
 
     def business_parameter_controls(
         self,
@@ -795,12 +1173,20 @@ class V2AppController:
             for requirement in document.skill_template.resource_requirements:
                 if requirement.resource_type.startswith(wanted):
                     choices.append((requirement.display_name, requirement.requirement_id))
-            if document.scene_profile:
+            active_profile = next(
+                (
+                    profile
+                    for profile in document.scene_profiles
+                    if profile.scene_profile_id == document.active_scene_profile_id
+                ),
+                None,
+            )
+            if active_profile:
                 requirement_names = {
                     item.requirement_id: item.display_name
                     for item in document.skill_template.resource_requirements
                 }
-                for collection in document.scene_profile.collections:
+                for collection in active_profile.collections:
                     for item in collection.items:
                         if item.resource_type == wanted:
                             choices.append((
@@ -841,6 +1227,8 @@ class V2AppController:
             + ("请输入数值。" if editable_number else "")
             + ("该项由系统派生或在其它配置区维护，仅供确认。" if fixed else "")
         )
+        if view.get("input_help"):
+            status = f"{view['input_help']}\n\n{status}"
         return (
             selector,
             gr.update(value=shown if fixed else "", visible=fixed, label=f"{row['name']}（只读）"),
@@ -1003,9 +1391,14 @@ class V2AppController:
                     document, branch_id, condition_id
                 )
                 selected = None
+            elif action == "删除（含依赖）":
+                document = self.business_rule_editor.delete_condition(
+                    document, branch_id, condition_id, cascade=True
+                )
+                selected = None
             elif action == "NOT 取反":
-                document, selected = self.business_rule_editor.wrap_with_group(
-                    document, branch_id, condition_id, "NOT"
+                document, _ = self.business_rule_editor.group_expressions(
+                    document, branch_id, [condition_id], "NOT"
                 )
                 # Groups are visible in the tree but the parameter editor keeps
                 # focus on a leaf, so refresh chooses the first available leaf.
@@ -1034,7 +1427,218 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), f"✅ 已按 {operator} 组合所选条件。"
+        message = (
+            "✅ 已取消该节点的 NOT 取反。"
+            if operator == "NOT" and len(condition_ids or []) == 1
+            and any(
+                item["condition_id"] == condition_ids[0] and item["logic"] == "NOT"
+                for item in self.business_rule_editor.condition_rows(
+                    self._parse_editor_json(editor_json), branch_id
+                )
+            )
+            else f"✅ 已按 {operator} 编排所选节点。"
+        )
+        return self._dump(document), message
+
+    def business_expression_logic_controls(
+        self,
+        editor_json: str,
+        branch_id: str | None,
+        group_id: str | None = None,
+    ):
+        hidden = gr.update(visible=False)
+        if not editor_json or not branch_id:
+            return (
+                hidden,
+                gr.update(choices=[], value=None),
+                gr.update(choices=[], value=None),
+                gr.update(value=1, visible=False),
+                gr.update(value=False, visible=False),
+                gr.update(value=""),
+            )
+        try:
+            groups = self.business_rule_editor.expression_logic_groups(
+                self._parse_editor_json(editor_json), branch_id
+            )
+        except (BusinessRuleEditError, KeyError, ValueError):
+            groups = []
+        selected = next(
+            (item for item in groups if item["group_id"] == group_id),
+            groups[0] if groups else None,
+        )
+        if selected is None:
+            return (
+                hidden,
+                gr.update(choices=[], value=None),
+                gr.update(choices=[], value=None),
+                gr.update(value=1, visible=False),
+                gr.update(value=False, visible=False),
+                gr.update(value=""),
+            )
+        is_not = selected["operator"] == "NOT"
+        members = "、".join(selected.get("members", [])) or "未读取到直接成员"
+        operator_choices = (
+            [("条件取反（NOT）", "NOT")]
+            if is_not
+            else [
+                ("全部满足（AND）", "AND"),
+                ("任一满足（OR）", "OR"),
+                ("至少 N 项满足（N-of-M）", "N_OF_M"),
+            ]
+        )
+        return (
+            gr.update(visible=True),
+            gr.update(
+                choices=[
+                    (
+                        f"{'　' * item['depth']}{item['display_name']} · {item['summary']}",
+                        item["group_id"],
+                    )
+                    for item in groups
+                ],
+                value=selected["group_id"],
+            ),
+            gr.update(
+                choices=operator_choices,
+                value=selected["operator"],
+                interactive=not is_not,
+            ),
+            gr.update(
+                value=selected["required_count"],
+                minimum=1,
+                maximum=max(1, selected["condition_count"]),
+                visible=selected["operator"] == "N_OF_M",
+            ),
+            gr.update(value=selected["negated"], visible=True),
+            gr.update(
+                value=(
+                    f"**组内条件：** {members}  \n"
+                    f"**当前判断：** `{selected['summary']}`  \n"
+                    + (
+                        "关闭“反转结果”即可恢复原判断。"
+                        if is_not
+                        else f"共 {selected['condition_count']} 项；修改后只影响这一层括号。"
+                    )
+                )
+            ),
+        )
+
+    def business_update_expression_logic(
+        self,
+        editor_json: str,
+        branch_id: str,
+        group_id: str,
+        operator: str,
+        required_count: int,
+        negated: bool,
+    ) -> tuple[str, str]:
+        try:
+            updated = self.business_rule_editor.update_expression_logic_group(
+                self._parse_editor_json(editor_json),
+                branch_id,
+                group_id,
+                operator,
+                required_count=int(required_count or 1),
+                negated=bool(negated),
+            )
+        except (BusinessRuleEditError, KeyError, ValueError) as exc:
+            raise gr.Error(str(exc)) from exc
+        return self._dump(updated), "✅ 已保存嵌套条件组关系。"
+
+    def business_imported_logic_controls(
+        self,
+        editor_json: str,
+        branch_id: str | None,
+        group_id: str | None = None,
+    ):
+        if not editor_json or not branch_id:
+            return (
+                gr.update(visible=False),
+                gr.update(choices=[], value=None, visible=False),
+                gr.update(value="AND", visible=False),
+                gr.update(value=1, visible=False),
+                gr.update(value=False, visible=False),
+                gr.update(value="", visible=False),
+            )
+        document = self._parse_editor_json(editor_json)
+        groups = self.business_rule_editor.imported_logic_groups(
+            document, branch_id
+        )
+        selected = next(
+            (item for item in groups if item["group_id"] == group_id),
+            groups[0] if groups else None,
+        )
+        if selected is None:
+            return (
+                gr.update(visible=False),
+                gr.update(choices=[], value=None, visible=False),
+                gr.update(value="AND", visible=False),
+                gr.update(value=1, visible=False),
+                gr.update(value=False, visible=False),
+                gr.update(value="", visible=False),
+            )
+        count = selected["condition_count"]
+        members = "、".join(selected.get("members", [])) or "未读取到直接成员"
+        relation_text = {
+            "AND": "全部条件都成立",
+            "OR": "任一条件成立",
+            "N_OF_M": f"至少 {selected['required_count']} 项成立",
+        }.get(selected["operator"], selected["operator"])
+        return (
+            gr.update(visible=True),
+            gr.update(
+                choices=[
+                    (
+                        f"{item['display_name']}（{item['condition_count']}项）",
+                        item["group_id"],
+                    )
+                    for item in groups
+                ],
+                value=selected["group_id"],
+                visible=True,
+            ),
+            gr.update(value=selected["operator"], visible=True),
+            gr.update(
+                value=min(selected["required_count"], max(1, count)),
+                minimum=1,
+                maximum=max(1, count),
+                visible=selected["operator"] == "N_OF_M",
+            ),
+            gr.update(value=selected["negated"], visible=True),
+            gr.update(
+                value=(
+                    f"**组内条件：** {members}  \n"
+                    f"**当前判断：** {relation_text}（共 {count} 项）"
+                    + ("；结果已反转（NOT）。" if selected["negated"] else "。")
+                ),
+                visible=True,
+            ),
+        )
+
+    def business_update_imported_logic(
+        self,
+        editor_json: str,
+        branch_id: str,
+        group_id: str,
+        operator: str,
+        required_count: int,
+        negated: bool,
+    ) -> tuple[str, str]:
+        try:
+            updated = self.business_rule_editor.update_imported_logic_group(
+                self._parse_editor_json(editor_json),
+                branch_id,
+                group_id,
+                operator,
+                required_count=int(required_count or 1),
+                negated=bool(negated),
+            )
+        except (BusinessRuleEditError, KeyError, ValueError) as exc:
+            raise gr.Error(str(exc)) from exc
+        return (
+            self._dump(updated),
+            "✅ 已修改当前生效条件关系；完成校验后将写入运行版本。",
+        )
 
     def business_apply_condition(
         self,
@@ -1238,6 +1842,57 @@ class V2AppController:
             ref_to_label[ref] = label
         return choices, label_to_ref, ref_to_label
 
+    @staticmethod
+    def _event_pattern_mode(pattern) -> str:
+        if pattern.pattern_type == "sequence":
+            return "sequence"
+        if pattern.pattern_type in {"absence", "repeat"}:
+            return pattern.pattern_type
+        return pattern.gateways[0].mode if pattern.gateways else "none"
+
+    def _event_pattern_formula(
+        self,
+        pattern,
+        branches: dict[str, str],
+        patterns: dict[str, Any],
+        visiting: set[str] | None = None,
+    ) -> str:
+        """Return a compact recursive business formula for one orchestration group."""
+
+        visiting = set(visiting or ())
+        if pattern.pattern_id in visiting:
+            return "循环引用"
+        visiting.add(pattern.pattern_id)
+        members = []
+        for stage in pattern.stages:
+            source_ref = stage.source_ref or ""
+            if source_ref.startswith("branch:"):
+                source_id = source_ref.split(":", 1)[1]
+                members.append(branches.get(source_id, stage.display_name))
+            elif source_ref.startswith("event:"):
+                source_id = source_ref.split(":", 1)[1]
+                child = patterns.get(source_id)
+                members.append(
+                    f"（{self._event_pattern_formula(child, branches, patterns, visiting)}）"
+                    if child else stage.display_name
+                )
+            else:
+                members.append(stage.display_name)
+        mode = self._event_pattern_mode(pattern)
+        if mode == "sequence":
+            return " → ".join(members)
+        if mode == "n_of_m":
+            required = pattern.gateways[0].required_count if pattern.gateways else 1
+            return f"至少 {required or 1} 项（" + "、".join(members) + "）"
+        connector = {
+            "all_completed": " AND ",
+            "all_active": " AND ",
+            "all_completed_within_window": " AND ",
+            "exclusive": " XOR ",
+            "any": " OR ",
+        }.get(mode, "、")
+        return connector.join(members)
+
     def business_secondary_controls(
         self, editor_json: str, media_type: str
     ):
@@ -1247,7 +1902,7 @@ class V2AppController:
                 empty,
                 "none",
                 None,
-                None,
+                1,
                 "global",
                 "当前未启用跨分支复杂编排。",
                 "最终结果",
@@ -1262,6 +1917,7 @@ class V2AppController:
                 0,
                 "medium",
                 ["event_record"],
+                gr.update(visible=False),
             )
         document = self.business_rule_editor.prepare(
             self._parse_editor_json(editor_json)
@@ -1272,27 +1928,48 @@ class V2AppController:
             for item in document.skill_template.business_branches
             if item.media_type == key
         ]
-        branch_choices = [(item.display_name, item.branch_id) for item in branches]
+        branch_index = {item.branch_id: item for item in branches}
+        branch_labels = {
+            item.branch_id: f"分支 {index} · {item.display_name}"
+            for index, item in enumerate(branches, start=1)
+        }
         branch_refs = {f"branch:{item.branch_id}" for item in branches}
-        pattern = next(
+        media_patterns = [
+            item for item in document.skill_template.event_patterns
+            if item.media_type == key
+        ]
+        pattern_index = {item.pattern_id: item for item in media_patterns}
+        referenced_patterns = {
+            stage.source_ref.split(":", 1)[1]
+            for item in media_patterns
+            for stage in item.stages
+            if stage.source_ref and stage.source_ref.startswith("event:")
+        }
+        top_level_patterns = [
+            item for item in media_patterns
+            if item.pattern_id not in referenced_patterns
+        ]
+        pattern = (top_level_patterns or media_patterns)[-1] if media_patterns else None
+        pattern_choices = [
+            (f"条件分支 / {branch_labels[item.branch_id]}", f"branch:{item.branch_id}")
+            for item in branches
+        ]
+        pattern_choices.extend(
             (
-                item
-                for item in document.skill_template.event_patterns
-                if any(stage.source_ref in branch_refs for stage in item.stages)
-            ),
-            None,
+                f"已编排组 / {self._event_pattern_formula(item, branch_labels, pattern_index)}",
+                f"event:{item.pattern_id}",
+            )
+            for item in media_patterns
         )
         pattern_mode = "none"
         selected_branches: list[str] = []
         window = None
         required = None
         correlation = "global"
-        pattern_status = "当前未启用跨分支复杂编排。"
+        pattern_status = render_branch_pattern("none", [])
         if pattern is not None:
             selected_branches = [
-                stage.source_ref.split(":", 1)[1]
-                for stage in pattern.stages
-                if stage.source_ref and stage.source_ref.startswith("branch:")
+                stage.source_ref for stage in pattern.stages if stage.source_ref
             ]
             correlation = pattern.correlation.scope
             if pattern.pattern_type == "sequence":
@@ -1316,9 +1993,23 @@ class V2AppController:
                     if gateway.window_seconds.state != "not_applicable"
                     else None
                 )
-            pattern_status = (
-                f"已配置：{pattern.display_name}；{len(selected_branches)} 个分支；"
-                f"关联范围为{correlation}。"
+            selected_names = []
+            for source_ref in selected_branches:
+                prefix, source_id = source_ref.split(":", 1)
+                if prefix == "branch":
+                    selected_names.append(branch_labels.get(source_id, source_id))
+                else:
+                    source = pattern_index.get(source_id)
+                    selected_names.append(
+                        f"（{self._event_pattern_formula(source, branch_labels, pattern_index)}）"
+                        if source else source_id
+                    )
+            pattern_status = render_branch_pattern(
+                pattern_mode,
+                selected_names,
+                required_count=required,
+                window_seconds=window,
+                correlation_scope=correlation,
             )
         source_choices, _, ref_to_label = self._business_source_choices(
             document, include_final=False
@@ -1327,6 +2018,11 @@ class V2AppController:
             (f"条件分支 / {item.display_name}", f"branch:{item.branch_id}")
             for item in branches
         ]
+        final_choices.extend(
+            (f"分支编排 / {item.display_name}", f"event:{item.pattern_id}")
+            for item in document.skill_template.event_patterns
+            if item.media_type == key
+        )
         final_choice_refs = {value for _, value in final_choices}
         final = document.skill_template.final_decision
         final_source = (
@@ -1359,16 +2055,28 @@ class V2AppController:
                 ]
             )
         trigger = document.skill_template.trigger_policy
+        pattern_mode_choices = [
+            ("不组合，直接由最终判定处理", "none"),
+            ("顺序：逐个完成", "sequence"),
+            ("并行：全部完成", "all_completed"),
+            ("互斥选择：最先完成一个即结束", "exclusive"),
+            ("任意完成（或）：任一完成即结束", "any"),
+            ("部分汇聚：达到指定完成数量", "n_of_m"),
+        ]
+        if pattern_mode not in {value for _, value in pattern_mode_choices}:
+            pattern_mode_choices.append(
+                (f"历史关系：{pattern_mode}（重新选择后替换）", pattern_mode)
+            )
         return (
             gr.Dropdown(
-                choices=branch_choices,
+                choices=pattern_choices,
                 value=selected_branches,
                 multiselect=True,
-                label="参与分支（顺序模式按选择顺序）",
+                label="参与本组的分支或已编排组（顺序关系按选择先后）",
             ),
-            pattern_mode,
+            gr.Dropdown(choices=pattern_mode_choices, value=pattern_mode),
             window,
-            required,
+            required or 1,
             correlation,
             pattern_status,
             final.display_name if final else "最终结果",
@@ -1380,7 +2088,7 @@ class V2AppController:
                 label="哪些分支参与最终告警",
             ),
             final.combination if final else "AND",
-            final.required_count if final else 1,
+            (final.required_count or 1) if final else 1,
             final.show_reason if final else True,
             final.show_failed_or_pending_branches if final else True,
             result_rows,
@@ -1388,6 +2096,7 @@ class V2AppController:
             trigger.cooldown_seconds,
             trigger.severity,
             trigger.outputs,
+            gr.update(visible=len(branches) > 1),
         )
 
     def business_apply_pattern(
@@ -1409,11 +2118,11 @@ class V2AppController:
                 window_seconds=window_seconds,
                 required_count=(int(required_count) if required_count else None),
                 correlation_scope=correlation_scope,
-                display_name="复杂事件编排",
+                display_name="分支编排组",
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), "✅ 复杂事件编排已写入业务文档。"
+        return self._dump(document), "✅ 分支编排已保存；该组可继续与其它分支或编排组组合，并可用于最终判定。"
 
     def business_apply_final(
         self,
@@ -1449,6 +2158,34 @@ class V2AppController:
             *(rows or []),
             ["新业务输出", "", "最终结论", "", "尽量保存", "每次保存", "是"],
         ]
+
+    @staticmethod
+    def business_output_delete_choices(rows: list[list[Any]] | None):
+        names = [
+            str(row[0]).strip()
+            for row in (rows or [])
+            if row and str(row[0]).strip()
+        ]
+        return gr.update(choices=names, value=names[0] if names else None)
+
+    @staticmethod
+    def business_delete_output_row(
+        rows: list[list[Any]] | None, selected_name: str | None
+    ) -> list[list[Any]]:
+        current = list(rows or [])
+        selected = str(selected_name or "").strip()
+        if not selected:
+            raise gr.Error("请先选择要删除的业务输出。")
+        matched = [
+            index
+            for index, row in enumerate(current)
+            if row and str(row[0]).strip() == selected
+        ]
+        if not matched:
+            raise gr.Error("所选业务输出已不存在，请刷新后重试。")
+        if len(current) <= 1:
+            raise gr.Error("至少需要保留一个业务输出。")
+        return [row for index, row in enumerate(current) if index != matched[0]]
 
     def business_apply_outputs(
         self, editor_json: str, rows: list[list[Any]] | None
@@ -1796,10 +2533,10 @@ class V2AppController:
     def _editor_document(
         self, effective_json: str, editor_json: str, source_type: str = "legacy"
     ) -> SkillEditorDocument:
+        package = SkillPackage.model_validate_json(effective_json)
         if editor_json:
             try:
                 existing = self._parse_editor_json(editor_json)
-                package = SkillPackage.model_validate_json(effective_json)
                 existing_package = existing.effective_skill_package
                 same_effective = (
                     existing_package is not None
@@ -1808,20 +2545,230 @@ class V2AppController:
                 )
                 if (
                     existing.skill_template.skill_id == package.skill_id
-                    and (existing_package is None or same_effective)
                 ):
-                    return existing
+                    if not same_effective:
+                        existing = self._sync_editor_scene_resources(existing, package)
+                        existing.effective_skill_package = package
+                    return self._refresh_editor_validation(existing)
             except Exception:
                 pass
-        package = SkillPackage.model_validate_json(effective_json)
         cached = self._generated_editor_documents.get(package.skill_id)
         if (
             cached is not None
             and cached.skill_template.original_instruction
             == package.original_instruction
         ):
-            return cached.model_copy(deep=True)
-        return build_editor_document(package, source_type=source_type)
+            synced = self._sync_editor_scene_resources(
+                cached.model_copy(deep=True), package
+            )
+            synced.effective_skill_package = package
+            return self._refresh_editor_validation(synced)
+        built = build_editor_document(package, source_type=source_type)
+        self._generated_editor_documents.setdefault(
+            package.skill_id, built.model_copy(deep=True)
+        )
+        return self._refresh_editor_validation(built)
+
+    def prepare_run_editor_document(
+        self, effective_json: str, editor_json: str
+    ) -> str:
+        """Refresh annotations and run blockers immediately before execution."""
+
+        if not editor_json:
+            return ""
+        return self._dump(self._editor_document(effective_json, editor_json))
+
+    @staticmethod
+    def run_configuration_blocker_message(
+        document: SkillEditorDocument,
+    ) -> str:
+        """Translate internal resource ids into one actionable UI message."""
+
+        blockers = list(document.validation_report.get("resource_blockers", []))
+        by_id = {
+            item.requirement_id: item.display_name
+            for item in document.skill_template.resource_requirements
+        }
+        labels = [by_id.get(str(item), str(item)) for item in blockers]
+        labels = list(dict.fromkeys(labels))
+        errors = [str(item) for item in document.validation_report.get("errors", [])]
+        parts = list(errors)
+        if labels:
+            parts.append(
+                "请先到 02 标注依次绘制并点击“保存并继续”："
+                + "、".join(labels)
+            )
+        return "；".join(parts) or "请查看 02 标注中的待配置项"
+
+    def _refresh_editor_validation(
+        self, document: SkillEditorDocument
+    ) -> SkillEditorDocument:
+        """Refresh run readiness after package/scene-resource projection.
+
+        Annotation binding changes the Effective SkillPackage, while the run
+        button reads the cached editor document's validation report. Keeping
+        that report fresh prevents stale resource blockers from surviving a
+        successful 02 annotation save.
+        """
+
+        package = document.effective_skill_package
+        if package is not None:
+            slot_required = {
+                f"{media_type}_{slot.slot_id}": slot.required
+                for media_type, variant in package.variants.items()
+                for slot in variant.configuration_slots
+            }
+            for requirement in document.skill_template.resource_requirements:
+                required = slot_required.get(requirement.requirement_id)
+                if required is not None:
+                    requirement.required_before = "run" if required else "never"
+        report = self.editor_service.validate(document)
+        document.validation_report = {
+            **report,
+            "can_run": bool(
+                document.effective_skill_package is not None and report["valid"]
+            ),
+        }
+        return document
+
+    @staticmethod
+    def _sync_editor_scene_resources(
+        document: SkillEditorDocument, package: SkillPackage
+    ) -> SkillEditorDocument:
+        """Copy 02 annotations into the business editor's scene profile."""
+
+        result = document.model_copy(deep=True)
+        profile = next(
+            (
+                item
+                for item in result.scene_profiles
+                if item.scene_profile_id == result.active_scene_profile_id
+            ),
+            None,
+        )
+        if profile is None:
+            profile = SceneProfile(display_name="当前任务标注")
+            result.scene_profiles.append(profile)
+            result.active_scene_profile_id = profile.scene_profile_id
+        collection_by_id = {
+            item.requirement_id: item for item in profile.collections
+        }
+        for requirement in result.skill_template.resource_requirements:
+            safe_requirement_id = re.sub(
+                r"[^A-Za-z0-9_-]+", "_", requirement.requirement_id
+            ).strip("_")
+            candidate_slot_ids = {
+                requirement.requirement_id,
+                f"slot_{safe_requirement_id}",
+                str(requirement.legacy_metadata.get("slot_id", "")),
+            }
+            matched = None
+            for media_type, variant in package.variants.items():
+                if requirement.media_types and media_type not in requirement.media_types:
+                    continue
+                slot = next(
+                    (
+                        item
+                        for item in variant.configuration_slots
+                        if item.slot_id in candidate_slot_ids
+                    ),
+                    None,
+                )
+                if slot is None:
+                    continue
+                node = next(
+                    (item for item in variant.nodes if item.id == slot.binding.node_id),
+                    None,
+                )
+                if node is not None:
+                    matched = (media_type, slot, node)
+                    break
+            if matched is None:
+                continue
+            media_type, slot, node = matched
+            # 02 writes annotations to the current Effective package first.  Keep
+            # the draft graph's resource node in sync as well, so later business
+            # validation cannot compile an older empty region/direction node and
+            # erase the user's canvas work.
+            draft_graph = result.skill_template.rule_graphs.get(media_type)
+            draft_node = next(
+                (
+                    item for item in (draft_graph.nodes if draft_graph else [])
+                    if item.node_id == slot.binding.node_id
+                ),
+                None,
+            )
+            if draft_node is not None:
+                draft_node.operator = node.op
+                draft_node.params = deepcopy(node.params)
+                draft_node.enabled = node.enabled
+            instances = []
+            if slot.kind == "region":
+                if node.params.get("points"):
+                    instances.append(
+                        ResourceInstance(
+                            resource_id=requirement.requirement_id,
+                            resource_type="region",
+                            display_name=requirement.display_name,
+                            semantic_role=requirement.semantic_role,
+                            geometry={
+                                "shape": node.params.get("shape", "polygon"),
+                                "points": node.params["points"],
+                            },
+                        )
+                    )
+            elif slot.kind == "region_set":
+                instances.extend(
+                    ResourceInstance(
+                        resource_id=item["id"],
+                        resource_type="region",
+                        display_name=item.get("label") or item["id"],
+                        semantic_role=requirement.semantic_role,
+                        geometry={
+                            "shape": item.get("shape", "polygon"),
+                            "points": item.get("points", []),
+                        },
+                    )
+                    for item in node.params.get("regions", [])
+                    if isinstance(item, dict) and item.get("id")
+                )
+            elif slot.kind == "direction":
+                vector = node.params.get("vector", [])
+                if len(vector) == 2 and any(value != 0 for value in vector):
+                    instances.append(
+                        ResourceInstance(
+                            resource_id=requirement.requirement_id,
+                            resource_type="direction",
+                            display_name=requirement.display_name,
+                            semantic_role=requirement.semantic_role,
+                            geometry={"vector": vector},
+                        )
+                    )
+            else:
+                instances.extend(
+                    ResourceInstance(
+                        resource_id=f"{item['key']}_direction",
+                        resource_type="direction",
+                        display_name=item.get("label") or item["key"],
+                        semantic_role=requirement.semantic_role,
+                        paired_resource_id=item["key"],
+                        geometry={
+                            "vector": item.get("vector", []),
+                            "start": item.get("start", []),
+                            "end": item.get("end", []),
+                        },
+                    )
+                    for item in node.params.get("directions", [])
+                    if isinstance(item, dict) and item.get("key")
+                )
+            collection = ResourceCollection(
+                requirement_id=requirement.requirement_id,
+                items=instances,
+                completed=len(instances) >= requirement.cardinality.minimum,
+            )
+            collection_by_id[requirement.requirement_id] = collection
+        profile.collections = list(collection_by_id.values())
+        return result
 
     def _unified_node_parameter_values(
         self,
@@ -2091,7 +3038,8 @@ class V2AppController:
         tile = next(
             (
                 node for node in variant.nodes
-                if node.id == "preprocess_tiles" and node.op == "image.tile@1.1"
+                if node.op.startswith("image.tile@")
+                and node.inputs.get("frames") == f"${resize.id}"
             ),
             None,
         )
@@ -2232,6 +3180,9 @@ class V2AppController:
                 return "检测到" + str(
                     node.params.get("output_label") or event_label or "目标"
                 )
+            if node.op == "reduce.exists@1.0":
+                source = node_for(node.inputs.get("sets"))
+                return "存在" + describe(source, visited)
             if node.op == "track.iou@1.0":
                 return describe(node_for(node.inputs.get("objects")), visited)
             if node.op == "logic.compare@1.0":
@@ -2646,6 +3597,34 @@ class V2AppController:
             scope = params.get("scope", "global")
             scope_choices = [scope]
             is_direction = condition.op == "logic.heading_by_lane@1.0"
+            region_references = {}
+            if is_direction:
+                lane_node = node_for(condition.inputs.get("lanes"))
+                if lane_node is not None and lane_node.op == "region.manual_set@1.0":
+                    region_entries = [
+                        {
+                            "id": str(item["id"]),
+                            "label": str(item.get("label") or item["id"]),
+                        }
+                        for item in lane_node.params.get("regions", [])
+                        if isinstance(item, dict) and item.get("id")
+                    ]
+                    region_ids = [item["id"] for item in region_entries]
+                reference_node = node_for(condition.inputs.get("references"))
+                if reference_node is not None and reference_node.op == "direction.manual_set@1.0":
+                    configured_reference_keys = {
+                        str(item.get("key"))
+                        for item in reference_node.params.get("directions", [])
+                        if isinstance(item, dict) and item.get("key")
+                    }
+                    region_references = {
+                        item["id"]: (
+                            "已配置参考箭头"
+                            if item["id"] in configured_reference_keys
+                            else "待在 02 标注参考箭头"
+                        )
+                        for item in region_entries
+                    }
             condition_kind = (
                 "direction" if is_direction
                 else "comparison" if comparisons and not state_conditions
@@ -2668,6 +3647,83 @@ class V2AppController:
                     )
                 )
             )
+            regional_parameters = []
+            for comparison in comparisons:
+                regional_parameters.extend([
+                    {
+                        "id": f"{comparison['node_id']}::operator",
+                        "node_id": comparison["node_id"],
+                        "parameter": "operator",
+                        "label": f"{comparison['measure']}：比较方式",
+                        "editor": "select",
+                        "choices": [">", ">=", "==", "!=", "<=", "<"],
+                        "default": comparison["operator"],
+                        "overrides": comparison.get("operator_overrides", {}),
+                        "storage": "operator_overrides",
+                    },
+                    {
+                        "id": f"{comparison['node_id']}::value",
+                        "node_id": comparison["node_id"],
+                        "parameter": "value",
+                        "label": f"{comparison['measure']}：比较值",
+                        "editor": "number",
+                        "default": comparison["value"],
+                        "overrides": comparison.get("overrides", {}),
+                        "storage": "overrides",
+                    },
+                ])
+            if is_direction:
+                direction_defaults = {
+                    **self.registry.require(condition.op).defaults,
+                    **condition.params,
+                }
+                direction_overrides = direction_defaults.get("scope_overrides", {})
+                for parameter, label, editor, choices in (
+                    ("threshold", "方向相反判定阈值", "number", []),
+                    (
+                        "relation", "方向关系", "select",
+                        ["opposite", "aligned"],
+                    ),
+                ):
+                    regional_parameters.append({
+                        "id": f"{condition.id}::{parameter}",
+                        "node_id": condition.id,
+                        "parameter": parameter,
+                        "label": label,
+                        "editor": editor,
+                        "choices": choices,
+                        "default": direction_defaults[parameter],
+                        "overrides": {
+                            key: value[parameter]
+                            for key, value in direction_overrides.items()
+                            if isinstance(value, dict) and parameter in value
+                        },
+                        "storage": "scope_overrides",
+                    })
+                event_overrides = params.get("scope_overrides", {})
+                for parameter, label, editor, choices in (
+                    ("seconds", "逆行持续时间", "number", []),
+                    ("gap_tolerance_seconds", "允许短暂中断", "number", []),
+                    (
+                        "trigger_mode", "区域触发方式", "select",
+                        ["once", "repeat"],
+                    ),
+                ):
+                    regional_parameters.append({
+                        "id": f"{event.id}::{parameter}",
+                        "node_id": event.id,
+                        "parameter": parameter,
+                        "label": label,
+                        "editor": editor,
+                        "choices": choices,
+                        "default": params[parameter],
+                        "overrides": {
+                            key: value[parameter]
+                            for key, value in event_overrides.items()
+                            if isinstance(value, dict) and parameter in value
+                        },
+                        "storage": "scope_overrides",
+                    })
             control = {
                 "event_id": event.id,
                 "event_label": event_label,
@@ -2689,7 +3745,10 @@ class V2AppController:
                 "gap_tolerance_seconds": float(params["gap_tolerance_seconds"]),
                 "trigger_mode": params["trigger_mode"],
                 "alert_node_id": alert.id if alert is not None else None,
+                "regional_parameters": regional_parameters,
             }
+            if region_references:
+                control["region_references"] = region_references
             if state_conditions:
                 control["state_conditions"] = state_conditions
                 if len(state_conditions) == 1:
@@ -2901,6 +3960,116 @@ class V2AppController:
         if errors:
             raise gr.Error("事件规则配置无效：" + "；".join(errors))
         return self._dump(updated)
+
+    def sync_editor_region_overrides(
+        self,
+        editor_json: str,
+        effective_json: str,
+        media_type: str,
+        comparison_ids: list[str],
+    ) -> str:
+        """Persist dedicated per-region controls into the business draft graph.
+
+        The per-region card also updates the current Effective package so its
+        summary refreshes immediately.  This companion write keeps the draft as
+        the source of truth, otherwise a later “validate and generate” would
+        compile the older graph and silently discard every regional override.
+        """
+
+        document = self._parse_editor_json(editor_json)
+        key = _variant_key(media_type)
+        graph = document.skill_template.rule_graphs.get(key)
+        if graph is None:
+            raise gr.Error(f"当前业务草稿没有 {key} 规则图")
+        package = SkillPackage.model_validate_json(effective_json)
+        variant = package.variants.get(key)
+        if variant is None or variant.status == "unsupported":
+            raise gr.Error(f"当前运行版本没有可同步的 {key} 流程")
+        package_nodes = {node.id: node for node in variant.nodes}
+        draft_nodes = {node.node_id: node for node in graph.nodes}
+        for node_id in comparison_ids:
+            source = package_nodes.get(node_id)
+            target = draft_nodes.get(node_id)
+            if source is None or target is None or target.operator != source.op:
+                raise gr.Error("区域阈值对应的判断条件已变化，请刷新后重试")
+            for name in ("overrides", "operator_overrides", "scope_overrides"):
+                if name in source.params:
+                    target.params[name] = deepcopy(source.params[name])
+                    target.parameter_sources[name] = ResolvableValue(
+                        state="explicit",
+                        value=deepcopy(source.params[name]),
+                        source="user",
+                        required_before="never",
+                    )
+                else:
+                    target.params.pop(name, None)
+                    target.parameter_sources.pop(name, None)
+        document.version += 1
+        document.effective_skill_package = None
+        document.validation_report.update({"dirty": True, "can_run": False})
+        return self._dump(refresh_document_hashes(document))
+
+    def apply_region_parameter_override(
+        self,
+        effective_json: str,
+        media_type: str,
+        event_id: str,
+        region_id: str,
+        parameter_id: str,
+        value: Any,
+    ) -> tuple[str, list[str]]:
+        """Apply one validated region-scoped parameter through its declared storage."""
+
+        controls = self.read_event_rule_controls(effective_json, media_type)
+        selected = next(
+            (item for item in controls if item["event_id"] == event_id), None
+        )
+        if selected is None:
+            raise gr.Error("当前事件规则已变化，请刷新后重试")
+        if region_id not in {item["id"] for item in selected.get("regions", [])}:
+            raise gr.Error("请选择 02 中已标注的区域")
+        descriptor = next(
+            (
+                item for item in selected.get("regional_parameters", [])
+                if item["id"] == parameter_id
+            ),
+            None,
+        )
+        if descriptor is None:
+            raise gr.Error("当前区域参数已变化，请刷新后重试")
+        if descriptor["editor"] == "number":
+            try:
+                value = float(value)
+            except (TypeError, ValueError) as exc:
+                raise gr.Error("该区域参数必须填写数字") from exc
+        elif value not in descriptor.get("choices", []):
+            raise gr.Error("请从固定选项中选择区域参数")
+
+        package = SkillPackage.model_validate_json(effective_json)
+        key = _variant_key(media_type)
+        data = package.model_dump(mode="json")
+        variant = data["variants"].get(key)
+        if not variant or variant["status"] == "unsupported":
+            raise gr.Error(f"当前技能没有可配置的 {key} 流程")
+        nodes = {node["id"]: node for node in variant["nodes"]}
+        node = nodes.get(descriptor["node_id"])
+        if node is None:
+            raise gr.Error("区域参数对应的原子已经不存在")
+        storage = descriptor["storage"]
+        if storage == "scope_overrides":
+            overrides = deepcopy(node["params"].get(storage, {}))
+            overrides.setdefault(region_id, {})[descriptor["parameter"]] = value
+            node["params"][storage] = overrides
+        else:
+            overrides = deepcopy(node["params"].get(storage, {}))
+            overrides[region_id] = value
+            node["params"][storage] = overrides
+
+        updated = SkillPackage.model_validate(data)
+        errors = validate_skill_package(updated, self.registry)
+        if errors:
+            raise gr.Error("区域参数配置无效：" + "；".join(errors))
+        return self._dump(updated), [descriptor["node_id"]]
 
     def apply_event_rule_cards(
         self,
@@ -3411,13 +4580,35 @@ class V2AppController:
                 "status": f"当前技能没有可编辑的 {key} variant。",
             }
         label_phrases: dict[str, list[str]] = {}
+        exclusion_labels = {
+            label
+            for node in variant.nodes
+            if node.op == "objects.filter_by_label@1.0"
+            and node.id.endswith("_exclusion")
+            for label in node.params.get("labels", [])
+        }
+        crop_frame_refs = {
+            f"${node.id}"
+            for node in variant.nodes
+            if node.op == "object.crop@1.0"
+        }
+        crop_frame_refs.update(
+            f"${node.id}"
+            for node in variant.nodes
+            if node.op.startswith("image.resize@")
+            and node.inputs.get("frames") in crop_frame_refs
+        )
         for node in variant.nodes:
-            if node.op != "rex.ground@1.1":
+            if (
+                node.op != "rex.ground@1.1"
+                or node.id.startswith("context_confirmation_")
+                or node.inputs.get("frames") in crop_frame_refs
+            ):
                 continue
             for target in node.params.get("targets", []):
                 label = target.get("label")
                 phrases = target.get("phrases", [])
-                if label and phrases:
+                if label and label not in exclusion_labels and phrases:
                     label_phrases.setdefault(label, []).extend(phrases)
         candidate = next(
             (node for node in variant.nodes if node.id == "context_confirmation_candidates"),
@@ -3479,13 +4670,35 @@ class V2AppController:
         if not variant or variant["status"] == "unsupported":
             raise gr.Error(f"当前技能没有可执行的 {key} variant")
         label_phrases: dict[str, list[str]] = {}
+        exclusion_labels = {
+            label
+            for node in variant["nodes"]
+            if node["op"] == "objects.filter_by_label@1.0"
+            and node["id"].endswith("_exclusion")
+            for label in node["params"].get("labels", [])
+        }
+        crop_frame_refs = {
+            f"${node['id']}"
+            for node in variant["nodes"]
+            if node["op"] == "object.crop@1.0"
+        }
+        crop_frame_refs.update(
+            f"${node['id']}"
+            for node in variant["nodes"]
+            if node["op"].startswith("image.resize@")
+            and node.get("inputs", {}).get("frames") in crop_frame_refs
+        )
         for node in variant["nodes"]:
-            if node["op"] != "rex.ground@1.1":
+            if (
+                node["op"] != "rex.ground@1.1"
+                or node["id"].startswith("context_confirmation_")
+                or node.get("inputs", {}).get("frames") in crop_frame_refs
+            ):
                 continue
             for target in node["params"].get("targets", []):
                 label = target.get("label")
                 phrases = target.get("phrases", [])
-                if label and phrases:
+                if label and label not in exclusion_labels and phrases:
                     label_phrases.setdefault(label, []).extend(phrases)
         selected = list(dict.fromkeys(candidate_labels or []))
         unknown = [label for label in selected if label not in label_phrases]
@@ -3498,6 +4711,12 @@ class V2AppController:
             item.strip() for item in re.split(r"[\n,;]+", confirmation_text or "")
             if item.strip()
         ]
+        if enabled and not selected:
+            raise gr.Error("启用二次可见性确认后，请至少选择一个待复核检测类别。")
+        if enabled and not confirmation_phrases:
+            raise gr.Error(
+                "启用二次可见性确认后，请填写至少一条确认可见证据提示词。"
+            )
         try:
             nodes, outputs = apply_context_confirmation(
                 variant["nodes"], variant["outputs"], enabled=bool(enabled),
@@ -3547,16 +4766,39 @@ class V2AppController:
         )
         if resize is None:
             raise gr.Error("当前 variant 没有显式 image.resize 节点")
+        current_resize = dict(resize.get("params") or {})
+
+        def _number_or(value, fallback, cast, label):
+            candidate = fallback if value in (None, "") else value
+            try:
+                return cast(candidate)
+            except (TypeError, ValueError) as exc:
+                raise gr.Error(f"{label}必须填写有效数值。") from exc
+
         resize["op"] = "image.resize@1.1"
         resize["params"] = {
             "mode": resize_mode,
-            "long_side": int(long_side),
-            "width": int(width),
-            "height": int(height),
+            "long_side": _number_or(
+                long_side, current_resize.get("long_side", 1280), int, "缩放长边"
+            ),
+            "width": _number_or(
+                width, current_resize.get("width", 1280), int, "缩放宽度"
+            ),
+            "height": _number_or(
+                height, current_resize.get("height", 720), int, "缩放高度"
+            ),
             "interpolation": interpolation,
         }
-        tile_id = "preprocess_tiles"
-        tile = next((node for node in nodes if node["id"] == tile_id), None)
+        tile = next(
+            (
+                node for node in nodes
+                if node["op"].startswith("image.tile@")
+                and node.get("inputs", {}).get("frames") == f"${resize['id']}"
+            ),
+            None,
+        )
+        tile_id = tile["id"] if tile is not None else "preprocess_tiles"
+        frame_sources = {f"${resize['id']}", f"${tile_id}"}
         primary_ground = next(
             (
                 node for node in nodes
@@ -3570,22 +4812,34 @@ class V2AppController:
                 (
                     node for node in nodes
                     if node["op"].startswith("rex.ground@")
-                    and node.get("inputs", {}).get("frames")
-                    == f"${resize['id']}"
+                    and node.get("inputs", {}).get("frames") in frame_sources
                 ),
                 None,
             )
         ground_nodes = [primary_ground] if primary_ground is not None else []
         if tile_enabled:
+            current_tile = dict(tile.get("params") or {}) if tile else {}
             tile_data = {
                 "id": tile_id,
                 "op": "image.tile@1.1",
                 "inputs": {"frames": f"${resize['id']}"},
                 "params": {
-                    "tile_width": int(tile_width),
-                    "tile_height": int(tile_height),
-                    "overlap_x": float(overlap_x),
-                    "overlap_y": float(overlap_y),
+                    "tile_width": _number_or(
+                        tile_width, current_tile.get("tile_width", 640), int,
+                        "切片宽度",
+                    ),
+                    "tile_height": _number_or(
+                        tile_height, current_tile.get("tile_height", 640), int,
+                        "切片高度",
+                    ),
+                    "overlap_x": _number_or(
+                        overlap_x, current_tile.get("overlap_x", 0.2), float,
+                        "横向重叠比例",
+                    ),
+                    "overlap_y": _number_or(
+                        overlap_y, current_tile.get("overlap_y", 0.2), float,
+                        "纵向重叠比例",
+                    ),
                     "include_full_frame": bool(include_full_frame),
                 },
                 "enabled": True,
@@ -3607,9 +4861,15 @@ class V2AppController:
                     ground["inputs"]["frames"] = f"${resize['id']}"
         for node in nodes:
             if node["op"] == "objects.deduplicate@1.0":
+                current_dedup = dict(node.get("params") or {})
                 node["params"] = {
-                    "metric": dedup_metric,
-                    "threshold": float(dedup_threshold),
+                    "metric": dedup_metric or current_dedup.get("metric", "ios"),
+                    "threshold": _number_or(
+                        dedup_threshold,
+                        current_dedup.get("threshold", 0.5),
+                        float,
+                        "去重阈值",
+                    ),
                     "keep": "first",
                 }
         updated = SkillPackage.model_validate(data)
@@ -4007,7 +5267,9 @@ class V2AppController:
         slot_by_id = {slot.slot_id: slot for slot in variant.configuration_slots}
 
         ordered = []
-        remaining = list(variant.configuration_slots)
+        remaining = list({
+            slot.slot_id: slot for slot in variant.configuration_slots
+        }.values())
         emitted: set[str] = set()
         while remaining:
             ready = [
@@ -4090,12 +5352,22 @@ class V2AppController:
                     row
                     for row in rows
                     if row["active"]
-                    and row["kind"] == "region_set"
-                    and "new_item" in row["pending_items"]
+                    and row["required"]
+                    and not row["configured"]
+                    and row["pending_items"]
                 ),
                 next(
-                    (row for row in rows if row["active"] and row["pending_items"]),
-                    None,
+                    (
+                        row
+                        for row in rows
+                    if row["active"]
+                    and row["kind"] == "region_set"
+                    and "new_item" in row["pending_items"]
+                    ),
+                    next(
+                        (row for row in rows if row["active"] and row["pending_items"]),
+                        None,
+                    ),
                 ),
             ),
         )
@@ -4182,12 +5454,17 @@ class V2AppController:
         tool = "direction" if slot.kind in {"direction", "direction_set"} else (
             "polygon" if "polygon" in slot.allowed_shapes else "rectangle"
         )
-        return tool, item_id, item_id
+        item_label = (
+            slot.label
+            if slot.kind == "region_set" and not row["configured_items"]
+            else item_id
+        )
+        return tool, item_id, item_label
 
     def annotation_tool_choices(
         self, effective_json: str, media_type: str, slot_id: str | None
-    ) -> list[str]:
-        """Return drawing tools valid for the selected slot and its direction link."""
+    ) -> list[tuple[str, str]]:
+        """Return stable Chinese labels and machine values for drawing tools."""
 
         package = SkillPackage.model_validate_json(effective_json)
         key = _variant_key(media_type)
@@ -4200,18 +5477,23 @@ class V2AppController:
             None,
         )
         if slot is None:
-            return ["rectangle", "polygon"]
+            return [("矩形", "rectangle"), ("多边形", "polygon")]
         if slot.kind in {"direction", "direction_set"}:
-            return ["direction"]
-        choices = list(slot.allowed_shapes or ["rectangle", "polygon"])
+            return [("方向箭头", "direction")]
+        values = list(slot.allowed_shapes or ["rectangle", "polygon"])
         has_linked_direction = any(
             item.kind in {"direction", "direction_set"}
             and item.key_source_slot_id == slot.slot_id
             for item in package.variants[key].configuration_slots
         )
-        if has_linked_direction and "direction" not in choices:
-            choices.append("direction")
-        return choices
+        if has_linked_direction and "direction" not in values:
+            values.append("direction")
+        labels = {
+            "rectangle": "矩形",
+            "polygon": "多边形",
+            "direction": "方向箭头",
+        }
+        return [(labels.get(value, value), value) for value in values]
 
     def annotation_tool_selection_defaults(
         self,
@@ -4470,6 +5752,52 @@ class V2AppController:
             effective_json, media_type, asset_path, timestamp, current
         )
 
+    def clear_saved_annotations(
+        self,
+        effective_json: str,
+        media_type: str,
+        asset_path: str,
+        timestamp: float,
+        state: dict | None,
+    ):
+        """Clear all persisted manual annotations for the active variant.
+
+        ``clear_annotation_points`` intentionally remains the draft-only undo
+        action used by the drawing controls.  This method is the explicit
+        canvas reset action: it removes every saved region and direction in
+        the current image/video variant, then returns a fresh empty preview so
+        no stale geometry remains visible.
+        """
+
+        if not effective_json:
+            raise gr.Error("请先生成或加载技能")
+        if not asset_path:
+            raise gr.Error("请先加载当前任务媒体")
+        try:
+            package = SkillPackage.model_validate_json(effective_json)
+            key = _variant_key(media_type)
+            before = annotations_from_package(package, key)
+            removed = len(before.get("regions", [])) + len(
+                before.get("directions", [])
+            )
+            updated = self.configuration_binder.clear_annotations(
+                package, media_type=key
+            )
+        except (ValueError, TypeError) as exc:
+            raise gr.Error(f"清空标注失败：{exc}") from exc
+
+        current = dict(state or {})
+        current["tool"] = current.get("tool") or "rectangle"
+        current["points"] = []
+        preview, current, _, _ = self._render_annotation_state(
+            self._dump(updated), media_type, asset_path, timestamp, current
+        )
+        status = (
+            f"✅ 已清空当前 {key} 流程的全部已保存标注（{removed} 项）；"
+            "配置槽已恢复为待绘制，请重新标注。"
+        )
+        return self._dump(updated), preview, current, "[]", status
+
     def reverse_annotation_direction(
         self,
         effective_json: str,
@@ -4567,7 +5895,9 @@ class V2AppController:
             ]
             if rerouted_for_tool or not item_id or not str(item_id).strip():
                 item_id = f"{slot.slot_id}_{len(existing) + 1}"
-                item_label = item_label or item_id
+                item_label = item_label or (
+                    slot.label if not existing else item_id
+                )
         elif slot.kind == "direction_set":
             node = next(
                 (item for item in package.variants[key].nodes if item.id == slot.binding.node_id),
@@ -5124,24 +6454,35 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
     .vs-event-policy {margin-top:14px !important; padding:14px !important; border:1px solid var(--vs-border) !important; border-radius:8px !important; background:#FBF8FF !important;}
     .vs-card-state {display:none !important;}
     .vs-branch-grid {display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; margin:10px 0 16px;}
-    .vs-branch-summary {padding:13px 14px; border:1px solid var(--vs-border); border-radius:10px; background:#fff; box-shadow:var(--vs-shadow);}
+    .vs-branch-summary {padding:13px 14px; border:1px solid var(--vs-border); border-radius:10px; background:#fff; box-shadow:var(--vs-shadow); color:inherit; font:inherit; text-align:left; cursor:pointer; width:100%;}
+    .vs-branch-summary:hover {border-color:var(--vs-primary);}
     .vs-branch-summary.is-selected {border-color:var(--vs-primary); box-shadow:inset 4px 0 0 var(--vs-primary),var(--vs-shadow);}
     .vs-branch-summary b,.vs-branch-summary span {display:block;}
     .vs-branch-summary b {color:var(--vs-ink);}
     .vs-branch-summary span {margin-top:3px; color:var(--vs-primary); font-size:12px; font-weight:700;}
     .vs-branch-summary p {margin:7px 0 0; color:var(--vs-muted); font-size:12px; line-height:1.45;}
     .vs-rule-tree {display:flex; flex-direction:column; gap:8px; margin:8px 0 16px;}
+    .vs-rule-formula {display:grid; gap:6px; margin:8px 0 12px; padding:12px 14px; border:1px solid #C4B5FD; border-radius:10px; background:#F5F3FF;}
+    .vs-rule-formula code {display:block; white-space:normal; overflow-wrap:anywhere; color:#5B21B6; font-size:14px; font-weight:700;}
+    .vs-rule-formula span {color:var(--vs-muted); font-size:12px;}
     .vs-rule-node {margin-left:calc(var(--rule-depth) * 22px); padding:11px 13px; border:1px solid var(--vs-border); border-left:4px solid #A78BFA; border-radius:8px; background:#fff;}
     .vs-rule-node.is-ready {border-left-color:#10B981;}
     .vs-rule-node.is-pending {border-left-color:#F59E0B; background:#FFFBEB;}
     .vs-rule-node.is-disabled {opacity:.58; border-left-color:#94A3B8;}
     .vs-rule-node-head {display:flex; align-items:center; gap:7px; margin-bottom:5px;}
-    .vs-rule-category,.vs-logic-badge,.vs-rule-status {display:inline-flex; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:700;}
+    .vs-rule-category,.vs-logic-badge,.vs-condition-badge,.vs-step-badge,.vs-rule-status {display:inline-flex; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:700;}
     .vs-rule-category {background:#F3E8FF; color:#6B21A8;}
     .vs-logic-badge {background:#DBEAFE; color:#1D4ED8;}
+    .vs-condition-badge {background:#ECFDF5; color:#047857;}
+    .vs-step-badge {background:#ECFDF5; color:#047857;}
     .vs-rule-status {margin-left:auto; background:#F1F5F9; color:#475569;}
     .vs-rule-node strong {display:block; color:var(--vs-ink);}
     .vs-rule-node p {margin:3px 0 0; color:var(--vs-muted); font-size:12px;}
+    .vs-rule-node.is-logic-group {border-color:#93C5FD; border-left-color:#2563EB; background:#EFF6FF;}
+    .vs-logic-members {display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; padding:10px; border:1px solid #BFDBFE; border-radius:8px; background:#fff;}
+    .vs-logic-member {display:grid; gap:2px; min-width:180px; padding:7px 9px; border-radius:7px; background:#F8FAFC; color:#0F172A; font-size:12px; font-weight:650;}
+    .vs-logic-member i {color:#64748B; font-size:10px; font-style:normal; font-weight:700;}
+    .vs-logic-connector {padding:3px 7px; border-radius:999px; background:#2563EB; color:#fff; font-size:11px;}
     .vs-empty-card {display:flex; flex-direction:column; gap:4px; padding:16px; border:1px dashed #C4B5FD; border-radius:10px; background:#FBF8FF; color:#5B21B6;}
     .vs-editor-subnav {padding:12px 14px; border:1px solid var(--vs-border); border-radius:10px; background:#FBF8FF;}
     .gr-json, .gr-code {border-radius:12px !important; overflow:hidden !important;}
@@ -5332,6 +6673,34 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         modal.classList.add('is-open');
       };
       document.addEventListener('click', (event) => {
+        const branchCard = event.target.closest?.('[data-vs-branch-id]');
+        if (branchCard) {
+          event.preventDefault();
+          const branchIndex = Number(branchCard.dataset.vsBranchIndex);
+          const branchRoot = document.querySelector('#vs-business-branch');
+          const input = branchRoot?.querySelector('input');
+          if (input && Number.isInteger(branchIndex) && branchIndex >= 0) {
+            input.focus();
+            for (const eventName of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+              input.dispatchEvent(new MouseEvent(eventName, {bubbles: true, cancelable: true, view: window}));
+            }
+            window.setTimeout(() => {
+              const options = Array.from(
+                document.querySelectorAll('[data-testid="dropdown-option"]')
+              ).filter((item) => {
+                const rect = item.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+              });
+              const option = options[branchIndex];
+              if (option) {
+                for (const eventName of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+                  option.dispatchEvent(new MouseEvent(eventName, {bubbles: true, cancelable: true, view: window}));
+                }
+              }
+            }, 0);
+          }
+          return;
+        }
         const close = event.target.closest?.('[data-vs-close-media-modal]');
         if (close || event.target === modal) { closeModal(); return; }
         const media = event.target.closest?.('.vs-result-media img, .vs-result-media video');
@@ -5345,7 +6714,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             """
             <section class="vs-hero">
               <p class="vs-kicker">VISION SKILL BUILDER / V2</p>
-              <h1>创建、检查并运行视觉技能</h1>
+              <h1>AI 一句话生成视觉技能</h1>
                       <p>一句话先生成可编辑技能；需要时补充区域或方向参考；最后在图片或视频上运行并查看可解释结果。</p>
               <div class="vs-badges"><span class="vs-badge">自然语言生成</span><span class="vs-badge">可编辑规则</span><span class="vs-badge">图片与视频</span><span class="vs-badge">结果与证据</span></div>
             </section>
@@ -5411,10 +6780,14 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 )
                 with gr.Group(visible=True, elem_classes="vs-section") as natural_group:
                     gr.Markdown("### 用一句话创建\n只写要识别的目标、属性、关系或事件；ROI、切片和抽帧在下一步按需配置。")
+                    gr.Markdown(
+                        "**示例 1：** 识别未带安全帽的人。  \n"
+                        "**示例 2：** 区域1有穿红色上衣、灰色裤子的人，区域2有至少2个人，则发出区域告警事件。"
+                    )
                     instruction = gr.Textbox(
                         label="一句自然语言",
                         lines=3,
-                        placeholder="例如：检测穿红色上衣、灰色裤子的人",
+                        placeholder="输入一句话描述你要创建的视觉技能",
                     )
                     with gr.Row():
                         skill_id = gr.Textbox(
@@ -5435,9 +6808,16 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                     preset_button = gr.Button("加载预置", variant="primary")
                 with gr.Group(visible=False, elem_classes="vs-section") as saved_group:
                     gr.Markdown("### 打开保存版本\n仅自定义版本可以删除；预置技能不可删除。")
+                    saved_root = gr.Textbox(
+                        label="技能资产目录",
+                        value=controller.asset_save_root(),
+                        interactive=True,
+                        info="从此目录下的 generated_packages 和 skill_documents 读取；可与 05 的保存目录保持一致。",
+                    )
                     saved = gr.Dropdown(controller.saved_skill_choices(), label="已保存技能")
                     with gr.Row():
                         saved_button = gr.Button("加载保存版本", variant="primary")
+                        saved_refresh_button = gr.Button("刷新列表", variant="secondary")
                         delete_button = gr.Button("删除选中自定义版本", variant="stop")
                 source_status = gr.Textbox(
                     label="生成/加载状态", interactive=False, elem_classes="vs-status-output"
@@ -5551,7 +6931,9 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                         )
                     with gr.Row():
                         undo_annotation_button = gr.Button("撤销上一步", variant="secondary")
-                        clear_annotation_button = gr.Button("清空重画", variant="secondary")
+                        clear_annotation_button = gr.Button(
+                            "清空已有标注", variant="stop"
+                        )
                         reverse_direction_button = gr.Button(
                             "反转方向（方向箭头）", variant="secondary"
                         )
@@ -5677,13 +7059,16 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                         value="生成或加载技能后，系统会读取当前图片/视频流程的业务分支。",
                         elem_classes="vs-status-output",
                     )
+                    business_restore_button = gr.Button(
+                        "还原本次生成/加载的默认规则", variant="secondary"
+                    )
                     business_branch_overview = gr.HTML(
                         render_branch_overview([], None), padding=False
                     )
                     with gr.Row():
                         business_branch = gr.Dropdown(
                             choices=[], label="当前条件分支", interactive=True,
-                            allow_custom_value=True,
+                            allow_custom_value=True, elem_id="vs-business-branch",
                         )
                         business_branch_name = gr.Textbox(
                             label="分支名称",
@@ -5719,13 +7104,16 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                     allow_custom_value=True,
                                 )
                                 business_condition_action = gr.Dropdown(
-                                    ["复制", "删除", "NOT 取反"],
+                                    ["复制", "删除", "删除（含依赖）", "NOT 取反"],
                                     value="复制",
                                     label="条件操作",
                                 )
                                 business_condition_action_button = gr.Button(
                                     "执行条件操作", variant="secondary"
                                 )
+                            business_condition_action_status = gr.Markdown(
+                                "选择条件和操作后执行；结果会立即显示在这里。"
+                            )
                             gr.Markdown("#### 新增业务条件")
                             with gr.Row():
                                 initial_business_capabilities = [
@@ -5768,8 +7156,8 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                     interactive=False,
                                 )
                                 business_include_tuning = gr.Checkbox(
-                                    False,
-                                    label="显示更多效果调优参数",
+                                    True,
+                                    label="显示效果调优参数（推荐保持显示）",
                                 )
                             business_parameter_table = gr.Dataframe(
                                 headers=["配置项", "当前值", "单位", "来源", "作用说明"],
@@ -5815,37 +7203,143 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                             business_apply_condition_button = gr.Button(
                                 "应用这个参数", variant="primary"
                             )
-                            with gr.Accordion("当前条件组合（可修改）｜AND / OR / NOT / 至少N项", open=True):
+                            with gr.Group(visible=False) as business_region_override_group:
                                 gr.Markdown(
-                                    "上方条件树就是当前生效配置。选择同一层级的条件后可重新组合；NOT 请使用上方“条件操作”；"
-                                    "删除后不足两个子项的 AND/OR 组会自动合并，不留下非法空组。"
+                                    "#### 每个标注区域分别配置\n"
+                                    "区域来自 02 标注，数量无需预先确定。可分别修改数量/速度阈值、方向关系、方向判定阈值、持续时间和允许中断；只显示当前原子真正支持的区域参数。"
                                 )
-                                business_group_members = gr.Dropdown(
-                                    choices=[],
+                                business_region_event = gr.Dropdown(
+                                    choices=[], label="要配置的事件规则"
+                                )
+                                business_region_overrides = gr.Dataframe(
+                                    headers=["已标注区域"],
+                                    datatype=["str"],
+                                    type="array",
                                     value=[],
-                                    multiselect=True,
-                                    label="选择要组合的同级条件",
-                                    allow_custom_value=True,
+                                    interactive=False,
+                                    wrap=True,
+                                    label="各区域当前生效配置（只读总览）",
                                 )
                                 with gr.Row():
-                                    business_group_operator = gr.Radio(
-                                        [
-                                            ("全部满足（AND）", "AND"),
-                                            ("任一满足（OR）", "OR"),
-                                            ("至少满足 N 项", "N_OF_M"),
-                                        ],
-                                        value="AND",
-                                        label="组合关系",
+                                    business_region_name = gr.Dropdown(
+                                        choices=[], label="标注区域"
                                     )
-                                    business_group_required = gr.Number(
-                                        1,
-                                        minimum=1,
-                                        precision=0,
-                                        label="N（仅至少N项使用）",
+                                    business_region_comparison = gr.Dropdown(
+                                        choices=[], label="要修改的区域参数"
                                     )
-                                business_group_button = gr.Button(
-                                    "组合所选条件", variant="secondary"
+                                with gr.Row():
+                                    business_region_operator = gr.Dropdown(
+                                        choices=[],
+                                        label="固定选项",
+                                        visible=False,
+                                    )
+                                    business_region_value = gr.Number(
+                                        label="数值", visible=False
+                                    )
+                                business_region_override_apply = gr.Button(
+                                    "应用到这个区域", variant="primary"
                                 )
+                            with gr.Accordion("组合条件（AND / OR / NOT）", open=True):
+                                gr.Markdown(
+                                    "选择一个括号组，直接决定这组条件是“全部成立”“任一成立”还是“至少 N 项成立”。"
+                                    "需要 `NOT` 时打开“反转结果”。只有构造 `(A AND B) OR C` 这类新层级时，才使用下方“新建括号组”。"
+                                )
+                                with gr.Group(visible=False) as business_imported_logic_group:
+                                    gr.Markdown(
+                                        "#### 修改当前括号组"
+                                    )
+                                    business_imported_logic_selector = gr.Dropdown(
+                                        choices=[], label="选择括号组"
+                                    )
+                                    with gr.Row():
+                                        business_imported_logic_operator = gr.Radio(
+                                            [
+                                                ("全部满足（AND）", "AND"),
+                                                ("任一满足（OR）", "OR"),
+                                                ("至少 N 项满足（N-of-M）", "N_OF_M"),
+                                            ],
+                                            value="AND",
+                                            label="这组条件如何成立？",
+                                        )
+                                        business_imported_logic_required = gr.Number(
+                                            1,
+                                            minimum=1,
+                                            precision=0,
+                                            label="N（仅N-of-M使用）",
+                                            visible=False,
+                                        )
+                                    business_imported_logic_negated = gr.Checkbox(
+                                        False, label="反转这组的最终结果（NOT）"
+                                    )
+                                    business_imported_logic_summary = gr.Markdown()
+                                    business_imported_logic_apply = gr.Button(
+                                        "应用到当前括号组", variant="primary"
+                                    )
+                                with gr.Group(visible=False) as business_expression_logic_group:
+                                    gr.Markdown(
+                                        "#### 修改当前括号组"
+                                    )
+                                    business_expression_logic_selector = gr.Dropdown(
+                                        choices=[], label="选择括号组"
+                                    )
+                                    with gr.Row():
+                                        business_expression_logic_operator = gr.Radio(
+                                            [
+                                                ("全部满足（AND）", "AND"),
+                                                ("任一满足（OR）", "OR"),
+                                                ("至少 N 项满足（N-of-M）", "N_OF_M"),
+                                            ],
+                                            value="AND",
+                                            label="这组条件如何成立？",
+                                        )
+                                        business_expression_logic_required = gr.Number(
+                                            1,
+                                            minimum=1,
+                                            precision=0,
+                                            label="N（仅N-of-M使用）",
+                                            visible=False,
+                                        )
+                                    business_expression_logic_negated = gr.Checkbox(
+                                        False,
+                                        label="反转这组的最终结果（NOT）",
+                                    )
+                                    business_expression_logic_summary = gr.Markdown()
+                                    business_expression_logic_apply = gr.Button(
+                                        "应用到当前括号组", variant="primary"
+                                    )
+                                with gr.Group(visible=False) as business_new_logic_group:
+                                    gr.Markdown(
+                                        "#### 新建括号组（高级）\n"
+                                        "仅在需要新增括号层级时使用；候选项必须位于同一父组。"
+                                    )
+                                    business_group_members = gr.Dropdown(
+                                        choices=[],
+                                        value=[],
+                                        multiselect=True,
+                                        label="选择要放进新括号的条件或已有括号组",
+                                        allow_custom_value=False,
+                                    )
+                                    with gr.Row():
+                                        business_group_operator = gr.Radio(
+                                            [
+                                                 ("全部满足（AND）", "AND"),
+                                                 ("任一满足（OR）", "OR"),
+                                                 ("至少满足 N 项", "N_OF_M"),
+                                                 ("对所选一项取反（NOT）", "NOT"),
+                                            ],
+                                            value="AND",
+                                            label="编排关系",
+                                        )
+                                        business_group_required = gr.Number(
+                                            1,
+                                            minimum=1,
+                                            precision=0,
+                                            label="至少满足几项",
+                                            visible=False,
+                                        )
+                                    business_group_button = gr.Button(
+                                        "创建括号组", variant="primary"
+                                    )
                             with gr.Accordion(
                                 "分支时间与有效状态｜持续、累计、窗口占比",
                                 open=False,
@@ -5926,56 +7420,65 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                     "应用分支时间设置", variant="primary"
                                 )
 
-                        with gr.Tab("分支之间如何判定"):
+                        with gr.Tab("分支编排"):
                             gr.Markdown(
-                                "只在多个分支存在先后或时间关系时配置。普通图片任务保持“不使用”："
-                                "最终告警直接在“最终判定”选择哪些分支需要满足。"
+                                "把分支组合成可复用的编排组。先保存“顺序（A → B）”，再把该已编排组"
+                                "与分支 C 选择“并行”，即可得到“（A → B）AND C”；顺序关系只适用于视频。"
                             )
-                            business_pattern_mode = gr.Dropdown(
-                                [
-                                    ("不使用（普通 AND / OR 告警）", "none"),
-                                    ("这些分支需要同时处于满足状态", "all_active"),
-                                    ("这些分支都完成过即可", "all_completed"),
-                                    ("这些分支必须在规定时间内全部完成", "all_completed_within_window"),
-                                    ("其中任一分支完成即可", "any"),
-                                    ("至少 N 个分支完成", "n_of_m"),
-                                    ("按所选顺序依次完成", "sequence"),
-                                    ("规定时间内没有发生所选分支", "absence"),
-                                    ("规定时间内重复发生所选分支", "repeat"),
-                                ],
-                                value="none",
-                                label="分支之间什么时候算完成",
-                            )
-                            business_pattern_branches = gr.Dropdown(
-                                choices=[],
-                                multiselect=True,
-                                label="参与分支（顺序模式按选择顺序）",
-                                allow_custom_value=True,
-                            )
-                            with gr.Row():
-                                business_pattern_window = gr.Number(
-                                    None, minimum=0, label="时间窗口（秒）"
+                            with gr.Group(visible=False) as business_pattern_panel:
+                                business_pattern_status = gr.Markdown(
+                                    render_branch_pattern("none", [])
                                 )
-                                business_pattern_required = gr.Number(
-                                    None, minimum=1, precision=0, label="至少完成分支数 N"
-                                )
-                                business_pattern_correlation = gr.Dropdown(
+                                business_pattern_mode = gr.Dropdown(
                                     [
-                                        ("当前媒体内全局", "global"),
-                                        ("同一目标", "object"),
-                                        ("同一轨迹", "track"),
-                                        ("同一目标对", "pair"),
-                                        ("同一区域", "region"),
+                                        ("不组合，直接由最终判定处理", "none"),
+                                        ("顺序：逐个完成", "sequence"),
+                                        ("并行：全部完成", "all_completed"),
+                                        ("互斥选择：最先完成一个即结束", "exclusive"),
+                                        ("任意完成（或）：任一完成即结束", "any"),
+                                        ("部分汇聚：达到指定完成数量", "n_of_m"),
                                     ],
-                                    value="global",
-                                    label="多个阶段按什么对象关联",
+                                    value="none",
+                                    label="基础关系",
                                 )
-                            business_pattern_status = gr.Markdown(
-                                "当前未启用跨分支复杂编排。"
-                            )
-                            business_pattern_apply = gr.Button(
-                                "应用分支间关系", variant="primary"
-                            )
+                                business_pattern_branches = gr.Dropdown(
+                                    choices=[],
+                                    multiselect=True,
+                                    label="参与本组的分支或已编排组（顺序关系按选择先后）",
+                                )
+                                business_pattern_help = gr.Markdown(
+                                    "顺序：A 完成后才接受 B；并行：所有所选分支完成；"
+                                    "互斥：只采用最先完成的分支；任意完成：任一分支完成；"
+                                    "部分汇聚：至少 N 个分支完成。保存后的组会出现在同一选择框中，可再次组合。"
+                                )
+                                with gr.Row():
+                                    business_pattern_window = gr.Number(
+                                        None,
+                                        minimum=0,
+                                        label="相邻步骤最长间隔（秒，可不限制）",
+                                        visible=False,
+                                    )
+                                    business_pattern_required = gr.Number(
+                                        1,
+                                        minimum=1,
+                                        precision=0,
+                                        label="需要完成几个分支 N",
+                                        visible=False,
+                                    )
+                                    business_pattern_correlation = gr.Dropdown(
+                                        [
+                                            ("整个媒体共同判断", "global"),
+                                            ("同一目标", "object"),
+                                            ("同一轨迹", "track"),
+                                            ("同一目标对", "pair"),
+                                            ("同一区域", "region"),
+                                        ],
+                                        value="global",
+                                        label="这些分支属于同一个什么对象",
+                                    )
+                                business_pattern_apply = gr.Button(
+                                    "保存当前编排组", variant="primary"
+                                )
 
                         with gr.Tab("最终判定"):
                             gr.Markdown(
@@ -5987,7 +7490,13 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                     label="最终结果名称", placeholder="例如：多区域人员告警"
                                 )
                                 business_final_type = gr.Dropdown(
-                                    ["event_decision"],
+                                    [
+                                        "event_decision",
+                                        "detection_summary",
+                                        "measurement_decision",
+                                        "state_summary",
+                                        "timeline_summary",
+                                    ],
                                     value="event_decision",
                                     visible=False,
                                     label="系统判定类型",
@@ -6055,7 +7564,13 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                             )
                             with gr.Row():
                                 business_output_add = gr.Button(
-                                    "新增输出", variant="secondary"
+                                    "新增业务输出", variant="secondary"
+                                )
+                                business_output_delete_select = gr.Dropdown(
+                                    choices=[], label="选择要删除的输出"
+                                )
+                                business_output_delete = gr.Button(
+                                    "删除所选输出", variant="stop"
                                 )
                                 business_outputs_apply = gr.Button(
                                     "应用业务输出", variant="primary"
@@ -6070,12 +7585,13 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                 business_trigger_mode = gr.Dropdown(
                                     [
                                         ("不触发告警", "none"),
-                                        ("只触发一次", "once"),
-                                        ("允许重复触发", "repeat"),
-                                        ("由不成立变为成立时触发", "on_change"),
+                                        ("首次成立时只触发一次", "once"),
+                                        ("每次由不成立变为成立时触发", "on_change"),
+                                        ("持续成立期间按冷却时间重复触发", "repeat"),
                                     ],
                                     value="none",
                                     label="触发方式",
+                                    info="“状态变化触发”必须先恢复为不成立；“持续重复”无需恢复。",
                                 )
                                 business_trigger_cooldown = gr.Number(
                                     0, minimum=0, label="冷却时间（秒）"
@@ -6655,8 +8171,16 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                     with gr.Row():
                         asset_save_id = gr.Textbox(label="资产保存技能标识")
                         asset_save_display = gr.Textbox(label="资产保存显示名称")
+                    asset_save_root = gr.Textbox(
+                        label="资产保存目录（可修改）",
+                        value=controller.asset_save_root(),
+                        interactive=True,
+                        info="将在此目录下分别创建 generated_packages 和 skill_documents。相对路径按项目目录解析。",
+                    )
                     asset_save_button = gr.Button("保存为独立版本", variant="primary")
-                    asset_save_path = gr.Textbox(label="资产保存路径", interactive=False)
+                    asset_save_path = gr.Textbox(
+                        label="本次保存结果", interactive=False, lines=2
+                    )
                 with gr.Group(elem_classes="vs-section"):
                     gr.Markdown("### 已保存版本\n加载会写回当前 Effective SkillPackage；删除只影响选中的自定义版本。")
                     asset_saved = gr.Dropdown(
@@ -6664,6 +8188,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                     )
                     with gr.Row():
                         asset_load_button = gr.Button("加载选中版本", variant="primary")
+                        asset_refresh_button = gr.Button("刷新列表", variant="secondary")
                         asset_delete_button = gr.Button("删除选中版本", variant="stop")
                     asset_status = gr.Textbox(label="资产操作状态", interactive=False)
                 capability_assets = controller.business_capabilities.definitions()
@@ -6784,9 +8309,9 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         def _unresolved_of(semantic_json):
             return json_object_or_empty(semantic_json).get("unresolved", [])
 
-        def _load_asset(selection):
+        def _load_asset(selection, save_root_value):
             generated, effective_json, semantic_json, status, source = (
-                controller.load_saved_skill(selection)
+                controller.load_saved_skill(selection, save_root_value)
             )
             return (
                 generated,
@@ -6797,9 +8322,21 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 _instruction_of(effective_json),
             )
 
-        def _refresh_saved_choices():
-            choices = controller.saved_skill_choices()
-            return gr.update(choices=choices), gr.update(choices=choices, value=None)
+        def _refresh_saved_choices(saved_root_value, asset_root_value):
+            saved_choices = controller.saved_skill_choices(saved_root_value)
+            asset_choices = controller.saved_skill_choices(asset_root_value)
+            return (
+                gr.update(choices=saved_choices, value=None),
+                gr.update(choices=asset_choices, value=None),
+            )
+
+        def _mirror_asset_root(asset_root_value):
+            choices = controller.saved_skill_choices(asset_root_value)
+            return (
+                gr.update(value=asset_root_value),
+                gr.update(choices=choices, value=None),
+                gr.update(choices=choices, value=None),
+            )
 
         def _instruction_of(effective_json):
             return json_object_or_empty(effective_json).get(
@@ -6852,7 +8389,10 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                     gr.update(choices=[], value=None, interactive=False),
                     "请先加载技能和任务媒体，再开始标注。",
                     "### 配置向导\n请先加载技能和任务媒体。",
-                    gr.update(choices=["rectangle", "polygon"], value="rectangle"),
+                    gr.update(
+                        choices=[("矩形", "rectangle"), ("多边形", "polygon")],
+                        value="rectangle",
+                    ),
                     gr.update(value=""),
                     gr.update(value=""),
                     gr.update(choices=[], value=None),
@@ -6913,6 +8453,27 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 effective_json, preferred
             )
 
+        def _refresh_generated_editor_document(effective_json, source_mode_value):
+            """Project the newly generated package into the 03 editor immediately.
+
+            The generation callback updates ``effective`` first.  Keeping the
+            editor document as an explicit follow-up output prevents a prior
+            natural-language document from remaining visible while the new
+            package is already selected in the other tabs.
+            """
+
+            if not effective_json:
+                return ""
+            source_type = {
+                "自然语言生成": "natural_language",
+                "预置演示技能": "preset",
+                "已保存技能": "legacy",
+            }.get(source_mode_value, "legacy")
+            document = controller._editor_document(
+                effective_json, "", source_type=source_type
+            )
+            return controller._dump(document)
+
         source_mode.change(
             _switch_source,
             source_mode,
@@ -6929,8 +8490,12 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         )
         compile_button.click(
             controller.compile_skill,
-            [instruction, media_choice, skill_id, display_name],
+            [instruction, media_choice, skill_id, display_name, effective],
             [generated_state, effective, semantic, source_status, current_source],
+        ).then(
+            _refresh_generated_editor_document,
+            [effective, source_mode],
+            editor_document,
         ).then(
             _unresolved_of,
             semantic,
@@ -7019,7 +8584,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         )
         saved_button.click(
             controller.load_saved_skill,
-            saved,
+            [saved, saved_root],
             [generated_state, effective, semantic, source_status, current_source],
         ).then(_unresolved_of, semantic, unresolved).then(
             controller.preferred_executable_variant,
@@ -7046,9 +8611,30 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             [effective, annotation_variant],
             configuration_guidance,
         )
-        delete_button.click(controller.delete_saved_skill, saved, source_status).then(
-            lambda: gr.update(choices=controller.saved_skill_choices(), value=None),
+        delete_button.click(
+            controller.delete_saved_skill,
+            [saved, saved_root],
+            source_status,
+        ).then(
+            lambda root: gr.update(
+                choices=controller.saved_skill_choices(root), value=None
+            ),
+            saved_root,
             outputs=saved,
+        )
+        saved_refresh_button.click(
+            lambda root: gr.update(
+                choices=controller.saved_skill_choices(root), value=None
+            ),
+            saved_root,
+            saved,
+        )
+        saved_root.change(
+            lambda root: gr.update(
+                choices=controller.saved_skill_choices(root), value=None
+            ),
+            saved_root,
+            saved,
         )
         def _read_atomic_updates(
             effective_json, document_json, variant_name, source_mode_value
@@ -7079,8 +8665,15 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                     catalog,
                     "### 统一规则编排中心（专业模式）\n生成或加载技能后再读取底层原子配置。",
                 )
+            resolved_media = controller.preferred_executable_variant(
+                effective_json,
+                "video" if str(variant_name).startswith("video") else "image",
+            )
             values = controller.unified_editor_controls(
-                effective_json, document_json, variant_name, source_mode_value
+                effective_json,
+                document_json,
+                controller.editor_variant_for_media(resolved_media),
+                source_mode_value,
             )
             overview = (
                 "### 统一规则编排中心（专业模式）\n"
@@ -7127,19 +8720,12 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         ):
             if not effective_json:
                 return editor_json, "请先在 01 生成或加载技能。", dict(history or {})
-            restored = controller._dump(
-                build_editor_document(
-                    SkillPackage.model_validate_json(effective_json),
-                    source_type={
-                        "自然语言生成": "natural_language",
-                        "预置演示技能": "preset",
-                        "已保存技能": "legacy",
-                    }.get(source_mode_value, "legacy"),
-                )
+            restored, status = controller.restore_default_editor_document(
+                effective_json, source_mode_value
             )
             state = dict(history or {})
             undo = [*state.get("undo", []), editor_json][-50:]
-            return restored, "已恢复当前 LLM/已加载运行包生成的配置。", {"undo": undo, "redo": []}
+            return restored, status, {"undo": undo, "redo": []}
 
         _business_editor_outputs = [
             editor_document,
@@ -7152,6 +8738,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             business_condition_name,
             business_parameter_table,
             business_parameter_help,
+            business_new_logic_group,
             business_group_members,
         ]
 
@@ -7185,6 +8772,15 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 include_tuning,
             )[1:]
 
+        _business_imported_logic_outputs = [
+            business_imported_logic_group,
+            business_imported_logic_selector,
+            business_imported_logic_operator,
+            business_imported_logic_required,
+            business_imported_logic_negated,
+            business_imported_logic_summary,
+        ]
+
         # Any generated, preset, historical or restored document is projected
         # through the same business editor view. This is intentionally a single
         # read path; no fixed-case UI is synchronized in the opposite direction.
@@ -7198,6 +8794,10 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 business_include_tuning,
             ],
             _business_editor_outputs[1:],
+        ).then(
+            controller.business_imported_logic_controls,
+            [editor_document, business_branch],
+            _business_imported_logic_outputs,
         )
         variant_choice.change(
             _business_rule_updates,
@@ -7209,6 +8809,10 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 business_include_tuning,
             ],
             _business_editor_outputs,
+        ).then(
+            controller.business_imported_logic_controls,
+            [editor_document, business_branch],
+            _business_imported_logic_outputs,
         )
         business_branch.input(
             _business_rule_updates,
@@ -7220,6 +8824,10 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 business_include_tuning,
             ],
             _business_editor_outputs,
+        ).then(
+            controller.business_imported_logic_controls,
+            [editor_document, business_branch],
+            _business_imported_logic_outputs,
         )
         business_condition.input(
             _business_rule_updates,
@@ -7242,6 +8850,118 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 business_include_tuning,
             ],
             _business_editor_outputs,
+        )
+
+        def _required_count_visibility(operator):
+            return gr.update(visible=operator == "N_OF_M")
+
+        business_imported_logic_operator.change(
+            _required_count_visibility,
+            business_imported_logic_operator,
+            business_imported_logic_required,
+        )
+        business_group_operator.change(
+            _required_count_visibility,
+            business_group_operator,
+            business_group_required,
+        )
+        business_imported_logic_selector.input(
+            controller.business_imported_logic_controls,
+            [
+                editor_document,
+                business_branch,
+                business_imported_logic_selector,
+            ],
+            _business_imported_logic_outputs,
+        )
+        business_imported_logic_apply.click(
+            controller.business_update_imported_logic,
+            [
+                editor_document,
+                business_branch,
+                business_imported_logic_selector,
+                business_imported_logic_operator,
+                business_imported_logic_required,
+                business_imported_logic_negated,
+            ],
+            [editor_document, business_rule_status],
+        ).then(
+            _business_rule_updates,
+            [
+                editor_document,
+                variant_choice,
+                business_branch,
+                business_condition,
+                business_include_tuning,
+            ],
+            _business_editor_outputs,
+        ).then(
+            controller.business_imported_logic_controls,
+            [
+                editor_document,
+                business_branch,
+                business_imported_logic_selector,
+            ],
+            _business_imported_logic_outputs,
+        )
+
+        _business_expression_logic_outputs = [
+            business_expression_logic_group,
+            business_expression_logic_selector,
+            business_expression_logic_operator,
+            business_expression_logic_required,
+            business_expression_logic_negated,
+            business_expression_logic_summary,
+        ]
+        editor_document.change(
+            controller.business_expression_logic_controls,
+            [editor_document, business_branch],
+            _business_expression_logic_outputs,
+        )
+        business_branch.input(
+            controller.business_expression_logic_controls,
+            [editor_document, business_branch],
+            _business_expression_logic_outputs,
+        )
+        business_expression_logic_selector.input(
+            controller.business_expression_logic_controls,
+            [
+                editor_document,
+                business_branch,
+                business_expression_logic_selector,
+            ],
+            _business_expression_logic_outputs,
+        )
+        business_expression_logic_operator.change(
+            _required_count_visibility,
+            business_expression_logic_operator,
+            business_expression_logic_required,
+        )
+        business_expression_logic_apply.click(
+            controller.business_update_expression_logic,
+            [
+                editor_document,
+                business_branch,
+                business_expression_logic_selector,
+                business_expression_logic_operator,
+                business_expression_logic_required,
+                business_expression_logic_negated,
+            ],
+            [editor_document, business_rule_status],
+        ).then(
+            _business_rule_updates,
+            [
+                editor_document,
+                variant_choice,
+                business_branch,
+                business_condition,
+                business_include_tuning,
+            ],
+            _business_editor_outputs,
+        ).then(
+            controller.business_expression_logic_controls,
+            [editor_document, business_branch],
+            _business_expression_logic_outputs,
         )
 
         _business_parameter_outputs = [
@@ -7318,6 +9038,274 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             ],
             _business_parameter_outputs,
         )
+
+        def _region_override_updates(
+            effective_json, variant_name, selected_event_id=None
+        ):
+            if not effective_json:
+                return (
+                    gr.update(visible=False),
+                    gr.update(choices=[], value=None),
+                    gr.update(value=[]),
+                    gr.update(choices=[], value=None),
+                    gr.update(choices=[], value=None),
+                    gr.update(value=None),
+                    gr.update(value=None),
+                )
+            media_type = "video" if str(variant_name).startswith("video") else "image"
+            controls = controller.read_event_rule_controls(effective_json, media_type)
+            eligible = [
+                item for item in controls
+                if item.get("regions") and item.get("regional_parameters")
+            ]
+            selected = next(
+                (item for item in eligible if item["event_id"] == selected_event_id),
+                eligible[0] if eligible else None,
+            )
+            if selected is None:
+                return (
+                    gr.update(visible=False),
+                    gr.update(choices=[], value=None),
+                    gr.update(value=[]),
+                    gr.update(choices=[], value=None),
+                    gr.update(choices=[], value=None),
+                    gr.update(value=None),
+                    gr.update(value=None),
+                )
+            parameters = selected["regional_parameters"]
+            show_references = bool(selected.get("region_references"))
+            headers = ["已标注区域"]
+            if show_references:
+                headers.append("该区域参考方向")
+            headers.extend(item["label"] for item in parameters)
+            rows = []
+            for region in selected["regions"]:
+                row = [f"{region['label']} ({region['id']})"]
+                if show_references:
+                    row.append(
+                        selected["region_references"].get(
+                            region["id"], "待在 02 标注参考箭头"
+                        )
+                    )
+                for item in parameters:
+                    current = item.get("overrides", {}).get(
+                        region["id"], item["default"]
+                    )
+                    row.append(friendly_choice_label(current))
+                rows.append(row)
+            first_region = selected["regions"][0]["id"]
+            first = parameters[0]
+            first_parameter = first["id"]
+            first_value = first.get("overrides", {}).get(
+                first_region, first["default"]
+            )
+            return (
+                gr.update(visible=True),
+                gr.update(
+                    choices=[
+                        (item["event_label"], item["event_id"])
+                        for item in eligible
+                    ],
+                    value=selected["event_id"],
+                ),
+                gr.update(
+                    headers=headers,
+                    datatype=["str"] * len(headers),
+                    value=rows,
+                    visible=True,
+                ),
+                gr.update(
+                    choices=[
+                        (item["label"], item["id"])
+                        for item in selected["regions"]
+                    ],
+                    value=first_region,
+                ),
+                gr.update(
+                    choices=[
+                        (item["label"], item["id"])
+                        for item in parameters
+                    ],
+                    value=first_parameter,
+                ),
+                gr.update(
+                    choices=[
+                        (friendly_choice_label(item), item)
+                        for item in first.get("choices", [])
+                    ],
+                    value=first_value if first["editor"] == "select" else None,
+                    label=first["label"],
+                    visible=first["editor"] == "select",
+                ),
+                gr.update(
+                    value=first_value if first["editor"] == "number" else None,
+                    label=first["label"],
+                    visible=first["editor"] == "number",
+                ),
+            )
+
+        def _region_event_updates(effective_json, variant_name, event_id):
+            updates = _region_override_updates(
+                effective_json, variant_name, event_id
+            )
+            return (updates[0], *updates[2:])
+
+        def _region_value_updates(
+            effective_json, variant_name, event_id, region_id, parameter_id
+        ):
+            if not all((effective_json, event_id, region_id, parameter_id)):
+                return gr.update(value=None, visible=False), gr.update(value=None, visible=False)
+            media_type = "video" if str(variant_name).startswith("video") else "image"
+            selected = next(
+                (
+                    item
+                    for item in controller.read_event_rule_controls(
+                        effective_json, media_type
+                    )
+                    if item["event_id"] == event_id
+                ),
+                None,
+            )
+            parameter = next(
+                (
+                    item for item in (selected or {}).get("regional_parameters", [])
+                    if item["id"] == parameter_id
+                ),
+                None,
+            )
+            if parameter is None:
+                return gr.update(value=None, visible=False), gr.update(value=None, visible=False)
+            current = parameter.get("overrides", {}).get(
+                region_id, parameter["default"]
+            )
+            return (
+                gr.update(
+                    choices=[
+                        (friendly_choice_label(item), item)
+                        for item in parameter.get("choices", [])
+                    ],
+                    value=current if parameter["editor"] == "select" else None,
+                    label=parameter["label"],
+                    visible=parameter["editor"] == "select",
+                ),
+                gr.update(
+                    value=current if parameter["editor"] == "number" else None,
+                    label=parameter["label"],
+                    visible=parameter["editor"] == "number",
+                ),
+            )
+
+        def _apply_region_overrides(
+            effective_json,
+            editor_json,
+            variant_name,
+            event_id,
+            region_id,
+            parameter_id,
+            selected_value,
+            number_value,
+        ):
+            media_type = "video" if str(variant_name).startswith("video") else "image"
+            controls = controller.read_event_rule_controls(effective_json, media_type)
+            selected = next(
+                (item for item in controls if item["event_id"] == event_id),
+                None,
+            )
+            if selected is None:
+                raise gr.Error("当前规则没有可按区域配置的参数")
+            descriptor = next(
+                (
+                    item for item in selected.get("regional_parameters", [])
+                    if item["id"] == parameter_id
+                ),
+                None,
+            )
+            if descriptor is None:
+                raise gr.Error("请选择当前事件的区域参数")
+            value = (
+                selected_value if descriptor["editor"] == "select"
+                else number_value
+            )
+            updated_effective, changed_nodes = controller.apply_region_parameter_override(
+                effective_json,
+                media_type,
+                event_id,
+                region_id,
+                parameter_id,
+                value,
+            )
+            updated_editor = controller.sync_editor_region_overrides(
+                editor_json,
+                updated_effective,
+                media_type,
+                changed_nodes,
+            )
+            return updated_effective, updated_editor
+
+        for component in (effective, variant_choice):
+            component.change(
+                _region_override_updates,
+                [effective, variant_choice],
+                [
+                    business_region_override_group,
+                    business_region_event,
+                    business_region_overrides,
+                    business_region_name,
+                    business_region_comparison,
+                    business_region_operator,
+                    business_region_value,
+                ],
+            )
+        business_region_event.input(
+            _region_event_updates,
+            [effective, variant_choice, business_region_event],
+            [
+                business_region_override_group,
+                business_region_overrides,
+                business_region_name,
+                business_region_comparison,
+                business_region_operator,
+                business_region_value,
+            ],
+        )
+        for component in (business_region_name, business_region_comparison):
+            component.input(
+                _region_value_updates,
+                [
+                    effective,
+                    variant_choice,
+                    business_region_event,
+                    business_region_name,
+                    business_region_comparison,
+                ],
+                [business_region_operator, business_region_value],
+            )
+        business_region_override_apply.click(
+            _apply_region_overrides,
+            [
+                effective,
+                editor_document,
+                variant_choice,
+                business_region_event,
+                business_region_name,
+                business_region_comparison,
+                business_region_operator,
+                business_region_value,
+            ],
+            [effective, editor_document],
+        ).then(
+            _region_override_updates,
+            [effective, variant_choice, business_region_event],
+            [
+                business_region_override_group,
+                business_region_event,
+                business_region_overrides,
+                business_region_name,
+                business_region_comparison,
+                business_region_operator,
+                business_region_value,
+            ],
+        )
         business_add_branch_button.click(
             controller.business_add_branch,
             [editor_document, variant_choice, business_branch_name],
@@ -7368,15 +9356,41 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             ],
             _business_editor_outputs,
         )
+        def _business_condition_action_with_feedback(*args):
+            document_json, status, selected = controller.business_condition_action(
+                *args
+            )
+            return document_json, status, selected, status
+
         business_condition_action_button.click(
-            controller.business_condition_action,
+            _business_condition_action_with_feedback,
             [
                 editor_document,
                 business_branch,
                 business_condition,
                 business_condition_action,
             ],
-            [editor_document, business_rule_status, business_condition],
+            [
+                editor_document,
+                business_rule_status,
+                business_condition,
+                business_condition_action_status,
+            ],
+        ).then(
+            _business_rule_updates,
+            [
+                editor_document,
+                variant_choice,
+                business_branch,
+                business_condition,
+                business_include_tuning,
+            ],
+            _business_editor_outputs,
+        )
+        business_restore_button.click(
+            controller.restore_default_editor_document,
+            [effective, source_mode],
+            [editor_document, business_rule_status],
         ).then(
             _business_rule_updates,
             [
@@ -7500,6 +9514,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             business_trigger_cooldown,
             business_trigger_severity,
             business_trigger_outputs,
+            business_pattern_panel,
         ]
         editor_document.change(
             controller.business_secondary_controls,
@@ -7528,6 +9543,18 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             [editor_document, variant_choice],
             _business_secondary_outputs,
         )
+
+        def _business_pattern_parameter_visibility(mode):
+            return (
+                gr.update(visible=mode == "sequence"),
+                gr.update(visible=mode == "n_of_m"),
+            )
+
+        business_pattern_mode.change(
+            _business_pattern_parameter_visibility,
+            business_pattern_mode,
+            [business_pattern_window, business_pattern_required],
+        )
         business_final_apply.click(
             controller.business_apply_final,
             [
@@ -7550,6 +9577,24 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             controller.business_add_output_row,
             business_outputs_table,
             business_outputs_table,
+        ).then(
+            controller.business_output_delete_choices,
+            business_outputs_table,
+            business_output_delete_select,
+        )
+        business_outputs_table.change(
+            controller.business_output_delete_choices,
+            business_outputs_table,
+            business_output_delete_select,
+        )
+        business_output_delete.click(
+            controller.business_delete_output_row,
+            [business_outputs_table, business_output_delete_select],
+            business_outputs_table,
+        ).then(
+            controller.business_output_delete_choices,
+            business_outputs_table,
+            business_output_delete_select,
         )
         business_outputs_apply.click(
             controller.business_apply_outputs,
@@ -7722,15 +9767,22 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         diff_button.click(controller.diff, [generated_state, effective], diff_output)
         save_button.click(
             controller.save_skill_bundle,
-            [effective, editor_document, save_id, save_display],
+            [effective, editor_document, save_id, save_display, saved_root],
             saved_path,
         ).then(
-            lambda: gr.update(choices=controller.saved_skill_choices()),
+            lambda root: gr.update(choices=controller.saved_skill_choices(root)),
+            saved_root,
             outputs=saved,
         )
         asset_save_button.click(
             controller.save_skill_bundle,
-            [effective, editor_document, asset_save_id, asset_save_display],
+            [
+                effective,
+                editor_document,
+                asset_save_id,
+                asset_save_display,
+                asset_save_root,
+            ],
             asset_save_path,
         ).then(
             lambda path: f"已保存当前 Effective SkillPackage：{path}",
@@ -7738,11 +9790,12 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             asset_status,
         ).then(
             _refresh_saved_choices,
+            [saved_root, asset_save_root],
             outputs=[saved, asset_saved],
         )
         asset_load_button.click(
             _load_asset,
-            asset_saved,
+            [asset_saved, asset_save_root],
             [
                 generated_state,
                 effective,
@@ -7786,11 +9839,22 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         )
         asset_delete_button.click(
             controller.delete_saved_skill,
-            asset_saved,
+            [asset_saved, asset_save_root],
             asset_status,
         ).then(
             _refresh_saved_choices,
+            [saved_root, asset_save_root],
             outputs=[saved, asset_saved],
+        )
+        asset_refresh_button.click(
+            _refresh_saved_choices,
+            [saved_root, asset_save_root],
+            [saved, asset_saved],
+        )
+        asset_save_root.change(
+            _mirror_asset_root,
+            asset_save_root,
+            [saved_root, saved, asset_saved],
         )
         def _apply_feedback(effective_json):
             result = controller.validate_json(effective_json)
@@ -7858,7 +9922,10 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             [variant_editor, variant_status],
         )
         def _read_execution_updates(effective_json, variant_name):
-            media_type = "video" if variant_name.startswith("video") else "image"
+            media_type = controller.preferred_executable_variant(
+                effective_json,
+                "video" if str(variant_name).startswith("video") else "image",
+            )
             values = controller.read_execution_controls(effective_json, media_type)
             if values is None:
                 return (
@@ -7883,16 +9950,31 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 "已读取当前 Effective 配置的真实参数。",
             )
 
+        _execution_outputs = [
+            resize_mode, long_side, resize_width, resize_height,
+            resize_interpolation, tile_enabled, tile_width, tile_height,
+            overlap_x, overlap_y, include_full, dedup_metric,
+            dedup_threshold, sample_mode, sample_fps, interval_seconds,
+            frame_step, start_seconds, end_seconds, max_frames, config_status,
+        ]
         read_execution_button.click(
             _read_execution_updates,
             [effective, variant_choice],
-            [
-                resize_mode, long_side, resize_width, resize_height,
-                resize_interpolation, tile_enabled, tile_width, tile_height,
-                overlap_x, overlap_y, include_full, dedup_metric,
-                dedup_threshold, sample_mode, sample_fps, interval_seconds,
-                frame_step, start_seconds, end_seconds, max_frames, config_status,
-            ],
+            _execution_outputs,
+        ).then(
+            _sync_field_visibility, _visibility_inputs, _visibility_outputs
+        )
+        effective.change(
+            _read_execution_updates,
+            [effective, variant_choice],
+            _execution_outputs,
+        ).then(
+            _sync_field_visibility, _visibility_inputs, _visibility_outputs
+        )
+        variant_choice.change(
+            _read_execution_updates,
+            [effective, variant_choice],
+            _execution_outputs,
         ).then(
             _sync_field_visibility, _visibility_inputs, _visibility_outputs
         )
@@ -8566,6 +10648,9 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         context_read_button.click(
             _read_context_confirmation, [effective, variant_choice], _context_outputs
         )
+        effective.change(
+            _read_context_confirmation, [effective, variant_choice], _context_outputs
+        )
         context_apply_button.click(
             controller.apply_context_confirmation_control,
             [
@@ -8835,7 +10920,10 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         ):
             if not effective_json:
                 return (
-                    gr.update(choices=["rectangle", "polygon"], value="rectangle"),
+                    gr.update(
+                        choices=[("矩形", "rectangle"), ("多边形", "polygon")],
+                        value="rectangle",
+                    ),
                     gr.update(value=""),
                     gr.update(value=""),
                     gr.update(choices=[], value=None),
@@ -8850,7 +10938,10 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             )
             if not effective_json or not path:
                 return (
-                    gr.update(choices=["rectangle", "polygon"], value=tool),
+                    gr.update(
+                        choices=[("矩形", "rectangle"), ("多边形", "polygon")],
+                        value=tool,
+                    ),
                     gr.update(value=item_id),
                     gr.update(value=item_label),
                     gr.update(choices=[], value=None),
@@ -8895,7 +10986,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 return (
                     gr.update(value=slot_id),
                     gr.update(
-                        choices=["rectangle", "polygon"],
+                        choices=[("矩形", "rectangle"), ("多边形", "polygon")],
                         value=selected_tool,
                     ),
                     gr.update(value=""),
@@ -9154,7 +11245,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             [annotation_canvas, annotation_state, annotation_points, annotation_status],
         )
         clear_annotation_button.click(
-            controller.clear_annotation_points,
+            controller.clear_saved_annotations,
             [
                 effective,
                 annotation_variant,
@@ -9162,7 +11253,34 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 annotation_timestamp,
                 annotation_state,
             ],
-            [annotation_canvas, annotation_state, annotation_points, annotation_status],
+            [
+                effective,
+                annotation_canvas,
+                annotation_state,
+                annotation_points,
+                annotation_status,
+            ],
+        ).then(
+            _prepare_annotation,
+            [
+                effective,
+                annotation_variant,
+                annotation_asset_path,
+                annotation_timestamp,
+                annotation_state,
+            ],
+            [
+                annotation_canvas,
+                annotation_state,
+                configuration_slots_view,
+                annotation_slot,
+                annotation_overview,
+                annotation_wizard,
+                annotation_tool,
+                annotation_item_id,
+                annotation_item_label,
+                annotation_delete_target,
+            ],
         )
         reverse_direction_button.click(
             controller.reverse_annotation_direction,
@@ -9291,19 +11409,18 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
         ):
             if editor_json:
                 try:
+                    editor_json = controller.prepare_run_editor_document(
+                        effective_json, editor_json
+                    )
                     document = controller._parse_editor_json(editor_json)
                     package = SkillPackage.model_validate_json(effective_json)
                     if document.skill_template.skill_id == package.skill_id:
                         if document.effective_skill_package is None:
                             raise gr.Error("03 中存在尚未应用的配置草稿，请先完整校验并应用。")
                         if document.validation_report.get("can_run") is False:
-                            reasons = [
-                                *document.validation_report.get("errors", []),
-                                *document.validation_report.get("resource_blockers", []),
-                            ]
                             raise gr.Error(
                                 "03 配置尚未满足运行条件："
-                                + ("；".join(map(str, reasons)) or "请查看待确认项与校验结果")
+                                + controller.run_configuration_blocker_message(document)
                             )
                         blockers = [
                             item.prompt

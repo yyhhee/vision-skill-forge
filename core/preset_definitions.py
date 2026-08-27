@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from .preset_factory import (
     PresetDefinition,
-    add_context_confirmation,
     add_final_count,
     constraint,
-    disambiguate_category_by_visible_evidence,
-    exclude_visible_evidence,
     geometry_validated_builder,
     ledger,
+    node,
     visible_builder,
     visually_validated_builder,
 )
@@ -61,38 +59,72 @@ TRAFFIC_ACCIDENT_TARGETS = [{
 
 GARBAGE_TARGETS = [{
     "label": "垃圾容器",
-    "phrases": ["trash bin", "garbage container", "waste bin"],
+    "phrases": [
+        "single individual black wheeled garbage bin",
+        "each separate outdoor garbage bin",
+    ],
 }, {
     "label": "溢出垃圾",
     "phrases": [
-        "overflowing trash",
-        "trash spilling from a bin",
-        "trash attached to a garbage bin",
+        "trash visibly protruding above the rim of a garbage bin",
+        "garbage piled above the top opening of a garbage bin",
+        "waste spilling out over the upper edge of a garbage bin",
+    ],
+}, {
+    "label": "垃圾堆",
+    "phrases": [
+        "large pile of mixed garbage bags and loose waste",
+        "heap of household trash accumulated on the pavement",
+        "visible garbage pile beside a trash collection point",
     ],
 }, {
     "label": "散落垃圾",
     "phrases": [
-        "loose trash",
-        "discarded waste on the ground",
-        "small litter",
-        "small piece of trash",
+        "isolated loose waste item lying on the pavement",
+        "discarded white plastic bag on the ground",
+        "crumpled plastic bag lying on the pavement",
+        "clearly visible litter item separated from a garbage pile",
+        "group of mixed small litter pieces scattered near a garbage bin",
     ],
 }]
 
 BRIDGE_DAMAGE_TARGETS = [
-    {"label": "裂纹", "phrases": ["bridge crack", "concrete crack"]},
-    {"label": "锈蚀", "phrases": [
-        "bridge corrosion",
-        "rust on bridge",
-        "visible rust corrosion on bridge surface",
-    ]},
-    {"label": "渗水", "phrases": ["water seepage", "water stain on concrete"]},
-    {"label": "混凝土剥落", "phrases": ["concrete spalling"]},
-    {"label": "露筋", "phrases": [
-        "exposed rebar",
-        "exposed steel reinforcement bar",
-        "visible reinforcement steel in concrete",
-    ]},
+    {
+        "label": "裂纹",
+        "phrases": [
+            "thin irregular crack line on a concrete bridge surface",
+            "localized visible concrete crack",
+        ],
+    },
+    {
+        "label": "锈蚀",
+        "phrases": [
+            "brown orange rust streak on a concrete bridge pier",
+            "localized rusty corrosion stain below exposed metal",
+        ],
+    },
+    {
+        "label": "渗水",
+        "phrases": [
+            "dark vertical water seepage stain on concrete",
+            "wet leakage mark on a bridge pier surface",
+        ],
+    },
+    {
+        "label": "混凝土剥落",
+        "phrases": [
+            "broken concrete surface with missing cover",
+            "localized concrete spalling patch",
+        ],
+    },
+    {
+        "label": "露筋",
+        "phrases": [
+            "exposed steel reinforcement in damaged bridge concrete",
+            "visible reinforcing bar protruding from a concrete bridge pier",
+            "small dark exposed reinforcing steel ends in concrete",
+        ],
+    },
 ]
 
 
@@ -142,80 +174,244 @@ def build_preset_definitions() -> list[PresetDefinition]:
         association_subject_region=[-0.6, -0.6, 1.6, 0.0],
         same_source_only=True,
     )
-    garbage_visible = exclude_visible_evidence(
-        visible_builder(
-            "garbage",
-            GARBAGE_TARGETS,
-            tile=True,
-            tile_params={
-                "tile_width": 384,
-                "tile_height": 384,
-                "overlap_x": 0.25,
-                "overlap_y": 0.25,
-            },
-        ),
-        [
-            {
-                "id": "garbage",
-                "source_span": "整齐包装货物",
-                "target": {
-                    "label": "整齐包装货物",
-                    "phrases": [
-                        "neatly stacked packages",
-                        "cardboard boxes on a pallet",
-                        "shrink wrapped package",
+    garbage_visible = visible_builder(
+        "garbage",
+        GARBAGE_TARGETS,
+        tile=True,
+        tile_params={
+            "tile_width": 512,
+            "tile_height": 512,
+            "overlap_x": 0.2,
+            "overlap_y": 0.2,
+        },
+        dedup_metric="iou",
+        dedup_threshold=0.5,
+    )
+
+    def garbage_visible_in_detection_regions(media_type: str):
+        draft = garbage_visible(media_type)
+        nodes = draft.nodes
+        draw = next(item for item in nodes if item["op"] == "output.draw@1.0")
+        insert_at = nodes.index(draw)
+        objects_ref = draft.outputs["objects"]
+        nodes[insert_at:insert_at] = [
+            node(
+                "garbage_container_candidates",
+                "objects.filter_by_label@1.0",
+                {"objects": objects_ref},
+                {"labels": ["垃圾容器"], "mode": "include"},
+            ),
+            node(
+                "garbage_containers",
+                "objects.deduplicate@1.0",
+                {"objects": "$garbage_container_candidates"},
+                {
+                    "metric": "ios",
+                    "threshold": 0.5,
+                    "keep": "best_localization",
+                },
+            ),
+            node(
+                "garbage_container_crops",
+                "object.crop@1.0",
+                {
+                    "frames": "$resized",
+                    "objects": "$garbage_containers",
+                },
+                {
+                    "padding_fraction": 0.75,
+                    "subject_region": [0.0, 0.0, 1.0, 1.0],
+                },
+            ),
+            node(
+                "garbage_container_crops_resized",
+                "image.resize@1.1",
+                {"frames": "$garbage_container_crops"},
+                {"mode": "long_side", "long_side": 640},
+            ),
+            node(
+                "garbage_container_evidence_raw",
+                "rex.ground@1.1",
+                {"frames": "$garbage_container_crops_resized"},
+                {
+                    "targets": [{
+                        "label": "垃圾容器复核证据",
+                        "phrases": [
+                            "complete freestanding outdoor garbage bin with visible container body",
+                            "complete wheeled garbage bin with visible opening and body",
+                        ],
+                    }],
+                },
+            ),
+            node(
+                "garbage_container_evidence",
+                "objects.deduplicate@1.0",
+                {"objects": "$garbage_container_evidence_raw"},
+                {"metric": "ios", "threshold": 0.5, "keep": "first"},
+            ),
+            node(
+                "garbage_container_confirmed",
+                "spatial.associate@1.0",
+                {
+                    "subjects": "$garbage_containers",
+                    "objects": "$garbage_container_evidence",
+                },
+                {
+                    "relation": "source_entity",
+                    "threshold": 0.0,
+                    "subject_region": [0.0, 0.0, 1.0, 1.0],
+                    "object_region": [0.0, 0.0, 1.0, 1.0],
+                    "same_source_only": False,
+                },
+            ),
+            node(
+                "garbage_containers_visible",
+                "filter.apply@1.0",
+                {
+                    "objects": "$garbage_containers",
+                    "condition": "$garbage_container_confirmed",
+                },
+                {"output_label": "垃圾容器"},
+            ),
+            node(
+                "overflow_candidates",
+                "objects.filter_by_label@1.0",
+                {"objects": objects_ref},
+                {"labels": ["溢出垃圾"], "mode": "include"},
+            ),
+            node(
+                "overflow_deduplicated",
+                "objects.deduplicate@1.0",
+                {"objects": "$overflow_candidates"},
+                {
+                    "metric": "ios",
+                    "threshold": 0.5,
+                    "keep": "best_localization",
+                },
+            ),
+            node(
+                "overflow_above_container",
+                "spatial.associate@1.0",
+                {
+                    "subjects": "$overflow_deduplicated",
+                    "objects": "$garbage_containers_visible",
+                },
+                {
+                    "relation": "center_in_object_region",
+                    "threshold": 0.0,
+                    "subject_region": [0.0, 0.0, 1.0, 1.0],
+                    "object_region": [-0.25, -0.5, 1.25, 0.4],
+                    "same_source_only": False,
+                },
+            ),
+            node(
+                "overflow_visible",
+                "filter.apply@1.0",
+                {
+                    "objects": "$overflow_deduplicated",
+                    "condition": "$overflow_above_container",
+                },
+                {"output_label": "溢出垃圾"},
+            ),
+            node(
+                "garbage_pile_full_frame_raw",
+                "rex.ground@1.1",
+                {"frames": "$resized"},
+                {"targets": [GARBAGE_TARGETS[2]]},
+            ),
+            node(
+                "garbage_piles",
+                "objects.deduplicate@1.0",
+                {"objects": "$garbage_pile_full_frame_raw"},
+                {
+                    "metric": "ios",
+                    "threshold": 0.5,
+                    "keep": "best_localization",
+                },
+            ),
+            node(
+                "scattered_garbage",
+                "objects.filter_by_label@1.0",
+                {"objects": objects_ref},
+                {
+                    "labels": ["散落垃圾"],
+                    "mode": "include",
+                },
+            ),
+            node(
+                "garbage_semantic_results",
+                "objects.merge@1.0",
+                {
+                    "objects": [
+                        "$garbage_containers_visible",
+                        "$overflow_visible",
+                        "$garbage_piles",
+                        "$scattered_garbage",
                     ],
                 },
+            ),
+            node(
+                "garbage_detection_regions",
+                "region.manual_set@1.0",
+                {},
+                {"regions": []},
+            ),
+            node(
+                "garbage_in_detection_regions",
+                "objects.filter_by_regions@1.0",
+                {
+                    "objects": "$garbage_semantic_results",
+                    "regions": "$garbage_detection_regions",
+                },
+                {
+                    "membership_mode": "center",
+                    "overlap_threshold": 0.1,
+                    "keep": "inside",
+                    "empty_regions": "passthrough",
+                },
+            ),
+        ]
+        draw["inputs"]["objects"] = "$garbage_in_detection_regions"
+        draw["inputs"]["regions"] = "$garbage_detection_regions"
+        draft.outputs["objects"] = "$garbage_in_detection_regions"
+        draft.outputs["regions"] = "$garbage_detection_regions"
+        draft.configuration_slots = [
+            *(draft.configuration_slots or []),
+            {
+                "slot_id": "garbage_detection_regions",
+                "kind": "region_set",
+                "label": "垃圾检测区域",
+                "required": False,
+                "binding": {
+                    "node_id": "garbage_detection_regions",
+                    "parameter": "regions",
+                },
+                "allowed_shapes": ["rectangle", "polygon"],
+                "minimum_items": 1,
+                "source_atom_ids": [],
+                "help_text": "可围住两处垃圾容器及其周边需要检查的地面；可绘制一个或两个区域。已绘制时仅保留区域内结果，未绘制时检测全画面。",
             },
-        ],
-        association_relation="mutual_match",
-    )
-    garbage_disambiguated = disambiguate_category_by_visible_evidence(
-        garbage_visible,
-        candidate_labels=["散落垃圾"],
-        evidence_target={
-            "label": "垃圾容器",
-            "phrases": [
-                "trash bin", "garbage container", "waste bin",
-                "complete trash bin with visible container body",
-            ],
+        ]
+        return draft
+
+    bridge_visible_base = visible_builder(
+        "bridge_damage",
+        BRIDGE_DAMAGE_TARGETS,
+        tile=True,
+        tile_params={
+            "tile_width": 768,
+            "tile_height": 768,
+            "overlap_x": 0.25,
+            "overlap_y": 0.25,
         },
+        dedup_threshold=0.55,
     )
-    garbage_confirmed = lambda media_type: add_context_confirmation(
-        garbage_disambiguated(media_type),
-        candidate_phrases=["trash bin", "garbage container", "waste bin"],
-        confirmation_targets=[{
-            "label": "垃圾容器复核证据",
-            "phrases": [
-                "complete trash bin with visible container body",
-                "complete garbage container with visible opening and body",
-            ],
-        }],
-        padding_fraction=1.0,
-        crop_long_side=640,
-    )
-    bridge_visible = exclude_visible_evidence(
-        visible_builder(
-            "bridge_damage",
-            BRIDGE_DAMAGE_TARGETS,
-            tile=True,
-            tile_include_full_frame=False,
-            dedup_threshold=0.35,
-        ),
-        [{
-            "id": "bridge_damage",
-            "source_span": "规则施工缝",
-            "target": {
-                "label": "规则施工缝",
-                "phrases": [
-                    "regular construction joint",
-                    "straight concrete seam",
-                    "intact concrete with construction joints",
-                ],
-            },
-        }],
-        association_relation="mutual_match",
-    )
+
+    def bridge_visible(media_type: str):
+        draft = bridge_visible_base(media_type)
+        resize = next(item for item in draft.nodes if item["id"] == "resized")
+        resize["params"] = {"mode": "long_side", "long_side": 2048}
+        return draft
     return [
         PresetDefinition(
             "P01",
@@ -277,7 +473,7 @@ def build_preset_definitions() -> list[PresetDefinition]:
             "P04_highway_congestion.json",
             "highway_congestion",
             "高速车辆拥堵",
-            "按每条车道检测车辆数量不少于4辆、平均像素速度低于10且持续1秒的拥堵事件。",
+            "按每条车道检测车辆数量不少于4辆且持续1秒的拥堵事件。",
             ("video",),
             ledger(
                 "vehicle",
@@ -304,19 +500,6 @@ def build_preset_definitions() -> list[PresetDefinition]:
                             "region_role": "lane",
                         },
                         "车辆数量不少于4辆",
-                    ),
-                    constraint(
-                        "motion",
-                        {
-                            "measure": "speed",
-                            "operator": "<",
-                            "threshold": 10.0,
-                            "unit": "pixels_per_second",
-                            "aggregation": "region_median",
-                            "group_by": "named_region",
-                            "region_role": "lane",
-                        },
-                        "平均像素速度低于10",
                     ),
                     constraint(
                         "temporal",
@@ -413,7 +596,7 @@ def build_preset_definitions() -> list[PresetDefinition]:
             "P07_illegal_parking.json",
             "illegal_parking",
             "车辆违停",
-            "检测位于手工标注禁停区域内、像素速度低于2并持续10秒的车辆。",
+            "检测位于手工标注禁停区域内并持续停留10秒的车辆。",
             ("video",),
             ledger(
                 "vehicle",
@@ -434,20 +617,9 @@ def build_preset_definitions() -> list[PresetDefinition]:
                         "位于手工标注禁停区域内",
                     ),
                     constraint(
-                        "motion",
-                        {
-                            "measure": "speed",
-                            "operator": "<",
-                            "threshold": 2.0,
-                            "unit": "pixels_per_second",
-                            "aggregation": "per_track",
-                        },
-                        "像素速度低于2",
-                    ),
-                    constraint(
                         "temporal",
                         {"type": "persist", "seconds": 10.0},
-                        "持续10秒",
+                        "持续停留10秒",
                         temporal=True,
                     ),
                 ],
@@ -536,26 +708,19 @@ def build_preset_definitions() -> list[PresetDefinition]:
             "P11_service_area_garbage.json",
             "service_area_garbage",
             "服务区垃圾",
-            "检测服务区画面中的垃圾、垃圾容器及溢出垃圾，排除整齐包装货物。",
+            "检测服务区画面中的垃圾堆、散落垃圾、垃圾容器及溢出垃圾。",
             ("image", "video"),
             ledger(
                 "garbage",
-                "垃圾、垃圾容器及溢出垃圾",
+                "垃圾堆、散落垃圾、垃圾容器及溢出垃圾",
                 [phrase for target in GARBAGE_TARGETS for phrase in target["phrases"]],
-                [
-                    constraint(
-                        "entity_exclusion", "orderly_packages", "整齐包装货物",
-                        phrases=[
-                            "neatly stacked packages",
-                            "cardboard boxes on a pallet",
-                            "shrink wrapped package",
-                        ],
-                    ),
-                ],
+                [],
                 mode="direct_grounding",
             ),
             lambda media_type: add_final_count(
-                stable_video(garbage_confirmed)(media_type), media_type, group_by="label"
+                stable_video(garbage_visible_in_detection_regions)(media_type),
+                media_type,
+                group_by="label",
             ),
         ),
         PresetDefinition(
@@ -574,7 +739,12 @@ def build_preset_definitions() -> list[PresetDefinition]:
                         "pose",
                         "fallen_or_lying",
                         "出现摔倒或躺在地面上的可见姿态",
-                        phrases=["person lying on the ground"],
+                        phrases=[
+                            "person actively falling toward the ground",
+                            "person losing balance and collapsing",
+                            "person bent low while falling",
+                            "person lying on the ground",
+                        ],
                     ),
                     constraint(
                         "temporal",
@@ -592,35 +762,17 @@ def build_preset_definitions() -> list[PresetDefinition]:
             "P13_bridge_damage.json",
             "bridge_damage",
             "桥梁病害",
-            "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋，排除规则施工缝。",
+            "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋。",
             ("image", "video"),
             ledger(
                 "bridge_damage",
                 "裂纹、锈蚀、渗水、混凝土剥落和露筋",
                 [
-                    "bridge crack",
-                    "concrete crack",
-                    "bridge corrosion",
-                    "rust on bridge",
-                    "visible rust corrosion on bridge surface",
-                    "water seepage",
-                    "water stain on concrete",
-                    "concrete spalling",
-                    "exposed rebar",
-                    "exposed steel reinforcement bar",
-                    "visible reinforcement steel in concrete",
+                    phrase
+                    for target in BRIDGE_DAMAGE_TARGETS
+                    for phrase in target["phrases"]
                 ],
-                [
-                    constraint(
-                        "entity_exclusion", "regular_construction_joint",
-                        "规则施工缝",
-                        phrases=[
-                            "regular construction joint",
-                            "straight concrete seam",
-                            "intact concrete with construction joints",
-                        ],
-                    ),
-                ],
+                [],
                 classes=BRIDGE_DAMAGE_TARGETS,
             ),
             stable_video(bridge_visible),

@@ -1,0 +1,628 @@
+{
+  "schema_version": "1.0",
+  "date": "2026-08-27",
+  "scope": "real_planner_compile_and_business_editor_reproduction",
+  "instruction_style": "structured",
+  "execution_source": "live_llm",
+  "case_count": 3,
+  "compiled": 3,
+  "semantic_mismatch": 0,
+  "failed": 0,
+  "cases": [
+    {
+      "preset_id": "P03",
+      "instruction_style": "structured",
+      "instruction": "条件分支：识别消防车、救护车、警车等特种车辆；最终判定：检测到特种车辆；业务输出：车辆框和具体类型。",
+      "requested_media": [
+        "image",
+        "video"
+      ],
+      "execution_source": "live_llm",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"direct_grounding\",\n  \"target\": {\n    \"concept\": \"special vehicle\",\n    \"source_span\": \"消防车、救护车、警车等特种车辆\",\n    \"phrases\": [\"fire truck\", \"ambulance\", \"police car\"],\n    \"classes\": [\n      {\"label\": \"消防车\", \"phrases\": [\"fire truck\"]},\n      {\"label\": \"救护车\", \"phrases\": [\"ambulance\"]},\n      {\"label\": \"警车\", \"phrases\": [\"police car\"]}\n    ]\n  },\n  \"constraints\": [],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"both\",\n    \"branches\": [\n      {\n        \"key\": \"detect_special_vehicle_image\",\n        \"name\": \"识别特种车辆\",\n        \"media_type\": \"image\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_special\",\n            \"name\": \"检测特种车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"fire truck\", \"ambulance\", \"police car\"],\n              \"phrases\": [\"fire truck\", \"ambulance\", \"police car\"],\n              \"business_label\": \"特种车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      },\n      {\n        \"key\": \"detect_special_vehicle_video\",\n        \"name\": \"识别特种车辆\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"detect_special\",\n            \"name\": \"检测特种车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"fire truck\", \"ambulance\", \"police car\"],\n              \"phrases\": [\"fire truck\", \"ambulance\", \"police car\"],\n              \"business_label\": \"特种车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"immediate\",\n          \"duration_seconds\": null,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"global\"\n        }\n      }\n    ],\n    \"resources\": [],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"key\": \"final_special_vehicle\",\n      \"name\": \"特种车辆检测结果\",\n      \"decision_type\": \"detection_summary\",\n      \"source_refs\": [\n        \"branch:detect_special_vehicle_image\",\n        \"branch:detect_special_vehicle_video\"\n      ],\n      \"combination\": \"OR\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"result_entities_image\",\n        \"name\": \"车辆框和具体类型\",\n        \"source_ref\": \"condition:detect_special_vehicle_image.detect_special\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"result_entities_video\",\n        \"name\": \"车辆框和具体类型\",\n        \"source_ref\": \"condition:detect_special_vehicle_video.detect_special\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"none\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": []\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "image",
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "both",
+        "branch_count": 2,
+        "branch_media": [
+          "image",
+          "video"
+        ],
+        "branch_logic": [
+          "AND",
+          "AND"
+        ],
+        "capabilities": [
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "immediate",
+          "immediate"
+        ],
+        "resources": [],
+        "result_kinds": [
+          "entities",
+          "entities"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": true,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [],
+      "result_specs": [
+        {
+          "result_id": "result_result_entities_image",
+          "display_name": "车辆框和具体类型",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_detect_special_vehicle_image_detect_special",
+          "media_types": [
+            "image"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_result_entities_image"
+          ]
+        },
+        {
+          "result_id": "result_result_entities_video",
+          "display_name": "车辆框和具体类型",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_detect_special_vehicle_video_detect_special",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_result_entities_video"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "image": {
+          "objects": "$branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_label",
+          "result_result_result_entities_image": "$branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_label",
+          "branch_branch_detect_special_vehicle_image": "$branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_",
+          "final_primary": "$branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_branch_detect_special_vehicle_image_condition_detect_special_vehicle_image_detect_special_",
+          "media": "$result_draw"
+        },
+        "video": {
+          "objects": "$branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_label",
+          "result_result_result_entities_video": "$branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_label",
+          "branch_branch_detect_special_vehicle_video": "$branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_",
+          "final_primary": "$branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_branch_detect_special_vehicle_video_condition_detect_special_vehicle_video_detect_special_",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "conditions": false,
+          "temporal": true,
+          "resources": true,
+          "results": false,
+          "final_decision": false,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 3,
+        "facet_count": 8,
+        "required_capability_coverage": true,
+        "required_capabilities": [
+          "target.detect"
+        ],
+        "actual_capabilities": [
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "event.detect_or_compose",
+          "measure.count",
+          "measure.count",
+          "measure.statistic",
+          "measure.statistic",
+          "target.detect",
+          "target.detect",
+          "target.detect",
+          "target.detect"
+        ],
+        "actual_signature_hash": "1dc2ca1d001d6f6d3434a18816a76e12b6b8caddc55b1053933daff8cec61936",
+        "preset_signature_hash": "462474ebe49a82aec61483fecae4740c16ecf442da118a42f3d94fec4d1282ce"
+      }
+    },
+    {
+      "preset_id": "P05",
+      "instruction_style": "structured",
+      "instruction": "业务事件：车辆逆行；条件分支：车辆轨迹方向与区域参考箭头相反，持续1秒；最终判定：发生逆行；业务输出：逆行事件、车辆框和轨迹。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "live_llm",
+      "planner_attempts": 2,
+      "planner_errors": [
+        "LLM returned an empty semantic ledger"
+      ],
+      "planner_raw_outputs": [
+        "",
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"vehicle\",\n    \"source_span\": \"车辆\",\n    \"phrases\": [\"vehicle\"]\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"direction_relation\",\n      \"value\": {\n        \"relation\": \"opposite\",\n        \"reference_scope\": \"manual\",\n        \"reference_source\": \"manual\",\n        \"image_axis\": null\n      },\n      \"source\": \"车辆轨迹方向与区域参考箭头相反\",\n      \"source_span\": \"轨迹方向与区域参考箭头相反\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"vehicle trajectory direction opposite to reference arrow\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"persist for 1 second\"],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"branch_vehicle_wrong_way\",\n        \"name\": \"车辆逆行\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"cond_vehicle_detect\",\n            \"name\": \"检测车辆\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"vehicle\"],\n              \"phrases\": [\"vehicle\"],\n              \"business_label\": \"车辆\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_direction_opposite\",\n            \"name\": \"轨迹方向与参考箭头相反\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"motion.direction\",\n            \"parameters\": {\n              \"source\": \"condition:branch_vehicle_wrong_way.cond_vehicle_detect\",\n              \"scope\": \"full_frame\",\n              \"reference\": \"resource:ref_arrow\",\n              \"minimum_reverse_angle\": null,\n              \"minimum_displacement\": null\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"cond_persist_1s\",\n            \"name\": \"持续1秒\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"state.current\",\n            \"parameters\": {\n              \"source\": \"condition:branch_vehicle_wrong_way.cond_direction_opposite\",\n              \"scope\": \"full_frame\",\n              \"duration_seconds\": 1.0\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"track\"\n        }\n      }\n    ],\n    \"resources\": [\n      {\n        \"key\": \"ref_arrow\",\n        \"name\": \"区域参考箭头\",\n        \"resource_type\": \"direction\",\n        \"semantic_role\": \"reference_direction\",\n        \"media_types\": [\"video\"],\n        \"minimum_items\": 1,\n        \"paired_region_key\": null\n      }\n    ],\n    \"patterns\": [\n      {\n        \"key\": \"pattern_wrong_way\",\n        \"name\": \"车辆逆行持续1秒\",\n        \"media_type\": \"video\",\n        \"mode\": \"all_completed_within_window\",\n        \"branch_keys\": [\"branch_vehicle_wrong_way\"],\n        \"window_seconds\": 1.0,\n        \"required_count\": null,\n        \"correlation_scope\": \"track\"\n      }\n    ],\n    \"final_decision\": {\n      \"name\": \"车辆逆行\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:branch_vehicle_wrong_way\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"result_wrong_way_event\",\n        \"name\": \"逆行事件\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"result_vehicle_boxes\",\n        \"name\": \"车辆框\",\n        \"source_ref\": \"condition:branch_vehicle_wrong_way.cond_vehicle_detect\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"result_vehicle_tracks\",\n        \"name\": \"车辆轨迹\",\n        \"source_ref\": \"condition:branch_vehicle_wrong_way.cond_direction_opposite\",\n        \"result_kind\": \"tracks\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"high\",\n      \"outputs\": [\"event_record\", \"annotated_media\", \"notification\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 1,
+        "branch_media": [
+          "video"
+        ],
+        "branch_logic": [
+          "AND"
+        ],
+        "capabilities": [
+          "motion.direction",
+          "state.current",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "continuous"
+        ],
+        "resources": [
+          {
+            "resource_type": "direction",
+            "semantic_role": "reference_direction",
+            "minimum_items": 1
+          }
+        ],
+        "result_kinds": [
+          "events",
+          "entities",
+          "tracks"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": false,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [
+        {
+          "requirement_id": "resource_ref_arrow",
+          "resource_type": "direction_collection",
+          "display_name": "区域参考箭头",
+          "semantic_role": "reference_direction",
+          "cardinality": {
+            "mode": "dynamic",
+            "minimum": 1,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": null
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [],
+          "pairing_policy": "none",
+          "required_before": "run",
+          "media_types": [
+            "video"
+          ],
+          "legacy_metadata": {}
+        }
+      ],
+      "result_specs": [
+        {
+          "result_id": "result_result_wrong_way_event",
+          "display_name": "逆行事件",
+          "semantic_type": "event_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "events",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        },
+        {
+          "result_id": "result_result_vehicle_boxes",
+          "display_name": "车辆框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_vehicle_wrong_way_cond_vehicle_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_result_vehicle_boxes"
+          ]
+        },
+        {
+          "result_id": "result_result_vehicle_tracks",
+          "display_name": "车辆轨迹",
+          "semantic_type": "track_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_vehicle_wrong_way_auto_track_cond_vehicle_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "tracks",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_result_vehicle_tracks"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "objects": "$branch_branch_vehicle_wrong_way_condition_branch_vehicle_wrong_way_cond_vehicle_detect_label",
+          "result_result_result_vehicle_boxes": "$branch_branch_vehicle_wrong_way_condition_branch_vehicle_wrong_way_cond_vehicle_detect_label",
+          "result_result_result_vehicle_tracks": "$branch_branch_vehicle_wrong_way_condition_branch_vehicle_wrong_way_auto_track_cond_vehicle_detect_confirm",
+          "branch_branch_branch_vehicle_wrong_way": "$branch_branch_vehicle_wrong_way_time_branch_vehicle_wrong_way_temporal",
+          "final_primary": "$branch_branch_vehicle_wrong_way_time_branch_vehicle_wrong_way_temporal",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "conditions": false,
+          "temporal": false,
+          "resources": false,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 8,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "motion.direction",
+          "motion.track",
+          "motion.wrong_way",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "measure.statistic",
+          "motion.direction",
+          "motion.direction",
+          "motion.track",
+          "motion.track",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "motion.direction",
+          "motion.direction",
+          "motion.track",
+          "motion.track",
+          "motion.wrong_way",
+          "motion.wrong_way",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "340175b127ddfe56e245cad823403e3c6359c83d73ac703d73203f50519d29a9",
+        "preset_signature_hash": "0232c4a49246284b7c0cfd5f30bc98bfdf9b8b42fce4ef6279771aabdaa6f91f"
+      }
+    },
+    {
+      "preset_id": "P06",
+      "instruction_style": "structured",
+      "instruction": "业务事件：人员逗留；条件分支：人员位于标注区域并持续1秒；最终判定：发生逗留；业务输出：人员框、轨迹和事件。",
+      "requested_media": [
+        "video"
+      ],
+      "execution_source": "live_llm",
+      "planner_attempts": 1,
+      "planner_errors": [],
+      "planner_raw_outputs": [
+        "{\n  \"mode\": \"workflow\",\n  \"target\": {\n    \"concept\": \"person\",\n    \"source_span\": \"人员\",\n    \"phrases\": [\"person\"],\n    \"classes\": []\n  },\n  \"constraints\": [\n    {\n      \"kind\": \"spatial_relation\",\n      \"value\": {\n        \"relation\": \"inside_roi\",\n        \"region\": {\n          \"source\": \"manual\",\n          \"semantic_role\": \"designated_area\",\n          \"shape\": \"polygon\",\n          \"allowed_shapes\": [\"rectangle\", \"polygon\"]\n        }\n      },\n      \"source\": \"人员位于标注区域并持续1秒\",\n      \"source_span\": \"位于标注区域\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"person inside designated area\"],\n      \"temporal\": false\n    },\n    {\n      \"kind\": \"temporal\",\n      \"value\": {\n        \"type\": \"persist\",\n        \"seconds\": 1.0\n      },\n      \"source\": \"人员位于标注区域并持续1秒\",\n      \"source_span\": \"持续1秒\",\n      \"carrier\": null,\n      \"carrier_span\": null,\n      \"phrases\": [\"person continuously inside designated area\"],\n      \"temporal\": true\n    }\n  ],\n  \"logic\": \"all\",\n  \"unresolved\": [],\n  \"business_rule\": {\n    \"schema_version\": \"1.0\",\n    \"media_requirement\": \"video\",\n    \"branches\": [\n      {\n        \"key\": \"branch_loitering\",\n        \"name\": \"人员逗留\",\n        \"media_type\": \"video\",\n        \"logic\": \"AND\",\n        \"required_count\": null,\n        \"conditions\": [\n          {\n            \"key\": \"person_detect\",\n            \"name\": \"检测到人员\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"target.detect\",\n            \"parameters\": {\n              \"targets\": [\"person\"],\n              \"phrases\": [\"person\"],\n              \"business_label\": \"人员\"\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          },\n          {\n            \"key\": \"person_in_region\",\n            \"name\": \"人员位于标注区域\",\n            \"operator\": \"ATOM\",\n            \"capability_id\": \"spatial.membership\",\n            \"parameters\": {\n              \"source\": \"condition:person_detect\",\n              \"scope\": \"resource:marked_region\",\n              \"membership\": \"center\",\n              \"inside\": true\n            },\n            \"negated\": false,\n            \"children\": [],\n            \"required_count\": null\n          }\n        ],\n        \"time\": {\n          \"mode\": \"continuous\",\n          \"duration_seconds\": 1.0,\n          \"observation_window_seconds\": null,\n          \"required_ratio\": 1.0,\n          \"allowed_gap_seconds\": 0.0,\n          \"identity_scope\": \"track\"\n        }\n      }\n    ],\n    \"resources\": [\n      {\n        \"key\": \"marked_region\",\n        \"name\": \"标注区域\",\n        \"resource_type\": \"region\",\n        \"semantic_role\": \"designated_area\",\n        \"media_types\": [\"video\"],\n        \"minimum_items\": 1,\n        \"paired_region_key\": null\n      }\n    ],\n    \"patterns\": [],\n    \"final_decision\": {\n      \"name\": \"人员逗留\",\n      \"decision_type\": \"event_decision\",\n      \"source_refs\": [\"branch:branch_loitering\"],\n      \"combination\": \"AND\",\n      \"required_count\": null\n    },\n    \"results\": [\n      {\n        \"key\": \"person_boxes\",\n        \"name\": \"人员框\",\n        \"source_ref\": \"condition:branch_loitering.person_detect\",\n        \"result_kind\": \"entities\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"person_tracks\",\n        \"name\": \"轨迹\",\n        \"source_ref\": \"condition:branch_loitering.person_detect\",\n        \"result_kind\": \"tracks\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      },\n      {\n        \"key\": \"loitering_event\",\n        \"name\": \"事件\",\n        \"source_ref\": \"final:primary\",\n        \"result_kind\": \"events\",\n        \"unit\": null,\n        \"evidence_policy\": \"required\",\n        \"save_policy\": \"always\",\n        \"show_in_overview\": true\n      }\n    ],\n    \"trigger_policy\": {\n      \"mode\": \"once\",\n      \"cooldown_seconds\": 0,\n      \"severity\": \"info\",\n      \"outputs\": [\"event_record\", \"annotated_media\"]\n    },\n    \"pending_decisions\": []\n  }\n}"
+      ],
+      "status": "compiled",
+      "actual_media": [
+        "video"
+      ],
+      "generation_mode": "business_draft",
+      "draft": {
+        "media_requirement": "video",
+        "branch_count": 1,
+        "branch_media": [
+          "video"
+        ],
+        "branch_logic": [
+          "AND"
+        ],
+        "capabilities": [
+          "spatial.membership",
+          "target.detect"
+        ],
+        "temporal_modes": [
+          "continuous"
+        ],
+        "resources": [
+          {
+            "resource_type": "region",
+            "semantic_role": "designated_area",
+            "minimum_items": 1
+          }
+        ],
+        "result_kinds": [
+          "entities",
+          "tracks",
+          "events"
+        ],
+        "pending_kinds": []
+      },
+      "can_run": false,
+      "validation_errors": [],
+      "pending_decisions": [],
+      "resource_requirements": [
+        {
+          "requirement_id": "resource_marked_region",
+          "resource_type": "region_collection",
+          "display_name": "标注区域",
+          "semantic_role": "designated_area",
+          "cardinality": {
+            "mode": "dynamic",
+            "minimum": 1,
+            "maximum": null,
+            "exact": null,
+            "source_requirement_id": null
+          },
+          "binding_policy": "for_each",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "pairing_policy": "none",
+          "required_before": "run",
+          "media_types": [
+            "video"
+          ],
+          "legacy_metadata": {}
+        }
+      ],
+      "result_specs": [
+        {
+          "result_id": "result_person_boxes",
+          "display_name": "人员框",
+          "semantic_type": "entity_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_loitering_person_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "entities",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_person_boxes"
+          ]
+        },
+        {
+          "result_id": "result_person_tracks",
+          "display_name": "轨迹",
+          "semantic_type": "track_set",
+          "value_shape": "list",
+          "source_ref": "condition:condition_branch_loitering_auto_track_person_detect",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "tracks",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "result_result_person_tracks"
+          ]
+        },
+        {
+          "result_id": "result_loitering_event",
+          "display_name": "事件",
+          "semantic_type": "event_set",
+          "value_shape": "list",
+          "source_ref": "final:primary",
+          "media_types": [
+            "video"
+          ],
+          "projection": {
+            "kind": "events",
+            "parameters": {}
+          },
+          "unit": null,
+          "grouping": [],
+          "condition_snapshot_policy": "on_result",
+          "label_policy": {
+            "business_label": null,
+            "preserve_model_label": true,
+            "fallback_to_model_label": true
+          },
+          "save_policy": "always",
+          "evidence_policy": "required",
+          "empty_policy": "empty",
+          "result_type": null,
+          "required_outputs": [
+            "final_primary"
+          ]
+        }
+      ],
+      "variant_outputs": {
+        "video": {
+          "result_result_person_boxes": "$branch_branch_loitering_condition_branch_loitering_person_detect_label",
+          "result_result_person_tracks": "$branch_branch_loitering_condition_branch_loitering_auto_track_person_detect_confirm",
+          "regions": "$resource_resource_marked_region_regions",
+          "objects": "$branch_branch_loitering_condition_branch_loitering_person_in_region_apply",
+          "branch_branch_branch_loitering": "$branch_branch_loitering_time_branch_loitering_temporal",
+          "final_primary": "$branch_branch_loitering_time_branch_loitering_temporal",
+          "alert_primary": "$trigger_primary",
+          "media": "$result_draw"
+        }
+      },
+      "preset_comparison": {
+        "normalized_exact": false,
+        "facet_equal": {
+          "media": true,
+          "conditions": false,
+          "temporal": false,
+          "resources": false,
+          "results": false,
+          "final_decision": true,
+          "trigger_policy": false,
+          "execution_structure": false
+        },
+        "matching_facets": 2,
+        "facet_count": 8,
+        "required_capability_coverage": false,
+        "required_capabilities": [
+          "motion.track",
+          "spatial.membership",
+          "target.detect",
+          "temporal.persist"
+        ],
+        "actual_capabilities": [
+          "logic.group",
+          "motion.track",
+          "motion.track",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect"
+        ],
+        "preset_capabilities": [
+          "event.detect_or_compose",
+          "motion.track",
+          "motion.track",
+          "spatial.membership",
+          "spatial.membership",
+          "target.detect",
+          "target.detect",
+          "temporal.persist",
+          "temporal.persist"
+        ],
+        "actual_signature_hash": "c4b79842668b004114c11eff46c2f8baf34a77793db64f73673a3312069c242f",
+        "preset_signature_hash": "f33acb6db620358af228640193144761a0f3c837c3ca6dabd493b99be05dd6c7"
+      }
+    }
+  ]
+}

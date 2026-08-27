@@ -35,9 +35,8 @@ REQUIRED_OPS = {
     "P02": {"rex.ground@1.1", "objects.deduplicate@1.0"},
     "P03": {"rex.ground@1.1", "objects.deduplicate@1.0"},
     "P04": {
-        "track.iou@1.0", "region.manual_set@1.0",
-        "measure.region_count@1.0", "measure.region_speed@1.0",
-        "logic.all@1.0", "temporal.persist@1.0",
+        "region.manual_set@1.0", "measure.region_count@1.0",
+        "logic.compare@1.0", "temporal.persist@1.0",
     },
     "P05": {
         "track.iou@1.0", "measure.heading@1.0", "region.manual_set@1.0",
@@ -50,7 +49,7 @@ REQUIRED_OPS = {
     },
     "P07": {
         "track.iou@1.0", "region.manual@1.0", "spatial.inside@1.0",
-        "measure.speed@1.0", "logic.all@1.0", "temporal.persist@1.0",
+        "temporal.persist@1.0",
     },
     "P08": {
         "region.from_objects@1.0", "spatial.inside@1.0",
@@ -66,7 +65,6 @@ REQUIRED_OPS = {
     "P12": {"track.iou@1.0", "temporal.persist@1.0"},
     "P13": {
         "image.tile@1.1", "rex.ground@1.1", "objects.deduplicate@1.0",
-        "filter.apply@1.0",
     },
 }
 
@@ -98,7 +96,7 @@ def test_all_13_v2_presets_exist_validate_and_match_media_contracts():
                 assert "video.sample@1.1" not in ops
 
 
-def test_person_fall_preset_uses_only_explicit_lying_pose_evidence():
+def test_person_fall_preset_uses_one_precise_active_or_lying_pose_grounding():
     package = SkillPackage.model_validate_json(
         (ROOT / "presets_v2" / "P12_person_fall.json").read_text("utf-8")
     )
@@ -112,33 +110,33 @@ def test_person_fall_preset_uses_only_explicit_lying_pose_evidence():
     assert pose.kind == "pose"
     assert pose.value == "fallen_or_lying"
     assert pose.phrases == ["person lying on the ground"]
-    assert fallen_grounding.params["targets"][0]["phrases"] == [
-        "person lying on the ground"
+    phrases = fallen_grounding.params["targets"][0]["phrases"]
+    assert phrases == [
+        "person actively falling toward the ground",
+        "person losing balance and collapsing",
+        "person bent low while falling",
+        "person lying on the ground",
     ]
+    assert not {"person fallen", "fallen person", "person who has fallen"} & set(phrases)
+    assert sum(
+        node.op == "rex.ground@1.1"
+        for node in package.variants["video"].nodes
+    ) == 1
 
 
-def test_person_fall_preset_adds_relaxed_horizontal_geometry_guard_before_persistence():
+def test_person_fall_preset_tracks_direct_pose_evidence_before_persistence():
     package = SkillPackage.model_validate_json(
         (ROOT / "presets_v2" / "P12_person_fall.json").read_text("utf-8")
     )
     nodes = {node.id: node for node in package.variants["video"].nodes}
 
-    geometry = nodes["fallen_pose_geometry"]
-    qualified = nodes["fallen_qualified"]
     events = nodes["events"]
-    assert geometry.op == "visual.geometry@1.0"
-    assert geometry.inputs == {"objects": "$tracks"}
-    assert geometry.params == {
-        "dimension": "aspect_ratio",
-        "value": "horizontal",
-        "aspect_ratio_threshold": 0.6,
-    }
-    assert qualified.op == "logic.all@1.0"
-    assert qualified.inputs["conditions"] == [
-        "$fallen_state",
-        "$fallen_pose_geometry",
-    ]
-    assert events.inputs == {"condition": "$fallen_qualified"}
+    assert nodes["tracks"].inputs == {"objects": "$fallen_people"}
+    assert nodes["fallen_present"].op == "reduce.exists@1.0"
+    assert nodes["fallen_present"].inputs == {"sets": "$tracks"}
+    assert nodes["fallen_present"].params == {"scope": "entity"}
+    assert events.inputs == {"condition": "$fallen_present"}
+    assert nodes["draw"].params["event_time_window"] == "track_history"
 
 
 def test_every_v2_rex_node_has_explicit_same_label_dedup_consumer():
@@ -163,8 +161,40 @@ def test_every_v2_rex_node_has_explicit_same_label_dedup_consumer():
                     and candidate.inputs.get("objects") == f"${node.id}"
                 ]
                 assert len(consumers) == 1
-                assert consumers[0].params["keep"] == "first"
+                assert consumers[0].params["keep"] in {
+                    "first", "best_localization"
+                }
                 assert consumers[0].params["metric"] in {"ios", "iou"}
+
+
+def test_highway_congestion_prefers_precise_tile_boxes_without_tracking():
+    package = SkillPackage.model_validate_json(
+        next((ROOT / "presets_v2").glob("P04*.json")).read_text("utf-8")
+    )
+    nodes = {node.id: node for node in package.variants["video"].nodes}
+
+    assert nodes["vehicles"].params["keep"] == "best_localization"
+    assert nodes["vehicle_box_shape"].params == {
+        "dimension": "aspect_ratio",
+        "value": "horizontal",
+        "aspect_ratio_threshold": 0.6,
+    }
+    assert nodes["vehicles_localized"].inputs == {
+        "objects": "$vehicles",
+        "condition": "$vehicle_box_shape",
+    }
+    assert nodes["vehicles_in_lanes"].op == "objects.filter_by_regions@1.0"
+    assert nodes["vehicles_in_lanes"].inputs == {
+        "objects": "$vehicles_localized",
+        "regions": "$lane_regions",
+    }
+    assert nodes["lane_count"].inputs["objects"] == "$vehicles_in_lanes"
+    assert nodes["draw"].inputs["objects"] == "$vehicles_in_lanes"
+    assert "tracks" not in nodes
+    assert "lane_speed" not in nodes
+    assert "slow" not in nodes
+    assert nodes["draw"].params["show_labels"] is False
+    assert nodes["draw"].params["show_track_id"] is False
 
 
 def test_special_vehicle_v2_preset_keeps_12_independent_canonical_labels():
@@ -207,19 +237,28 @@ def test_fire_smoke_preset_validates_grounding_with_explicit_visual_evidence():
         assert variant.outputs["objects"] == "$fire_smoke_validated"
 
 
-def test_congestion_and_wrong_way_use_robust_explicit_temporal_statistics():
+def test_congestion_and_wrong_way_use_explicit_temporal_conditions():
     congestion = SkillPackage.model_validate_json(
         next((ROOT / "presets_v2").glob("P04*.json")).read_text("utf-8")
     ).select_variant("video")
     lanes = next(node for node in congestion.nodes if node.id == "lane_regions")
     count = next(node for node in congestion.nodes if node.id == "lane_count")
-    speed = next(node for node in congestion.nodes if node.id == "lane_speed")
+    tile = next(node for node in congestion.nodes if node.op == "image.tile@1.1")
+    ground = next(node for node in congestion.nodes if node.id == "vehicles_raw")
+    dedup = next(node for node in congestion.nodes if node.id == "vehicles")
     assert lanes.op == "region.manual_set@1.0"
     assert lanes.params == {"regions": []}
     assert count.op == "measure.region_count@1.0"
-    assert speed.op == "measure.region_speed@1.0"
+    assert not any(node.op == "track.iou@1.0" for node in congestion.nodes)
+    assert not any(node.op == "measure.region_speed@1.0" for node in congestion.nodes)
+    assert tile.params["include_full_frame"] is True
+    assert ground.inputs["frames"] == "$tiles"
+    assert {"car", "SUV", "van", "bus"}.issubset(
+        set(ground.params["targets"][0]["phrases"])
+    )
+    assert dedup.params["threshold"] == 0.7
     assert congestion.outputs["measurements_1"] == "$lane_count"
-    assert congestion.outputs["measurements_2"] == "$lane_speed"
+    assert "measurements_2" not in congestion.outputs
     assert [slot.kind for slot in congestion.configuration_slots] == ["region_set"]
 
     wrong_way = SkillPackage.model_validate_json(
@@ -233,10 +272,33 @@ def test_congestion_and_wrong_way_use_robust_explicit_temporal_statistics():
     compare = next(node for node in wrong_way.nodes if node.id == "opposite")
     assert compare.op == "logic.heading_by_lane@1.0"
     draw = next(node for node in wrong_way.nodes if node.id == "draw")
-    event_tracks = next(
-        node for node in wrong_way.nodes if node.op == "tracks.filter_by_events@1.0"
-    )
-    assert draw.inputs["objects"] == f"${event_tracks.id}"
+    tracks = next(node for node in wrong_way.nodes if node.id == "tracks")
+    headings = next(node for node in wrong_way.nodes if node.id == "headings")
+    frames = next(node for node in wrong_way.nodes if node.id == "frames")
+    assert draw.inputs["objects"] == "$tracks"
+    assert wrong_way.outputs["objects"] == "$vehicles_in_lanes"
+    assert wrong_way.outputs["tracks"] == "$tracks"
+    assert "event_tracks" not in wrong_way.outputs
+    assert frames.params["fps"] == 2.0
+    assert tracks.params == {
+        "iou_threshold": 0.35,
+        "max_missing_frames": 1,
+        "same_label_only": True,
+        "motion_consistency": True,
+        "motion_prediction": True,
+        "min_direction_cosine": 0.0,
+        "min_motion_pixels": 5.0,
+    }
+    assert headings.params["min_displacement_pixels"] == 8.0
+    assert headings.params["min_displacement_box_ratio"] == 0.15
+    events = next(node for node in wrong_way.nodes if node.id == "events")
+    assert events.params["gap_tolerance_seconds"] == 1.1
+    assert draw.params["show_labels"] is False
+    assert draw.params["show_track_id"] is False
+    assert draw.params["show_event_labels"] is True
+    # A later motion conclusion must not be painted back onto frame 0, where
+    # the tracker has not accumulated any displacement evidence yet.
+    assert draw.params["event_time_window"] == "event"
     assert draw.inputs["directions"] == "$lane_references"
     slots = {slot.kind: slot for slot in wrong_way.configuration_slots}
     assert set(slots) == {"region_set", "direction_set"}
@@ -254,6 +316,8 @@ def test_illegal_parking_uses_user_editable_roi_and_ten_second_persistence():
     assert region.params["shape"] in {"rectangle", "polygon"}
     persist = next(node for node in variant.nodes if node.id == "events")
     assert persist.params["seconds"] == 10.0
+    assert not any(node.op == "measure.speed@1.0" for node in variant.nodes)
+    assert not any(node.id == "stationary" for node in variant.nodes)
     assert [slot.kind for slot in variant.configuration_slots] == ["region"]
     event_tracks = next(
         node for node in variant.nodes if node.op == "tracks.filter_by_events@1.0"
@@ -371,12 +435,12 @@ def test_bridge_damage_preset_does_not_invent_an_unrequested_size_filter():
     for variant in package.variants.values():
         assert not any(node.op == "visual.geometry@1.0" for node in variant.nodes)
         assert variant.outputs["objects"] in {
-            "$bridge_damage_exclusion_1_filtered",
+            "$bridge_damage",
             "$confirmed_objects",
         }
 
 
-def test_service_area_garbage_uses_affirmative_visible_exclusions_and_video_confirmation():
+def test_service_area_garbage_uses_generic_container_relative_overflow_semantics():
     package = SkillPackage.model_validate_json(
         next((ROOT / "presets_v2").glob("P11*.json")).read_text("utf-8")
     )
@@ -385,21 +449,61 @@ def test_service_area_garbage_uses_affirmative_visible_exclusions_and_video_conf
         positive = next(node for node in variant.nodes if node.id == "garbage_raw")
         assert {
             target["label"] for target in positive.params["targets"]
-        } == {"垃圾容器", "溢出垃圾", "散落垃圾"}
-        exclusion_ids = {
-            node.id for node in variant.nodes
-            if node.id.endswith("_exclusion_raw")
-        }
-        assert exclusion_ids == {"garbage_exclusion_1_exclusion_raw"}
-        assert any(node.op == "logic.not@1.0" for node in variant.nodes)
-        associations = [
+        } == {"垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"}
+        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 3
+        assert not any(node.op == "visual.geometry@1.0" for node in variant.nodes)
+        assert not any(
+            node.id in {"garbage_pile_above_container", "garbage_pile_not_above_container"}
+            for node in variant.nodes
+        )
+        association = next(
             node for node in variant.nodes
-            if node.id.endswith("_matches")
-            and node.id.startswith("garbage_exclusion_")
-        ]
-        assert all(node.params["relation"] == "mutual_match" for node in associations)
-        packages = next(node for node in variant.nodes if node.id == "garbage_exclusion_1_exclusion_raw")
-        assert "shrink wrapped package" in packages.params["targets"][0]["phrases"]
+            if node.id == "overflow_above_container"
+        )
+        assert association.inputs == {
+            "subjects": "$overflow_deduplicated",
+            "objects": "$garbage_containers_visible",
+        }
+        assert association.params["relation"] == "center_in_object_region"
+        assert association.params["object_region"] == [-0.25, -0.5, 1.25, 0.4]
+        assert next(
+            node for node in variant.nodes if node.id == "garbage_containers"
+        ).params == {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "best_localization",
+        }
+        confirmation = next(
+            node for node in variant.nodes
+            if node.id == "garbage_container_confirmed"
+        )
+        assert confirmation.inputs == {
+            "subjects": "$garbage_containers",
+            "objects": "$garbage_container_evidence",
+        }
+        assert confirmation.params["relation"] == "source_entity"
+        assert next(
+            node for node in variant.nodes if node.id == "overflow_deduplicated"
+        ).params == {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "best_localization",
+        }
+        assert next(
+            node for node in variant.nodes if node.id == "garbage_piles"
+        ).params == {
+            "metric": "ios",
+            "threshold": 0.5,
+            "keep": "best_localization",
+        }
+        pile_grounding = next(
+            node for node in variant.nodes
+            if node.id == "garbage_pile_full_frame_raw"
+        )
+        assert pile_grounding.inputs == {"frames": "$resized"}
+        assert not any(
+            node.id == "container_has_overflow" for node in variant.nodes
+        )
         if media_type == "video":
             assert any(node.op == "track.confirm@1.0" for node in variant.nodes)
 
@@ -412,8 +516,8 @@ def test_service_area_garbage_tiles_small_objects_and_publishes_final_count():
     for media_type, variant in package.variants.items():
         assert any(node.op == "image.tile@1.1" for node in variant.nodes)
         tile = next(node for node in variant.nodes if node.op == "image.tile@1.1")
-        assert tile.params["tile_width"] == 384
-        assert tile.params["tile_height"] == 384
+        assert tile.params["tile_width"] == 512
+        assert tile.params["tile_height"] == 512
         positive = next(node for node in variant.nodes if node.id == "garbage_raw")
         labels = {item["label"] for item in positive.params["targets"]}
         phrases = {
@@ -421,21 +525,62 @@ def test_service_area_garbage_tiles_small_objects_and_publishes_final_count():
             for item in positive.params["targets"]
             for phrase in item["phrases"]
         }
-        assert labels == {"垃圾容器", "溢出垃圾", "散落垃圾"}
-        assert {"trash bin", "overflowing trash", "small litter"} <= phrases
-        assert not any(
-            "trash bin" in target.get("phrases", [])
-            for node in variant.nodes
-            if node.id.endswith("_exclusion_raw")
-            for target in node.params.get("targets", [])
+        assert labels == {
+            "垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"
+        }
+        assert {
+            "single individual black wheeled garbage bin",
+            "each separate outdoor garbage bin",
+            "trash visibly protruding above the rim of a garbage bin",
+            "large pile of mixed garbage bags and loose waste",
+            "discarded white plastic bag on the ground",
+            "group of mixed small litter pieces scattered near a garbage bin",
+        } <= phrases
+        assert {"trash bin", "garbage container", "waste bin"}.isdisjoint(phrases)
+        assert "small litter" not in phrases
+        assert "small piece of trash" not in phrases
+        dedup = next(node for node in variant.nodes if node.id == "garbage")
+        assert dedup.params == {
+            "metric": "iou",
+            "threshold": 0.5,
+            "keep": "best_localization",
+        }
+        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 3
+        scattered = next(node for node in variant.nodes if node.id == "scattered_garbage")
+        assert scattered.params == {"labels": ["散落垃圾"], "mode": "include"}
+        assert [
+            node.id for node in variant.nodes if node.op == "object.crop@1.0"
+        ] == ["garbage_container_crops"]
+        detection_regions = next(
+            node for node in variant.nodes
+            if node.id == "garbage_detection_regions"
         )
-        assert any(node.op == "object.crop@1.0" for node in variant.nodes)
-        assert any(node.op == "objects.filter_by_phrase@1.0" for node in variant.nodes)
-        assert any(
-            node.op == "spatial.associate@1.0"
-            and node.params["relation"] == "source_entity"
-            for node in variant.nodes
+        filtered = next(
+            node for node in variant.nodes
+            if node.id == "garbage_in_detection_regions"
         )
+        assert detection_regions.op == "region.manual_set@1.0"
+        assert detection_regions.params == {"regions": []}
+        assert filtered.inputs == {
+            "objects": "$garbage_semantic_results",
+            "regions": "$garbage_detection_regions",
+        }
+        assert filtered.params == {
+            "membership_mode": "center",
+            "overlap_threshold": 0.1,
+            "keep": "inside",
+            "empty_regions": "passthrough",
+        }
+        slot = next(
+            slot for slot in variant.configuration_slots
+            if slot.slot_id == "garbage_detection_regions"
+        )
+        assert slot.kind == "region_set"
+        assert slot.required is False
+        assert slot.minimum_items == 1
+        assert variant.outputs["objects"] in {
+            "$garbage_in_detection_regions", "$confirmed_objects"
+        }
         count = next(node for node in variant.nodes if node.op == "measure.count@1.0")
         assert count.inputs["entities"] == (
             variant.outputs["objects"]
@@ -449,73 +594,74 @@ def test_service_area_garbage_tiles_small_objects_and_publishes_final_count():
         assert draw.inputs["measurements"] == f"${count.id}"
 
 
-def test_service_area_garbage_keeps_three_visible_categories_and_grouped_measurements():
+def test_service_area_garbage_keeps_four_visible_categories_and_grouped_measurements():
     package = SkillPackage.model_validate_json(
         next((ROOT / "presets_v2").glob("P11*.json")).read_text("utf-8")
     )
-    expected = {"垃圾容器", "溢出垃圾", "散落垃圾"}
+    expected = {"垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"}
 
     for variant in package.variants.values():
         grounding = next(node for node in variant.nodes if node.id == "garbage_raw")
-        assert {target["label"] for target in grounding.params["targets"]} == expected
+        assert {item["label"] for item in grounding.params["targets"]} == expected
         assert variant.outputs["measurements"] == "$count"
         assert next(node for node in variant.nodes if node.id == "count").params[
             "group_by"
         ] == "label"
 
 
-def test_service_area_garbage_disambiguates_container_evidence_from_loose_litter():
+def test_service_area_garbage_has_no_packaging_exclusion_nodes():
     package = SkillPackage.model_validate_json(
         next((ROOT / "presets_v2").glob("P11*.json")).read_text("utf-8")
     )
 
     for variant in package.variants.values():
-        nodes = {node.id: node for node in variant.nodes}
-        assert nodes["garbage_category_1_candidates"].op == "objects.filter_by_label@1.0"
-        assert nodes["garbage_category_1_container_raw"].op == "rex.ground@1.1"
-        assert nodes["garbage_category_1_matches"].params["relation"] == "mutual_match"
-        assert nodes["garbage_category_1_filtered"].op == "filter.apply@1.0"
-        assert nodes["garbage_category_1_merged"].op == "objects.merge@1.0"
+        assert not any("exclusion" in node.id for node in variant.nodes)
+        assert not any(
+            target["label"] == "整齐包装货物"
+            for node in variant.nodes
+            if node.op == "rex.ground@1.1"
+            for target in node.params["targets"]
+        )
+        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 3
 
 
-def test_bridge_damage_uses_visible_regular_joint_exclusion_and_video_confirmation():
+def test_bridge_damage_uses_one_direct_defect_grounding_without_joint_matching():
     package = SkillPackage.model_validate_json(
         next((ROOT / "presets_v2").glob("P13*.json")).read_text("utf-8")
     )
 
     for media_type, variant in package.variants.items():
-        exclusion = next(
-            node for node in variant.nodes
-            if node.id == "bridge_damage_exclusion_1_exclusion_raw"
-        )
-        assert exclusion.params["targets"][0]["phrases"] == [
-            "regular construction joint",
-            "straight concrete seam",
-            "intact concrete with construction joints",
-        ]
-        association = next(
-            node for node in variant.nodes
-            if node.id == "bridge_damage_exclusion_1_matches"
-        )
-        assert association.params == {
-            "relation": "mutual_match", "threshold": 0.5,
-            "subject_region": [0.0, 0.0, 1.0, 1.0],
-            "same_source_only": False,
+        grounding = next(node for node in variant.nodes if node.id == "bridge_damage_raw")
+        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 1
+        assert {target["label"] for target in grounding.params["targets"]} == {
+            "裂纹", "锈蚀", "渗水", "混凝土剥落", "露筋",
         }
+        assert not any(node.op == "spatial.associate@1.0" for node in variant.nodes)
+        assert not any(node.op == "filter.apply@1.0" for node in variant.nodes)
         if media_type == "video":
             assert any(node.op == "track.confirm@1.0" for node in variant.nodes)
 
 
-def test_bridge_damage_uses_local_tiles_without_a_full_frame_grounding_branch():
+def test_bridge_damage_uses_large_overlapping_tiles_and_best_localization():
     package = SkillPackage.model_validate_json(
         next((ROOT / "presets_v2").glob("P13*.json")).read_text("utf-8")
     )
 
     for variant in package.variants.values():
-        tiles = next(node for node in variant.nodes if node.op == "image.tile@1.1")
-        assert tiles.params["include_full_frame"] is False
+        tile = next(node for node in variant.nodes if node.op == "image.tile@1.1")
+        assert tile.params == {
+            "tile_width": 768,
+            "tile_height": 768,
+            "overlap_x": 0.25,
+            "overlap_y": 0.25,
+            "include_full_frame": True,
+        }
+        resize = next(node for node in variant.nodes if node.id == "resized")
+        assert resize.params["long_side"] == 2048
         dedup = next(node for node in variant.nodes if node.id == "bridge_damage")
-        assert dedup.params == {"metric": "ios", "threshold": 0.35, "keep": "first"}
+        assert dedup.params == {
+            "metric": "ios", "threshold": 0.55, "keep": "best_localization"
+        }
 
 
 def test_every_preset_semantic_ledger_can_be_recompiled_by_the_generic_compiler():

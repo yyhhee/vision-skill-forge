@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
 from core.registry import OperatorRegistry
-from core.business_rule_draft import NaturalLanguageBusinessDraft
+from core.business_rule_draft import (
+    NaturalLanguageBusinessDraft,
+    normalize_business_draft_payload,
+)
 from core.schema import SkillPackage
 from core.semantic import SemanticNormalizer, SemanticValidationError, WorkflowCompiler
 from core.visual_catalog import ATTRIBUTE_CATALOG, CARRIER_TEXT_ALIASES, COLOR_ALIASES
@@ -89,6 +93,349 @@ class DeepSeekSemanticPlanner:
         if not isinstance(value, dict):
             raise SemanticValidationError("LLM returned a non-object semantic ledger")
         return value
+
+    def _repair_target_fields(self, ledger: dict, instruction: str) -> dict:
+        """Repair malformed target identity without replacing LLM constraints.
+
+        The deterministic text normalizer already knows common base entities
+        such as person and vehicle.  Reuse only its target identity when the
+        LLM omitted it or invented a source span; keep every LLM condition and
+        the reviewable business rule unchanged.
+        """
+
+        target = dict(ledger.get("target") or {})
+        span = str(target.get("source_span", "")).strip()
+        concept = str(target.get("concept", "")).strip()
+        phrases = [
+            str(value).strip()
+            for value in target.get("phrases", [])
+            if str(value).strip()
+        ]
+        if span and span in instruction and concept and phrases:
+            return ledger
+        try:
+            fallback = self.normalizer.infer_target(instruction)
+        except Exception:
+            fallback = {}
+        if not concept and phrases:
+            concept = phrases[0].lower()
+            target["concept"] = concept
+        if concept and not phrases:
+            phrases = [concept.lower()]
+            target["phrases"] = phrases
+        if not fallback:
+            aliases = {
+                "person": ("人员", "行人", "工人", "人"),
+                "vehicle": ("车辆", "汽车", "车"),
+                "car": ("汽车", "车辆", "车"),
+                "smoke": ("烟雾", "烟"),
+                "fire": ("明火", "火焰", "火"),
+                "garbage": ("垃圾", "废弃物"),
+                "trash": ("垃圾", "废弃物"),
+            }
+            source_candidates = [
+                label
+                for item in target.get("classes", [])
+                if isinstance(item, dict)
+                for label in [str(item.get("label", "")).strip()]
+                if label
+            ]
+            source_candidates.extend(aliases.get(concept.lower(), ()))
+            source_candidates.append(concept)
+            matched_span = next(
+                (
+                    candidate for candidate in source_candidates
+                    if candidate and candidate in instruction
+                ),
+                "",
+            )
+            fallback = {
+                "source_span": matched_span,
+                "concept": concept,
+                "phrases": phrases,
+                "classes": target.get("classes", []),
+            }
+        if not span or span not in instruction:
+            if fallback.get("source_span"):
+                target["source_span"] = fallback["source_span"]
+        if not concept:
+            if fallback.get("concept"):
+                target["concept"] = fallback["concept"]
+        if not phrases:
+            if fallback.get("phrases"):
+                target["phrases"] = list(fallback["phrases"])
+        target.setdefault("classes", list(fallback.get("classes", [])))
+        ledger["target"] = target
+        return ledger
+
+    @staticmethod
+    def _repair_business_region_positions(
+        ledger: dict,
+        business_payload: dict | None,
+    ) -> dict:
+        """Use a declared region resource for an open scene-position phrase.
+
+        Canonical position values describe screen coordinates.  Phrases such
+        as "on the road" instead describe a configurable semantic region.  If
+        the same planner response declares exactly one matching region resource,
+        convert that unsupported position to a normal region requirement rather
+        than discarding the user's spatial constraint.
+        """
+
+        if not isinstance(business_payload, dict):
+            return ledger
+        constraints = ledger.get("constraints")
+        if not isinstance(constraints, list):
+            return ledger
+        open_positions = [
+            item
+            for item in constraints
+            if isinstance(item, dict)
+            and str(item.get("kind", "")).strip().lower() == "position"
+            and str(item.get("value", "")).strip().lower()
+            not in ATTRIBUTE_CATALOG["position"]["values"]
+        ]
+        resources = business_payload.setdefault("resources", [])
+        regions = [
+            item
+            for item in resources
+            if isinstance(item, dict) and item.get("resource_type") == "region"
+        ]
+        if not regions and len(open_positions) == 1:
+            position = open_positions[0]
+            raw_role = str(position.get("value") or "scene area").strip().lower()
+            role = re.sub(r"[^a-z0-9]+", "_", raw_role).strip("_") or "scene_area"
+            media_types = list(dict.fromkeys(
+                str(branch.get("media_type"))
+                for branch in business_payload.get("branches", [])
+                if isinstance(branch, dict)
+                and branch.get("media_type") in {"image", "video"}
+            )) or ["image"]
+            region = {
+                "key": role,
+                "name": str(position.get("source_span") or raw_role),
+                "resource_type": "region",
+                "semantic_role": role,
+                "media_types": media_types,
+                "minimum_items": 1,
+                "paired_region_key": None,
+            }
+            resources.append(region)
+            regions = [region]
+
+            def repair_conditions(items: list[dict]) -> None:
+                for condition in items:
+                    if not isinstance(condition, dict):
+                        continue
+                    parameters = condition.get("parameters")
+                    if (
+                        condition.get("capability_id") == "spatial.membership"
+                        and isinstance(parameters, dict)
+                        and parameters.get("scope") == "full_frame"
+                    ):
+                        parameters["scope"] = f"resource:{role}"
+                    repair_conditions(condition.get("children") or [])
+
+            for branch in business_payload.get("branches", []):
+                if isinstance(branch, dict):
+                    repair_conditions(branch.get("conditions") or [])
+        if len(regions) != 1:
+            return ledger
+        region = regions[0]
+        role = str(region.get("semantic_role") or region.get("key") or "area")
+        repaired_spans: set[str] = set()
+        for index, condition in enumerate(list(constraints)):
+            if not isinstance(condition, dict):
+                continue
+            if str(condition.get("kind", "")).strip().lower() != "position":
+                continue
+            value = str(condition.get("value", "")).strip().lower()
+            if value in ATTRIBUTE_CATALOG["position"]["values"]:
+                continue
+            span = str(condition.get("source_span", "")).strip()
+            repaired_spans.add(span)
+            constraints[index] = {
+                "kind": "region_requirement",
+                "value": {
+                    "source": "manual",
+                    "cardinality": (
+                        "many" if int(region.get("minimum_items", 1)) > 1 else "one"
+                    ),
+                    "semantic_role": role,
+                    "allowed_shapes": ["rectangle", "polygon"],
+                },
+                "source": condition.get("source") or span,
+                "source_span": span,
+                "phrases": [],
+                "temporal": False,
+            }
+        if repaired_spans:
+            ledger["unresolved"] = [
+                item
+                for item in ledger.get("unresolved", [])
+                if str(item.get("source_span", "")).strip() not in repaired_spans
+            ]
+        return ledger
+
+    @staticmethod
+    def _repair_business_manual_directions(
+        ledger: dict,
+        business_payload: dict | None,
+    ) -> dict:
+        """Materialize manual direction references as editable resources."""
+
+        if not isinstance(business_payload, dict):
+            return ledger
+        direction_constraints = [
+            item
+            for item in ledger.get("constraints", [])
+            if isinstance(item, dict)
+            and item.get("kind") == "direction_relation"
+            and isinstance(item.get("value"), dict)
+            and item["value"].get("reference_source") == "manual"
+        ]
+        if len(direction_constraints) != 1:
+            return ledger
+        direction_value = direction_constraints[0]["value"]
+        resources = business_payload.setdefault("resources", [])
+        if direction_value.get("reference_scope") == "per_named_region":
+            has_region_constraint = any(
+                isinstance(item, dict)
+                and (
+                    item.get("kind") == "region_requirement"
+                    or item.get("kind") == "spatial_relation"
+                    and isinstance(item.get("value"), dict)
+                    and isinstance(item["value"].get("region"), dict)
+                    and item["value"]["region"].get("source") == "manual"
+                )
+                for item in ledger.get("constraints", [])
+            )
+            business_regions = [
+                item for item in resources
+                if isinstance(item, dict) and item.get("resource_type") == "region"
+            ]
+            if not has_region_constraint and len(business_regions) == 1:
+                region = business_regions[0]
+                region_span = str(
+                    direction_constraints[0].get("source")
+                    or direction_constraints[0].get("source_span")
+                    or region.get("name")
+                    or "命名区域"
+                )
+                ledger.setdefault("constraints", []).insert(0, {
+                    "kind": "region_requirement",
+                    "value": {
+                        "source": "manual",
+                        "cardinality": "many",
+                        "semantic_role": str(
+                            region.get("semantic_role") or region.get("key") or "area"
+                        ),
+                        "allowed_shapes": ["rectangle", "polygon"],
+                    },
+                    "source": region_span,
+                    "source_span": region_span,
+                    "phrases": [],
+                    "temporal": False,
+                })
+
+        # A scene-direction annotation is a resource, not an executable branch.
+        # Drop branches that contain only a direction condition over full_frame;
+        # the actual detection branch consumes the synthesized resource below.
+        retained_branches = []
+        removed_branch_keys: set[str] = set()
+        for branch in business_payload.get("branches", []):
+            conditions = branch.get("conditions", []) if isinstance(branch, dict) else []
+            resource_only = bool(conditions) and all(
+                isinstance(item, dict)
+                and item.get("capability_id") == "motion.direction"
+                and isinstance(item.get("parameters"), dict)
+                and item["parameters"].get("source") == "full_frame"
+                for item in conditions
+            )
+            if not resource_only:
+                retained_branches.append(branch)
+            elif isinstance(branch, dict) and branch.get("key"):
+                removed_branch_keys.add(str(branch["key"]))
+        business_payload["branches"] = retained_branches
+        directions = [
+            item for item in resources
+            if isinstance(item, dict) and item.get("resource_type") == "direction"
+        ]
+        if not directions:
+            region_keys = [
+                str(item.get("key")) for item in resources
+                if isinstance(item, dict)
+                and item.get("resource_type") == "region"
+                and item.get("key")
+            ]
+            media_types = list(dict.fromkeys(
+                str(branch.get("media_type"))
+                for branch in business_payload.get("branches", [])
+                if isinstance(branch, dict)
+                and branch.get("media_type") in {"image", "video"}
+            )) or ["video"]
+            directions = [{
+                "key": "reference_direction",
+                "name": "参考方向",
+                "resource_type": "direction",
+                "semantic_role": "reference_direction",
+                "media_types": media_types,
+                "minimum_items": 1,
+                "paired_region_key": (
+                    region_keys[0]
+                    if direction_value.get("reference_scope") == "per_named_region"
+                    and len(region_keys) == 1
+                    else None
+                ),
+            }]
+            resources.extend(directions)
+        if len(directions) != 1:
+            return ledger
+        direction_ref = f"resource:{directions[0]['key']}"
+        for pending in business_payload.get("pending_decisions", []):
+            if not isinstance(pending, dict):
+                continue
+            affected = pending.get("affected_refs")
+            if not isinstance(affected, list):
+                continue
+            pending["affected_refs"] = list(dict.fromkeys(
+                direction_ref
+                if isinstance(item, str)
+                and item.startswith("condition:")
+                and any(
+                    item.split(":", 1)[1].startswith(f"{branch_key}.")
+                    for branch_key in removed_branch_keys
+                )
+                else item
+                for item in affected
+            ))
+
+        def repair_conditions(items: list[dict]) -> None:
+            for condition in items:
+                if not isinstance(condition, dict):
+                    continue
+                parameters = condition.get("parameters")
+                if (
+                    condition.get("capability_id") in {
+                        "motion.direction", "motion.wrong_way"
+                    }
+                    and isinstance(parameters, dict)
+                ):
+                    if parameters.get("reference") in (None, "", "manual"):
+                        parameters["reference"] = direction_ref
+                    if condition.get("capability_id") == "motion.direction":
+                        parameters.setdefault(
+                            "relation", direction_value.get("relation", "opposite")
+                        )
+                        reverse_angle = parameters.pop("minimum_reverse_angle", None)
+                        if reverse_angle is not None and parameters.get("angle") is None:
+                            parameters["angle"] = reverse_angle
+                repair_conditions(condition.get("children") or [])
+
+        for branch in business_payload.get("branches", []):
+            if isinstance(branch, dict):
+                repair_conditions(branch.get("conditions") or [])
+        return ledger
 
     @staticmethod
     def _system_prompt() -> str:
@@ -201,9 +548,16 @@ class DeepSeekSemanticPlanner:
             "parameters 中的来源用 condition:key 或 condition:branchKey.conditionKey；"
             "区域/方向用 resource:key，全画面用 full_frame。"
             "target.detect 参数为 targets/phrases/business_label；attribute.color 为 source/part/color/minimum_fraction；"
+            "target.detect 不接受 scope；区域范围必须另建 spatial.membership，并引用检测条件；"
             "subject.same_attributes 为 subject/attributes/minimum_overlap；spatial.membership 为 source/scope/membership/minimum_overlap/inside；"
             "measure.count 为 source/scope/group_by/operator/threshold；motion.wrong_way 为 source/scope/reference/minimum_reverse_angle/minimum_displacement；"
             "event.detect_or_compose 为 source/scope/method/event_label。"
+            "所有 percentage 参数统一输出 0 到 100 的百分数，禁止输出 0 到 1 的比例；"
+            "minimum_fraction、minimum_overlap、minimum_displacement 等效果调优参数，"
+            "用户没有明确给出时必须省略并采用能力默认值，不得自行猜测；"
+            "颜色能力未给出阈值时使用系统默认颜色证据基线，不要擅自填入 5% 等过低值；"
+            "attribute.color.part 只允许 whole、upper_clothing、lower_clothing，"
+            "spatial.membership.membership 只允许 center、overlap、overlap_ratio。"
             "同一人的多项属性必须增加 subject.same_attributes，不能只用 AND。"
             "每个能够独立保存结果、展示证据或单独持续计时的业务判断必须建立独立 branch；"
             "例如‘区域1指定着装人员 AND 区域2人数大于2’要建立两个同媒体分支，最终判定再 AND，"
@@ -213,8 +567,9 @@ class DeepSeekSemanticPlanner:
             "再由 measure.count.source 引用该检测条件。"
             "target.detect.business_label 是结果框面向用户显示的名称：普通人员可写‘人员’，"
             "指定多属性人员应写完整业务名称，例如‘红色上衣、灰色裤子人员’。"
-            "顶层用户消息中的 requested_skill_display_name 是用户确认的最终结果/告警名称，"
-            "final_decision.name 必须与它完全一致。"
+            "顶层用户消息中的 requested_skill_display_name 只是技能名称，不是事件名、告警名或框标签，"
+            "不得直接复制给 final_decision.name。final_decision.name 应根据业务语义生成简洁名称；"
+            "用户明确给出事件/告警名称时原样采用，否则根据参与分支概括，例如多区域人员告警。"
             "嵌套逻辑必须使用 conditions 的递归 operator/children 表达；"
             "NOT 使用一个 child，N_OF_M 同时填写 required_count；不要把逻辑符写进条件名称冒充组合。"
             "未给出的数量、比较符、持续时间、时间窗、区域数量或方向不得猜测：参数可用推荐占位，"
@@ -276,7 +631,14 @@ class DeepSeekSemanticPlanner:
                     retry_without_thinking = True
                     raise SemanticValidationError("LLM returned an empty semantic ledger")
                 ledger = self._parse_json_object(raw)
+                ledger = self._repair_target_fields(ledger, text)
                 business_payload = ledger.pop("business_rule", None)
+                ledger = self._repair_business_region_positions(
+                    ledger, business_payload
+                )
+                ledger = self._repair_business_manual_directions(
+                    ledger, business_payload
+                )
                 semantic_ir = self.normalizer.normalize_ledger(ledger, text)
                 package = self.compiler.compile(
                     semantic_ir,
@@ -287,7 +649,7 @@ class DeepSeekSemanticPlanner:
                 )
                 business_draft = (
                     NaturalLanguageBusinessDraft.model_validate(
-                        business_payload
+                        normalize_business_draft_payload(business_payload)
                     ).model_dump(mode="json")
                     if business_payload is not None
                     else None
@@ -316,7 +678,20 @@ class DeepSeekSemanticPlanner:
                     else str(exc)
                 )
                 errors.append(public_error)
-                if attempt >= 2 and (not retry_without_thinking or not raw.strip()):
+                # Syntax failures usually benefit from one clean retry.  A
+                # structurally valid but semantically invalid ledger gets the
+                # third planned attempt so one malformed target/span response
+                # cannot force the user into manual JSON repair.
+                if attempt >= 3 or (
+                    attempt >= 2
+                    and (
+                        isinstance(exc, json.JSONDecodeError)
+                        or (
+                            isinstance(exc, SemanticValidationError)
+                            and str(exc) == "LLM returned an empty semantic ledger"
+                        )
+                    )
+                ):
                     break
                 repair_messages = [{"role": "user", "content": (
                         f"上一次语义账本无效：{exc}。"

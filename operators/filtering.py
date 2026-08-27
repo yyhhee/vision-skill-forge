@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 from core.context import ObjectSet, TrackSet
+from .objects import iter_object_samples
 
 
 def objects_filter_by_phrase(inputs, params, services, node_id):
@@ -12,7 +13,7 @@ def objects_filter_by_phrase(inputs, params, services, node_id):
     include = params["mode"] == "include"
     return ObjectSet([
         deepcopy(item)
-        for item in inputs["objects"].items
+        for item in iter_object_samples(inputs["objects"])
         if (item.phrase in phrases) == include
     ])
 
@@ -29,7 +30,7 @@ def objects_filter_by_label(inputs, params, services, node_id):
     include = params["mode"] == "include"
     return ObjectSet([
         deepcopy(item)
-        for item in inputs["objects"].items
+        for item in iter_object_samples(inputs["objects"])
         if (item.label in labels) == include
     ])
 

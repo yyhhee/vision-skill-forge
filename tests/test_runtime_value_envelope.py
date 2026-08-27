@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from core.context import ObjectSet, VisualObject
+from core.context import ObjectSet, Track, VisualObject
 from core.runtime_values import LegacyOutputEnvelopeAdapter
 
 
@@ -56,3 +56,32 @@ def test_envelope_and_evidence_ids_are_stable_for_replay():
     )
     assert first.value_id == second.value_id
     assert first_evidence == second_evidence == []
+
+
+def test_legacy_malformed_object_set_with_track_still_projects_box_evidence():
+    sample = VisualObject(
+        id="vehicle_1",
+        label="车辆",
+        phrase="vehicle",
+        bbox=(0.1, 0.2, 0.4, 0.8),
+        frame_index=7,
+        timestamp=1.4,
+        source_node="detect",
+        track_id="track_1",
+    )
+    # Historical/custom graphs could wrap a Track in ObjectSet because the
+    # old object-level EntitySet operators did not project track histories.
+    malformed = ObjectSet([Track("track_1", "车辆", [sample])])  # type: ignore[list-item]
+
+    _, evidence = LegacyOutputEnvelopeAdapter().wrap(
+        run_id="run_legacy",
+        source_node_id="legacy_merge",
+        business_source_ref="output:objects",
+        value=malformed,
+        media_asset_id="media_1",
+    )
+
+    assert len(evidence) == 1
+    assert evidence[0].geometry["bbox"] == [0.1, 0.2, 0.4, 0.8]
+    assert evidence[0].value["phrase"] == "vehicle"
+    assert evidence[0].entity_refs == ["track_1", "vehicle_1"]

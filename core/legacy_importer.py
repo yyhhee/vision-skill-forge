@@ -71,6 +71,41 @@ def _result_display_name(package: SkillPackage, name: str) -> str:
     return name.replace("_", " ")
 
 
+def _result_contract(package: SkillPackage, name: str) -> dict:
+    if name == "objects":
+        return {"semantic_type": "entity_set", "value_shape": "list", "projection": {"kind": "entities"}}
+    if name == "tracks":
+        return {"semantic_type": "track_set", "value_shape": "list", "projection": {"kind": "tracks"}}
+    if name == "events":
+        return {"semantic_type": "event_set", "value_shape": "list", "projection": {"kind": "events"}}
+    if name == "media":
+        return {"semantic_type": "media", "value_shape": "single", "projection": {"kind": "media"}}
+    if name in {"regions", "directions"}:
+        return {"semantic_type": "resource", "value_shape": "list", "projection": {"kind": "resource"}}
+    if name.startswith("measurements"):
+        node = next(
+            (
+                item
+                for variant in package.variants.values()
+                for item in variant.nodes
+                if variant.outputs.get(name) == f"${item.id}"
+            ),
+            None,
+        )
+        if node is not None and node.op in {
+            "measure.region_count@1.0",
+            "measure.region_speed@1.0",
+        }:
+            return {
+                "semantic_type": "scalar",
+                "value_shape": "series",
+                "projection": {"kind": "identity"},
+                "grouping": ["key"],
+                "unit": "像素/秒" if node.op == "measure.region_speed@1.0" else None,
+            }
+    return {"semantic_type": "scalar", "value_shape": "single", "projection": {"kind": "value"}}
+
+
 def _result_specs(package: SkillPackage) -> list[ResultSpec]:
     names: OrderedDict[str, list[str]] = OrderedDict()
     for media_type, variant in package.variants.items():
@@ -79,12 +114,12 @@ def _result_specs(package: SkillPackage) -> list[ResultSpec]:
     return [
         ResultSpec(
             result_id=f"result_{name}",
-            result_type=_RESULT_TYPES.get(name, "measurement"),
             display_name=_result_display_name(package, name),
             source_ref=f"output:{name}",
             media_types=media_types,
             required_outputs=[name],
             evidence_policy="required" if name == "events" else "optional",
+            **_result_contract(package, name),
         )
         for name, media_types in names.items()
     ]
@@ -121,6 +156,7 @@ def _requirement(media_type: str, slot: ConfigurationSlot) -> ResourceRequiremen
         binding_policy="for_each" if slot.kind.endswith("_set") else "direct",
         allowed_shapes=slot.allowed_shapes,
         pairing_policy="one_per_region" if source_id else "none",
+        required_before="run" if slot.required else "never",
         media_types=[media_type],
         legacy_metadata={
             "slot_id": slot.slot_id,

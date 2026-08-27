@@ -32,9 +32,41 @@ def compile_event_patterns(
     output_types = {
         node["id"]: registry.require(node["op"]).output_type for node in compiled_nodes
     }
-    business_sources = business_sources or {}
+    # A pattern may consume the result of another pattern (event:<id>).  Keep
+    # these aliases local to compilation and order the patterns by dependency
+    # so LLM/user-authored documents do not depend on JSON list order.
+    business_sources = dict(business_sources or {})
+    by_id = {pattern.pattern_id: pattern for pattern in patterns}
+    ordered_patterns: list[EventPattern] = []
+    pending = list(patterns)
+    compiled_pattern_ids: set[str] = set()
+    while pending:
+        ready = []
+        for pattern in pending:
+            dependencies = {
+                stage.source_ref.split(":", 1)[1]
+                for stage in pattern.stages
+                if stage.source_ref and stage.source_ref.startswith("event:")
+            }
+            missing = dependencies - set(by_id)
+            if missing:
+                raise EventPatternCompileError(
+                    f"pattern {pattern.pattern_id}: referenced pattern does not exist: "
+                    + ", ".join(sorted(missing))
+                )
+            if dependencies <= compiled_pattern_ids:
+                ready.append(pattern)
+        if not ready:
+            cycle = ", ".join(pattern.pattern_id for pattern in pending)
+            raise EventPatternCompileError(
+                f"event pattern dependency cycle detected: {cycle}"
+            )
+        for pattern in ready:
+            ordered_patterns.append(pattern)
+            compiled_pattern_ids.add(pattern.pattern_id)
+            pending.remove(pattern)
 
-    for pattern in patterns:
+    for pattern in ordered_patterns:
         stage_refs = {}
         for stage in pattern.stages:
             source_id = business_sources.get(
@@ -251,6 +283,12 @@ def compile_event_patterns(
         for index, ref in enumerate(final_refs, start=1):
             suffix = "" if len(final_refs) == 1 else f"_{index}"
             compiled_outputs[f"event_{pattern.pattern_id}{suffix}"] = ref
+        # Nested branch orchestration consumes the primary result of the child
+        # pattern through the same stable semantic reference used by ResultSpec.
+        primary_ref = final_refs[0]
+        business_sources[f"event:{pattern.pattern_id}"] = (
+            primary_ref[1:] if primary_ref.startswith("$") else primary_ref
+        )
 
     return compiled_nodes, compiled_outputs
 

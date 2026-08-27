@@ -71,3 +71,38 @@ def test_unknown_or_incompatible_renderer_safely_falls_back():
         ],
     )
     assert view.business_outputs[0].renderer_id == "scalar.metric"
+
+
+def test_grouped_series_and_resources_render_as_business_values():
+    result = _run_result()
+    result.business_outputs = [
+        BusinessOutputValue(
+            result_id="lane_count",
+            display_name="各区域目标数量",
+            semantic_type="scalar",
+            value_shape="series",
+            status="satisfied",
+            value={"items": [
+                {"key": "lane_1", "timestamp": 0, "value": 6},
+                {"key": "lane_1", "timestamp": 1, "value": 8},
+                {"key": "lane_2", "timestamp": 1, "value": 5},
+            ]},
+            unit="辆",
+            source_ref="output:measurements_1",
+        ),
+        BusinessOutputValue(
+            result_id="regions",
+            display_name="场景区域",
+            semantic_type="resource",
+            value_shape="list",
+            status="satisfied",
+            value={"items": [
+                {"id": "lane_1", "label": "车道1"},
+                {"id": "lane_2", "label": "车道2"},
+            ]},
+            source_ref="output:regions",
+        ),
+    ]
+    rendered = render_run_result_html(build_run_result_view(result, []))
+    assert "lane_1：8辆；lane_2：5辆" in rendered
+    assert "车道1、车道2" in rendered

@@ -149,6 +149,26 @@ def test_package_runtime_selects_image_variant_and_persists_v2_explanations(tmp_
     )
 
 
+def test_package_runtime_deduplicates_aliases_of_the_same_entity_output(tmp_path):
+    media = tmp_path / "input.jpg"
+    Image.new("RGB", (80, 40), "white").save(media)
+    package = _package()
+    package.variants["image"].outputs["matched_people"] = "$objects"
+
+    record = SkillPackageRuntime(
+        build_default_registry(),
+        rex=OneBoxRex(),
+        run_store=RunStore(tmp_path / "runs"),
+    ).run(package, package, media)
+
+    detections = json.loads(
+        (record.run_dir / "detections.json").read_text("utf-8")
+    )
+    metadata = json.loads((record.run_dir / "run.json").read_text("utf-8"))
+    assert len(detections) == 1
+    assert metadata["object_count"] == 1
+
+
 def test_package_runtime_runs_effective_video_when_generated_baseline_lacks_video(
     tmp_path,
 ):

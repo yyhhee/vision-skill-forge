@@ -57,16 +57,101 @@ def test_annotation_guidance_is_generic_and_video_sampling_defaults_to_one_fps()
     assert next(node for node in nodes if node["id"] == "frames")["params"]["fps"] == 1.0
 
 
-def test_empty_business_secondary_controls_match_all_18_frontend_outputs(tmp_path):
+def test_empty_business_secondary_controls_match_all_19_frontend_outputs(tmp_path):
     controller = _controller(tmp_path)
 
     values = controller.business_secondary_controls("", "image")
 
-    assert len(values) == 18
+    assert len(values) == 19
     assert values[6:13] == (
         "最终结果", "event_decision", values[8], "AND", 1, True, True
     )
-    assert values[14:] == ("none", 0, "medium", ["event_record"])
+    assert values[14:18] == ("none", 0, "medium", ["event_record"])
+
+
+def test_business_output_can_delete_the_selected_row_but_keeps_one(tmp_path):
+    controller = _controller(tmp_path)
+    rows = [
+        ["车辆数量", "区域1", "数量", "辆", "必须保存", "每次保存", "是"],
+        ["拥堵状态", "最终判定", "是否满足", "", "尽量保存", "满足时保存", "是"],
+    ]
+
+    remaining = controller.business_delete_output_row(rows, "车辆数量")
+
+    assert [row[0] for row in remaining] == ["拥堵状态"]
+    with pytest.raises(gr.Error, match="至少需要保留一个"):
+        controller.business_delete_output_row(remaining, "拥堵状态")
+
+
+def test_multi_branch_controls_show_basic_relation_and_publish_combination_to_final(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P01_fire_smoke.json"
+    ).read_text("utf-8")
+    document = controller._editor_document(effective, "", source_type="preset")
+    first_id = document.skill_template.business_branches[0].branch_id
+    document = controller.business_rule_editor.add_branch(
+        document, "image", "第二分支"
+    )
+    second_id = document.skill_template.business_branches[-1].branch_id
+    document = controller.business_rule_editor.set_complex_pattern(
+        document,
+        "image",
+        "all_completed",
+        [first_id, second_id],
+        display_name="并行阶段",
+    )
+
+    values = controller.business_secondary_controls(
+        controller._dump(document), "image"
+    )
+
+    assert "并行" in values[5]
+    assert "当前生效分支编排" in values[5]
+    assert "AND" in values[5]
+    assert "第二分支" in values[5]
+    assert "阶段完成" in values[5]
+    final_choice_values = {value for _, value in values[8].choices}
+    pattern_id = document.skill_template.event_patterns[0].pattern_id
+    assert f"event:{pattern_id}" in final_choice_values
+    assert values[18]["visible"] is True
+
+
+def test_branch_orchestration_can_reuse_a_saved_group_as_parent_input(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P01_fire_smoke.json"
+    ).read_text("utf-8")
+    document = controller._editor_document(effective, "", source_type="preset")
+    document.skill_template.business_branches[0].media_type = "video"
+    first_id = document.skill_template.business_branches[0].branch_id
+    document = controller.business_rule_editor.add_branch(document, "video", "分支B")
+    document = controller.business_rule_editor.add_branch(document, "video", "分支C")
+    second_id = document.skill_template.business_branches[-2].branch_id
+    third_id = document.skill_template.business_branches[-1].branch_id
+    document = controller.business_rule_editor.set_complex_pattern(
+        document, "video", "sequence", [first_id, second_id], display_name="A后B"
+    )
+    child_id = document.skill_template.event_patterns[-1].pattern_id
+    document = controller.business_rule_editor.set_complex_pattern(
+        document,
+        "video",
+        "all_completed",
+        [f"event:{child_id}", third_id],
+        display_name="顺序组与C并行",
+    )
+
+    values = controller.business_secondary_controls(controller._dump(document), "video")
+
+    assert "当前生效分支编排" in values[5]
+    assert "（" in values[5] and "→" in values[5]
+    assert "AND" in values[5] and "分支C" in values[5]
+    choice_values = {value for _, value in values[0].choices}
+    assert f"event:{child_id}" in choice_values
 
 
 def test_preset_business_parameter_change_compiles_to_the_current_effective_package(tmp_path):
@@ -174,6 +259,64 @@ def test_business_parameters_use_controlled_editor_instead_of_freeform_table(tmp
     assert "可直接修改" in phrase[8]
 
 
+def test_dual_input_operator_help_names_both_concrete_targets(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P10_no_safety_rope.json"
+    ).read_text("utf-8")
+    document = controller._editor_document(effective, "", source_type="preset")
+    branch = document.skill_template.business_branches[0]
+    editor_json = controller._dump(document)
+
+    controls = controller.business_parameter_controls(
+        editor_json,
+        "image",
+        branch.branch_id,
+        "existing_node:has_equipment",
+        False,
+    )
+
+    assert "目标 A（主体）" in controls[8]
+    assert "高处作业人员" in controls[8]
+    assert "目标 B（关联对象）" in controls[8]
+    assert "防坠挂绳钩" in controls[8]
+    assert "B 的中心点必须落在 A" in controls[8]
+
+
+def test_event_editor_restores_the_loaded_default_after_parameter_changes(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P04_highway_congestion.json"
+    ).read_text("utf-8")
+    baseline = controller._editor_document(effective, "", source_type="preset")
+    prepared = controller.business_rule_editor.prepare(baseline)
+    branch = prepared.skill_template.business_branches[0]
+    changed = controller.business_rule_editor.update_condition(
+        prepared,
+        branch.branch_id,
+        "existing_node:many",
+        parameters={"operator": ">", "threshold": 99},
+    )
+    assert next(
+        node for node in changed.skill_template.rule_graphs["video"].nodes
+        if node.node_id == "many"
+    ).params["value"] == 99
+
+    restored_json, status = controller.restore_default_editor_document(
+        effective, "预置演示技能"
+    )
+    restored = controller._parse_editor_json(restored_json)
+    assert next(
+        node for node in restored.skill_template.rule_graphs["video"].nodes
+        if node.node_id == "many"
+    ).params["value"] != 99
+    assert "已还原" in status
+
+
 def test_video_sampling_editor_defaults_to_one_fps(tmp_path):
     from app_v2 import build_v2_app
 
@@ -198,6 +341,7 @@ def test_temporal_event_controls_expose_and_update_dwell_threshold(tmp_path):
 
     controls = controller.read_temporal_controls(effective, "video")
 
+    assert len(controls) == 1
     assert controls == [{
         "node_id": "events",
         "label": "持续事件：车道人员逗留",
@@ -223,7 +367,7 @@ def test_temporal_event_controls_expose_and_update_dwell_threshold(tmp_path):
     }
 
 
-def test_temporal_controls_explain_congestion_count_speed_and_region_scope(tmp_path):
+def test_temporal_controls_explain_congestion_count_and_region_scope(tmp_path):
     controller = _controller(tmp_path)
     effective = (
         Path(__file__).resolve().parents[1]
@@ -234,9 +378,7 @@ def test_temporal_controls_explain_congestion_count_speed_and_region_scope(tmp_p
     control = controller.read_temporal_controls(effective, "video")[0]
 
     assert control["event_label"] == "高速车辆拥堵"
-    assert control["condition_summary"] == (
-        "每个命名区域内目标数量 >= 4 且 每个命名区域内目标速度 < 10"
-    )
+    assert control["condition_summary"] == "每个命名区域内目标数量 >= 4"
     assert control["duration_summary"] == "连续满足上述条件 1 秒后触发"
 
 
@@ -302,6 +444,8 @@ def test_event_rule_controls_expose_editable_congestion_atoms(tmp_path):
 
     controls = controller.read_event_rule_controls(effective, "video")
 
+    assert len(controls) == 1
+    regional_parameters = controls[0].pop("regional_parameters")
     assert controls == [{
         "event_id": "events",
         "event_label": "高速车辆拥堵",
@@ -318,23 +462,21 @@ def test_event_rule_controls_expose_editable_congestion_atoms(tmp_path):
                 "operator": ">=",
                 "value": 4.0,
             },
-            {
-                "node_id": "slow",
-                "measure": "每个命名区域内目标速度",
-                "operator": "<",
-                "value": 10.0,
-            },
         ],
-        "logic_node_id": "congested",
+        "logic_node_id": None,
         "logic": "all",
         "condition_kind": "comparison",
-        "condition_summary": "每个命名区域内目标数量 >= 4 且 每个命名区域内目标速度 < 10",
+        "condition_summary": "每个命名区域内目标数量 >= 4",
         "atom_summary": "统计范围：每个命名区域（在“02 标注”绘制或修改区域）；可在本页修改类别、阈值、逻辑、持续与告警。",
         "seconds": 1.0,
         "gap_tolerance_seconds": 0.6,
         "trigger_mode": "once",
         "alert_node_id": "alerts",
     }]
+    assert [item["id"] for item in regional_parameters] == [
+        "many::operator",
+        "many::value",
+    ]
 
 
 def test_event_rule_controls_recover_target_label_from_semantics(tmp_path):
@@ -364,9 +506,9 @@ def test_event_rule_controls_recover_target_label_from_semantics(tmp_path):
         "events",
         "vehicles_raw",
         ["车辆"],
-        ["many", "slow"],
-        [">=", "<"],
-        [4, 10],
+        ["many"],
+        [">="],
+        [4],
         "all",
         1,
         0.6,
@@ -399,8 +541,6 @@ def test_configuration_guidance_explains_congestion_atomic_steps(tmp_path):
         "车辆",
         "每个命名区域",
         "数量 >= 4",
-        "速度 < 10",
-        "AND",
         "持续 1 秒",
         "高速车辆拥堵",
         "02 标注",
@@ -478,13 +618,11 @@ def test_event_rule_controls_describe_generic_boolean_state_condition(tmp_path):
     control = controller.read_event_rule_controls(effective, "video")[0]
 
     assert control["condition_kind"] == "state"
-    assert control["state_condition"]["node_id"] == "fallen_state"
-    assert "关联" in control["condition_summary"]
-    assert "重叠" in control["condition_summary"]
+    assert control["state_condition"]["node_id"] == "fallen_present"
+    assert "存在" in control["condition_summary"]
 
 
-def test_state_event_exposes_editable_association_candidates(tmp_path):
-    """State events must expose the two model-detected sets that they relate."""
+def test_optimized_fall_event_has_no_redundant_association_branch(tmp_path):
 
     controller = _controller(tmp_path)
     effective = (
@@ -495,18 +633,8 @@ def test_state_event_exposes_editable_association_candidates(tmp_path):
 
     control = controller.read_event_rule_controls(effective, "video")[0]
 
-    assert control["associations"] == [{
-        "node_id": "fallen_state",
-        "label": "目标框重叠",
-        "relation": "overlap",
-        "threshold": 0.3,
-        "subject": {"key": "people_raw:0", "label": "人员"},
-        "object": {"key": "fallen_people_raw:0", "label": "倒地人员"},
-        "candidates": [
-            {"key": "people_raw:0", "label": "人员"},
-            {"key": "fallen_people_raw:0", "label": "倒地人员"},
-        ],
-    }]
+    assert control.get("associations", []) == []
+    assert control["state_condition"]["node_id"] == "fallen_present"
 
 
 def test_grounding_prompt_controls_expose_every_grounding_node(tmp_path):
@@ -519,11 +647,9 @@ def test_grounding_prompt_controls_expose_every_grounding_node(tmp_path):
 
     controls = controller.grounding_prompt_controls(effective, "video")
 
-    assert [item["node_id"] for item in controls] == [
-        "people_raw", "fallen_people_raw",
-    ]
-    assert controls[1]["prompt"] == "Detect person lying on the ground"
-    assert controls[1]["is_override"] is False
+    assert [item["node_id"] for item in controls] == ["fallen_people_raw"]
+    assert controls[0]["prompt"].startswith("Detect person actively falling")
+    assert controls[0]["is_override"] is False
 
 
 def test_grounding_prompt_control_updates_and_resets_only_selected_node(tmp_path):
@@ -542,7 +668,7 @@ def test_grounding_prompt_control_updates_and_resets_only_selected_node(tmp_path
         for node in json.loads(updated)["variants"]["video"]["nodes"]
     }
     assert nodes["fallen_people_raw"]["params"]["query_prompt"] == "Someone fell down"
-    assert "query_prompt" not in nodes["people_raw"]["params"]
+    assert sum(node["op"] == "rex.ground@1.1" for node in nodes.values()) == 1
 
     reset = controller.reset_grounding_prompt_control(
         updated, "video", "fallen_people_raw"
@@ -567,8 +693,7 @@ def test_review_page_exposes_editable_grounding_prompt_card(tmp_path):
     assert "模型检测提示词" in labels
 
 
-def test_applying_association_rewires_candidates_and_overlap_threshold(tmp_path):
-    """Changing an association card must alter the executable track and evidence inputs."""
+def test_optimized_fall_event_tracks_the_single_pose_detection_set(tmp_path):
 
     controller = _controller(tmp_path)
     effective = (
@@ -577,26 +702,14 @@ def test_applying_association_rewires_candidates_and_overlap_threshold(tmp_path)
         / "P12_person_fall.json"
     ).read_text(encoding="utf-8")
 
-    updated = controller.apply_event_association(
-        effective,
-        "video",
-        "events",
-        "fallen_state",
-        "fallen_people_raw:0",
-        "people_raw:0",
-        0.45,
-    )
     nodes = {
         node["id"]: node
-        for node in json.loads(updated)["variants"]["video"]["nodes"]
+        for node in json.loads(effective)["variants"]["video"]["nodes"]
     }
 
     assert nodes["tracks"]["inputs"] == {"objects": "$fallen_people"}
-    assert nodes["fallen_state"]["inputs"] == {
-        "subjects": "$tracks",
-        "objects": "$people",
-    }
-    assert nodes["fallen_state"]["params"]["threshold"] == 0.45
+    assert nodes["fallen_present"]["inputs"] == {"sets": "$tracks"}
+    assert nodes["events"]["inputs"] == {"condition": "$fallen_present"}
 
 
 def test_event_rule_editor_includes_association_configuration_card(tmp_path):
@@ -650,6 +763,67 @@ def test_auto_generated_regions_are_explained_on_annotation_page(tmp_path):
     assert "不可手工编辑" in overview
 
 
+def test_p08_auto_road_region_has_no_manual_run_blocker(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P08_road_debris.json"
+    ).read_text(encoding="utf-8")
+
+    document = controller._editor_document(
+        effective, "", source_type="preset"
+    )
+    package = SkillPackage.model_validate_json(effective)
+
+    assert document.skill_template.resource_requirements == []
+    assert document.validation_report["resource_blockers"] == []
+    assert document.validation_report["can_run"] is True
+    for variant in package.variants.values():
+        road_region = next(
+            node for node in variant.nodes if node.id == "road_regions"
+        )
+        assert road_region.op == "region.from_objects@1.0"
+        assert road_region.enabled is True
+        assert variant.configuration_slots == []
+
+
+def test_p11_optional_detection_regions_do_not_block_run(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P11_service_area_garbage.json"
+    ).read_text(encoding="utf-8")
+
+    document = controller._editor_document(
+        effective, "", source_type="preset"
+    )
+
+    requirements = document.skill_template.resource_requirements
+    assert {item.requirement_id for item in requirements} == {
+        "image_garbage_detection_regions",
+        "video_garbage_detection_regions",
+    }
+    assert all(item.required_before == "never" for item in requirements)
+    assert document.validation_report["resource_blockers"] == []
+    assert document.validation_report["can_run"] is True
+
+    for requirement in requirements:
+        requirement.required_before = "run"
+    prepared = controller._parse_editor_json(
+        controller.prepare_run_editor_document(
+            effective, controller._dump(document)
+        )
+    )
+    assert all(
+        item.required_before == "never"
+        for item in prepared.skill_template.resource_requirements
+    )
+    assert prepared.validation_report["resource_blockers"] == []
+    assert prepared.validation_report["can_run"] is True
+
+
 def test_render_label_positions_stack_same_anchor():
     from operators.output import _label_position
 
@@ -674,10 +848,10 @@ def test_event_rule_controls_apply_existing_congestion_atoms(tmp_path):
         "events",
         "vehicles_raw",
         ["车辆"],
-        ["many", "slow"],
-        [">", "<="],
-        [5, 8],
-        "any",
+        ["many"],
+        [">"],
+        [5],
+        "all",
         3,
         0.8,
         "repeat",
@@ -687,8 +861,8 @@ def test_event_rule_controls_apply_existing_congestion_atoms(tmp_path):
     nodes = {node["id"]: node for node in variant["nodes"]}
 
     assert nodes["many"]["params"] == {"operator": ">", "value": 5.0}
-    assert nodes["slow"]["params"] == {"operator": "<=", "value": 8.0}
-    assert nodes["congested"]["op"] == "logic.any@1.0"
+    assert "slow" not in nodes
+    assert "congested" not in nodes
     assert nodes["events"]["params"] == {
         "seconds": 3.0,
         "scope": "region",
@@ -743,16 +917,16 @@ def test_event_rule_can_override_each_named_region_threshold(tmp_path):
         "events",
         "vehicles_raw",
         ["车辆"],
-        ["many", "slow"],
-        [">=", "<"],
-        [4, 10],
+        ["many"],
+        [">="],
+        [4],
         "all",
         1,
         0.6,
         "once",
         "高速车辆拥堵",
         region_overrides={
-            "northbound": {"many": 2, "slow": 8},
+            "northbound": {"many": 2},
             "southbound": {"many": 6},
         },
     )
@@ -763,7 +937,6 @@ def test_event_rule_can_override_each_named_region_threshold(tmp_path):
         "northbound": 2.0,
         "southbound": 6.0,
     }
-    assert nodes["slow"]["params"]["overrides"] == {"northbound": 8.0}
 
 
 def test_event_rule_can_override_each_named_region_operator(tmp_path):
@@ -783,16 +956,426 @@ def test_event_rule_can_override_each_named_region_operator(tmp_path):
 
     updated = controller.apply_event_rule_control(
         json.dumps(data, ensure_ascii=False), "video", "events", "vehicles_raw",
-        ["车辆"], ["many", "slow"], [">=", "<"], [4, 10], "all", 1,
+        ["车辆"], ["many"], [">="], [4], "all", 1,
         0.6, "once", "高速车辆拥堵",
         region_operator_overrides={
             "northbound": {"many": ">"},
-            "southbound": {"slow": "<="},
         },
     )
     nodes = {node["id"]: node for node in json.loads(updated)["variants"]["video"]["nodes"]}
     assert nodes["many"]["params"]["operator_overrides"] == {"northbound": ">"}
-    assert nodes["slow"]["params"]["operator_overrides"] == {"southbound": "<="}
+
+
+def test_region_overrides_survive_business_validate_and_apply(tmp_path):
+    controller = _controller(tmp_path)
+    data = json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "presets_v2"
+            / "P04_highway_congestion.json"
+        ).read_text(encoding="utf-8")
+    )
+    lanes = next(
+        node for node in data["variants"]["video"]["nodes"]
+        if node["id"] == "lane_regions"
+    )
+    lanes["params"]["regions"] = [
+        {"id": "lane_1", "label": "车道1", "shape": "rectangle", "points": [[0.1, 0.1], [0.4, 0.9]]},
+        {"id": "lane_2", "label": "车道2", "shape": "rectangle", "points": [[0.4, 0.1], [0.7, 0.9]]},
+    ]
+    effective = json.dumps(data, ensure_ascii=False)
+    document = controller.business_rule_editor.prepare(
+        controller._editor_document(effective, "", source_type="preset")
+    )
+    updated_effective = controller.apply_event_rule_control(
+        effective, "video", "events", "vehicles_raw", ["车辆"],
+        ["many"], [">="], [4], "all", 1, 0.6,
+        "once", "高速车辆拥堵",
+        region_overrides={"lane_1": {"many": 8}, "lane_2": {"many": 5}},
+        region_operator_overrides={"lane_1": {"many": ">="}, "lane_2": {"many": ">="}},
+    )
+    editor_json = controller.sync_editor_region_overrides(
+        controller._dump(document), updated_effective, "video", ["many"]
+    )
+    compiled_json, package_json, _ = controller.unified_validate_apply(editor_json)
+    package = SkillPackage.model_validate_json(package_json)
+    many = next(node for node in package.variants["video"].nodes if node.id == "many")
+    assert many.params["overrides"] == {"lane_1": 8.0, "lane_2": 5.0}
+    compiled = controller._parse_editor_json(compiled_json)
+    branch = next(
+        item for item in compiled.skill_template.business_branches
+        if item.media_type == "video"
+    )
+    assert len(controller.business_rule_editor.condition_rows(compiled, branch.branch_id)) >= 6
+
+
+def test_wrong_way_exposes_and_persists_parameters_for_each_annotated_lane(tmp_path):
+    controller = _controller(tmp_path)
+    data = json.loads((
+        Path(__file__).resolve().parents[1]
+        / "presets_v2" / "P05_highway_wrong_way.json"
+    ).read_text(encoding="utf-8"))
+    nodes = {node["id"]: node for node in data["variants"]["video"]["nodes"]}
+    nodes["lane_regions"]["params"]["regions"] = [
+        {"id": "lane_1", "label": "车道1", "shape": "rectangle",
+         "points": [[0.1, 0.1], [0.4, 0.9]]},
+        {"id": "lane_2", "label": "车道2", "shape": "rectangle",
+         "points": [[0.5, 0.1], [0.8, 0.9]]},
+    ]
+    nodes["lane_references"]["params"]["directions"] = [
+        {"key": "lane_1", "label": "车道1方向", "vector": [0.0, -1.0],
+         "start": [0.2, 0.8], "end": [0.2, 0.2]},
+        {"key": "lane_2", "label": "车道2方向", "vector": [0.0, -1.0],
+         "start": [0.6, 0.8], "end": [0.6, 0.2]},
+    ]
+    effective = json.dumps(data, ensure_ascii=False)
+    controls = controller.read_event_rule_controls(effective, "video")
+
+    assert controls[0]["region_ids"] == ["lane_1", "lane_2"]
+    assert controls[0]["region_references"] == {
+        "lane_1": "已配置参考箭头",
+        "lane_2": "已配置参考箭头",
+    }
+    assert [item["id"] for item in controls[0]["regional_parameters"]] == [
+        "opposite::threshold",
+        "opposite::relation",
+        "events::seconds",
+        "events::gap_tolerance_seconds",
+        "events::trigger_mode",
+    ]
+
+    updated, changed = controller.apply_region_parameter_override(
+        effective, "video", "events", "lane_1", "opposite::threshold", -0.7
+    )
+    updated, changed_event = controller.apply_region_parameter_override(
+        updated, "video", "events", "lane_2", "events::seconds", 3
+    )
+    updated_nodes = {
+        node["id"]: node
+        for node in json.loads(updated)["variants"]["video"]["nodes"]
+    }
+    assert changed == ["opposite"]
+    assert changed_event == ["events"]
+    assert updated_nodes["opposite"]["params"]["scope_overrides"] == {
+        "lane_1": {"threshold": -0.7}
+    }
+    assert updated_nodes["events"]["params"]["scope_overrides"] == {
+        "lane_2": {"seconds": 3.0}
+    }
+
+    document = controller.business_rule_editor.prepare(
+        controller._editor_document(effective, "", source_type="preset")
+    )
+    editor_json = controller.sync_editor_region_overrides(
+        controller._dump(document), updated, "video", ["opposite", "events"]
+    )
+    _, package_json, _ = controller.unified_validate_apply(editor_json)
+    compiled_nodes = {
+        node.id: node
+        for node in SkillPackage.model_validate_json(package_json).variants["video"].nodes
+    }
+    assert compiled_nodes["opposite"].params["scope_overrides"]["lane_1"] == {
+        "threshold": -0.7
+    }
+    assert compiled_nodes["events"].params["scope_overrides"]["lane_2"] == {
+        "seconds": 3.0
+    }
+
+
+def test_imported_wrong_way_is_rendered_as_an_aligned_workflow_not_a_fake_logic_tree(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2" / "P05_highway_wrong_way.json"
+    ).read_text(encoding="utf-8")
+    document = controller._editor_document(effective, "", source_type="preset")
+    view = controller.business_rule_view(
+        controller._dump(document), "video"
+    )
+
+    assert "当前生效流程" in view["condition_tree"]
+    assert "箭头表示处理先后" in view["condition_tree"]
+    assert "步骤 1" in view["condition_tree"]
+    assert "--rule-depth:2" not in view["condition_tree"]
+    group_control = controller.business_rule_controls(
+        controller._dump(document), "video"
+    )[-1]
+    assert group_control.choices == []
+    assert group_control.interactive is False
+
+
+def test_imported_congestion_shows_one_count_condition_without_speed_logic_group(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2" / "P04_highway_congestion.json"
+    ).read_text(encoding="utf-8")
+    document = controller._editor_document(effective, "", source_type="preset")
+    editor_json = controller._dump(document)
+    view = controller.business_rule_view(editor_json, "video")
+    rows = controller.business_rule_editor.condition_rows(
+        document, view["branch_id"]
+    )
+
+    root = next(row for row in rows if row.get("parent_id") is None)
+    assert "每个区域的目标数量判断" in root["summary"]
+    assert "目标速度" not in root["summary"]
+    assert not any(row.get("logic") == "AND" for row in rows)
+
+    controls = controller.business_rule_controls(editor_json, "video")
+    assert controls[-2]["visible"] is False
+    assert controls[-1].choices == []
+
+
+def test_annotation_sync_updates_the_business_draft_resource_node(tmp_path):
+    controller = _controller(tmp_path)
+    base = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P04_highway_congestion.json"
+    ).read_text(encoding="utf-8")
+    document = controller._editor_document(base, "", source_type="preset")
+    data = json.loads(base)
+    lanes = next(
+        node for node in data["variants"]["video"]["nodes"]
+        if node["id"] == "lane_regions"
+    )
+    lanes["params"]["regions"] = [
+        {"id": "lane_1", "label": "车道1", "shape": "rectangle", "points": [[0.1, 0.1], [0.4, 0.9]]}
+    ]
+    package = SkillPackage.model_validate(data)
+
+    synced = controller._sync_editor_scene_resources(document, package)
+
+    graph = synced.skill_template.rule_graphs["video"]
+    draft_lanes = next(node for node in graph.nodes if node.node_id == "lane_regions")
+    assert draft_lanes.params["regions"][0]["id"] == "lane_1"
+    profile = next(
+        item for item in synced.scene_profiles
+        if item.scene_profile_id == synced.active_scene_profile_id
+    )
+    assert profile.collections[0].items[0].resource_id == "lane_1"
+
+
+def test_annotation_projection_refreshes_stale_run_blockers(tmp_path):
+    controller = _controller(tmp_path)
+    base = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P04_highway_congestion.json"
+    ).read_text(encoding="utf-8")
+    stale = controller._editor_document(base, "", source_type="preset")
+    assert stale.validation_report["resource_blockers"]
+
+    annotated_json, _, _ = controller.bind_annotation(
+        base,
+        "video",
+        "lane_regions",
+        "rectangle",
+        json.dumps([[0.1, 0.1], [0.4, 0.9]]),
+        "lane_1",
+        "车道1",
+    )
+    refreshed = controller._editor_document(
+        annotated_json, controller._dump(stale), source_type="preset"
+    )
+
+    assert refreshed.validation_report["resource_blockers"] == []
+    assert refreshed.validation_report["can_run"] is True
+
+    prepared_json = controller.prepare_run_editor_document(
+        annotated_json, controller._dump(stale)
+    )
+    prepared = controller._parse_editor_json(prepared_json)
+    assert prepared.validation_report["resource_blockers"] == []
+    assert prepared.validation_report["can_run"] is True
+
+
+def test_two_named_natural_language_regions_project_to_run_resources(tmp_path):
+    from core.business_capabilities import build_business_capability_registry
+    from core.business_rule_draft import apply_business_rule_draft
+    from core.editor_service import EditorService
+    from tests.test_business_rule_draft import _base, _image_draft
+
+    registry, document, _ = _base(("image",))
+    draft = _image_draft()
+    draft["resources"] = [
+        {"key": "region1", "name": "区域1", "resource_type": "region", "semantic_role": "region1", "media_types": ["image"]},
+        {"key": "region2", "name": "区域2", "resource_type": "region", "semantic_role": "region2", "media_types": ["image"]},
+    ]
+    draft["branches"][0]["conditions"].append({
+        "key": "inside1",
+        "name": "区域1内",
+        "capability_id": "spatial.membership",
+        "parameters": {"source": "condition:people", "scope": "resource:region1"},
+    })
+    draft["branches"][1]["conditions"][1]["parameters"]["scope"] = "resource:region2"
+    converted = apply_business_rule_draft(
+        document,
+        draft,
+        build_business_capability_registry(registry),
+        requested_accept=["image"],
+    )
+    controller = _controller(tmp_path)
+    package = EditorService(registry).apply(converted).effective_skill_package
+    effective = controller._dump(package)
+    pending_editor = controller._editor_document(
+        effective, controller._dump(converted), source_type="natural_language"
+    )
+    blocker_message = controller.run_configuration_blocker_message(pending_editor)
+    assert "区域1" in blocker_message
+    assert "区域2" in blocker_message
+    assert "02 标注" in blocker_message
+    assert "resource_region1" not in blocker_message
+    for slot_id, points, label in (
+        ("slot_resource_region1", [[0.05, 0.05], [0.4, 0.4]], "区域1"),
+        ("slot_resource_region2", [[0.5, 0.5], [0.9, 0.9]], "区域2"),
+    ):
+        effective, _, _ = controller.bind_annotation(
+            effective, "image", slot_id, "rectangle", json.dumps(points), slot_id, label
+        )
+
+    editor = controller._editor_document(
+        effective, controller._dump(converted), source_type="natural_language"
+    )
+    profile = next(
+        item for item in editor.scene_profiles
+        if item.scene_profile_id == editor.active_scene_profile_id
+    )
+    assert [(item.requirement_id, item.completed) for item in profile.collections] == [
+        ("resource_region1", True),
+        ("resource_region2", True),
+    ]
+    assert editor.validation_report["resource_blockers"] == []
+    assert editor.validation_report["can_run"] is True
+
+
+def test_regenerating_the_same_task_reuses_saved_named_regions(tmp_path):
+    """Rule regeneration must not discard scene configuration for the same task."""
+    from core.business_capabilities import build_business_capability_registry
+    from core.business_rule_draft import apply_business_rule_draft
+    from core.configuration import configuration_status
+    from core.editor_service import EditorService
+    from tests.test_business_rule_draft import _base, _image_draft
+
+    instruction = (
+        "区域1有穿红色上衣、灰色裤子的人，区域2有至少2个人，"
+        "则发出区域告警事件。"
+    )
+    registry, document, _ = _base(("image",))
+    draft = _image_draft()
+    draft["resources"] = [
+        {"key": "region1", "name": "区域1", "resource_type": "region", "semantic_role": "region1", "media_types": ["image"]},
+        {"key": "region2", "name": "区域2", "resource_type": "region", "semantic_role": "region2", "media_types": ["image"]},
+    ]
+    draft["branches"][0]["conditions"].append({
+        "key": "inside1",
+        "name": "区域1内",
+        "capability_id": "spatial.membership",
+        "parameters": {"source": "condition:people", "scope": "resource:region1"},
+    })
+    draft["branches"][1]["conditions"][1]["parameters"]["scope"] = "resource:region2"
+    converted = apply_business_rule_draft(
+        document,
+        draft,
+        build_business_capability_registry(registry),
+        requested_accept=["image"],
+    )
+    package = EditorService(registry).apply(converted).effective_skill_package
+    data = package.model_dump(mode="json")
+    data["skill_id"] = "two_region_alert"
+    data["display_name"] = "双区域告警"
+    data["original_instruction"] = instruction
+    package = SkillPackage.model_validate(data)
+
+    planner = Planner(package)
+    controller = _controller(tmp_path, planner=planner)
+    previous = controller._dump(package)
+    for slot_id, points, label in (
+        ("slot_resource_region1", [[0.05, 0.05], [0.4, 0.4]], "区域1"),
+        ("slot_resource_region2", [[0.5, 0.5], [0.9, 0.9]], "区域2"),
+    ):
+        previous, _, _ = controller.bind_annotation(
+            previous,
+            "image",
+            slot_id,
+            "rectangle",
+            json.dumps(points),
+            slot_id,
+            label,
+        )
+
+    _, effective, _, status, _ = controller.compile_skill(
+        instruction,
+        "仅图片",
+        "two_region_alert",
+        "双区域告警",
+        previous,
+    )
+
+    rows = [
+        item for item in configuration_status(SkillPackage.model_validate_json(effective))
+        if item["media_type"] == "image"
+    ]
+    assert [(item["label"], item["configured"]) for item in rows] == [
+        ("区域1", True),
+        ("区域2", True),
+    ]
+    assert "已复用当前任务的 2 个已保存场景标注" in status
+
+
+def test_scene_annotations_are_not_reused_for_a_different_instruction(tmp_path):
+    controller = _controller(tmp_path)
+    package = _package()
+    previous_data = package.model_dump(mode="json")
+    previous_data["original_instruction"] = "检测区域1内的人"
+    current_data = package.model_dump(mode="json")
+    current_data["original_instruction"] = "检测区域1内的车辆"
+
+    current, reused = controller._reuse_matching_manual_annotations(
+        SkillPackage.model_validate(current_data),
+        controller._dump(SkillPackage.model_validate(previous_data)),
+    )
+
+    assert current.original_instruction == "检测区域1内的车辆"
+    assert reused == 0
+
+
+def test_branch_overview_cards_are_dynamic_click_targets():
+    from ui.event_rule_editor import render_branch_overview
+
+    html = render_branch_overview(
+        [
+            {
+                "branch_id": "branch_a",
+                "display_name": "区域1着装人员",
+                "summary": "区域1内满足着装条件",
+                "condition_count": 2,
+                "enabled": True,
+            },
+            {
+                "branch_id": "branch_b",
+                "display_name": "区域2人数",
+                "summary": "区域2人数大于2",
+                "condition_count": 1,
+                "enabled": True,
+            },
+            {
+                "branch_id": "branch_c",
+                "display_name": "区域3车辆",
+                "summary": "区域3车辆存在",
+                "condition_count": 1,
+                "enabled": False,
+            },
+        ],
+        "branch_b",
+    )
+
+    assert html.count("data-vs-branch-id=") == 3
+    assert html.count("data-vs-branch-index=") == 3
+    assert 'data-vs-branch-id="branch_b"' in html
+    assert 'aria-pressed="true"' in html
+    assert html.endswith("</section>")
 
 
 def test_event_rule_can_bind_each_condition_to_a_named_region(tmp_path):
@@ -815,7 +1398,7 @@ def test_event_rule_can_bind_each_condition_to_a_named_region(tmp_path):
     effective = json.dumps(data, ensure_ascii=False)
 
     control = controller.read_event_rule_controls(effective, "video")[0]
-    assert [item["region_id"] for item in control["comparisons"]] == [None, None]
+    assert [item["region_id"] for item in control["comparisons"]] == [None]
     assert control["comparisons"][0]["region_choices"] == [
         {"id": "northbound", "label": "北向车道"},
         {"id": "southbound", "label": "南向车道"},
@@ -823,12 +1406,11 @@ def test_event_rule_can_bind_each_condition_to_a_named_region(tmp_path):
 
     updated = controller.apply_event_rule_control(
         effective, "video", "events", "vehicles_raw", ["车辆"],
-        ["many", "slow"], [">=", "<"], [4, 10], "all", 1, 0.6,
-        "once", "高速车辆拥堵", region_bindings=["northbound", "southbound"],
+        ["many"], [">="], [4], "all", 1, 0.6,
+        "once", "高速车辆拥堵", region_bindings=["northbound"],
     )
     nodes = {node["id"]: node for node in json.loads(updated)["variants"]["video"]["nodes"]}
     assert nodes["many"]["params"]["key_filter"] == "northbound"
-    assert nodes["slow"]["params"]["key_filter"] == "southbound"
 
 
 def test_event_rule_cards_can_add_a_second_range_and_another_named_region(tmp_path):
@@ -975,10 +1557,10 @@ def test_event_rule_apply_callback_maps_each_named_region_table_row(tmp_path):
 
     updated = callback(
         json.dumps(data, ensure_ascii=False), "video variant", "events", "vehicles_raw",
-        ["车辆"], "region", "many", ">=", 4, "slow", "<", 10, "all", 1,
+        ["车辆"], "region", "many", ">=", 4, None, None, None, "all", 1,
         0.6, "once", "高速车辆拥堵", [
-            ["北向车道 (northbound)", 2, 8],
-            ["南向车道 (southbound)", 6, None],
+            ["北向车道 (northbound)", 2],
+            ["南向车道 (southbound)", 6],
         ],
     )
 
@@ -989,7 +1571,6 @@ def test_event_rule_apply_callback_maps_each_named_region_table_row(tmp_path):
         "northbound": 2.0,
         "southbound": 6.0,
     }
-    assert nodes["slow"]["params"]["overrides"] == {"northbound": 8.0}
 
 
 def test_event_rule_apply_callback_maps_region_operators_and_thresholds(tmp_path):
@@ -1012,17 +1593,15 @@ def test_event_rule_apply_callback_maps_region_operators_and_thresholds(tmp_path
 
     updated = callback(
         json.dumps(data, ensure_ascii=False), "video variant", "events", "vehicles_raw",
-        ["车辆"], "region", "many", ">=", 4, "slow", "<", 10, "all", 1,
+        ["车辆"], "region", "many", ">=", 4, None, None, None, "all", 1,
         0.6, "once", "高速车辆拥堵", [
-            ["北向车道 (northbound)", ">", 2, "<=", 8],
+            ["北向车道 (northbound)", ">", 2],
             ["南向车道 (southbound)", None, None, None, None],
         ],
     )
     nodes = {node["id"]: node for node in json.loads(updated)["variants"]["video"]["nodes"]}
     assert nodes["many"]["params"]["operator_overrides"] == {"northbound": ">"}
     assert nodes["many"]["params"]["overrides"] == {"northbound": 2.0}
-    assert nodes["slow"]["params"]["operator_overrides"] == {"northbound": "<="}
-    assert nodes["slow"]["params"]["overrides"] == {"northbound": 8.0}
 
 
 def test_event_rule_apply_callback_maps_condition_region_choices(tmp_path):
@@ -1046,12 +1625,11 @@ def test_event_rule_apply_callback_maps_condition_region_choices(tmp_path):
     updated = callback(
         json.dumps(data, ensure_ascii=False), "video variant", "events", "vehicles_raw",
         ["车辆"], "region", "many@@northbound", ">=", 4,
-        "slow@@southbound", "<", 10, "all", 1, 0.6, "once",
+        None, None, None, "all", 1, 0.6, "once",
         "高速车辆拥堵", [],
     )
     nodes = {node["id"]: node for node in json.loads(updated)["variants"]["video"]["nodes"]}
     assert nodes["many"]["params"]["key_filter"] == "northbound"
-    assert nodes["slow"]["params"]["key_filter"] == "southbound"
 
 
 def test_event_rule_controls_keep_explicit_named_regions_bound_to_the_event(tmp_path):
@@ -1069,9 +1647,9 @@ def test_event_rule_controls_keep_explicit_named_regions_bound_to_the_event(tmp_
             "events",
             "vehicles_raw",
             ["车辆"],
-            ["many", "slow"],
-            [">=", "<"],
-            [4, 10],
+            ["many"],
+            [">="],
+            [4],
             "all",
             1,
             0.6,
@@ -1242,8 +1820,6 @@ def test_event_condition_choices_disambiguate_duplicate_region_names(tmp_path):
     assert labels == [
         "每个命名区域内目标数量 · 区域1：区域 (region_a)",
         "每个命名区域内目标数量 · 区域2：区域 (region_b)",
-        "每个命名区域内目标速度 · 区域1：区域 (region_a)",
-        "每个命名区域内目标速度 · 区域2：区域 (region_b)",
     ]
     assert (
         "每个命名区域内目标数量 · 全部手工标注区域",
@@ -1348,7 +1924,21 @@ def test_condition_cards_list_each_saved_single_region_source(tmp_path):
             "params": {"membership_mode": "center"},
         },
     ])
-    nodes["slow"]["inputs"]["left"] = "$second_count"
+    nodes["slow"] = {
+        **nodes["many"],
+        "id": "slow",
+        "inputs": {"left": "$second_count"},
+    }
+    variant["nodes"].extend([
+        nodes["slow"],
+        {
+            "id": "congested",
+            "op": "logic.all@1.0",
+            "inputs": {"conditions": ["$many", "$slow"]},
+            "params": {},
+        },
+    ])
+    nodes["events"]["inputs"]["condition"] = "$congested"
 
     effective = json.dumps(data, ensure_ascii=False)
     effective, _, _ = controller.bind_annotation(
@@ -1387,7 +1977,21 @@ def test_condition_cards_deduplicate_same_measure_and_hide_legacy_region_overrid
     ]
     # Two range checks using the same regional-count metric must not create
     # two visually identical source option groups.
-    nodes["slow"]["inputs"]["left"] = nodes["many"]["inputs"]["left"]
+    nodes["slow"] = {
+        **nodes["many"],
+        "id": "slow",
+        "inputs": dict(nodes["many"]["inputs"]),
+    }
+    data["variants"]["video"]["nodes"].extend([
+        nodes["slow"],
+        {
+            "id": "congested",
+            "op": "logic.all@1.0",
+            "inputs": {"conditions": ["$many", "$slow"]},
+            "params": {},
+        },
+    ])
+    nodes["events"]["inputs"]["condition"] = "$congested"
     app = build_v2_app(controller)
     card_callback = next(item.fn for item in app.fns.values() if item.fn.__name__ == "_event_card_updates")
     legacy_callback = next(item.fn for item in app.fns.values() if item.fn.__name__ == "_read_event_rule_updates")
@@ -1505,6 +2109,40 @@ def test_preferred_executable_variant_uses_video_for_a_temporal_skill(tmp_path):
     assert controller.preferred_executable_variant(effective, "image") == "video"
 
 
+def test_effective_change_readers_ignore_a_stale_unsupported_variant(tmp_path):
+    """A new image-only package can arrive before the old video UI value updates."""
+    from app_v2 import build_v2_app
+    from core.semantic import WorkflowCompiler
+
+    base = _package()
+    package = WorkflowCompiler(build_default_registry()).compile(
+        base.semantic_ir,
+        original_instruction=base.original_instruction,
+        requested_accept=["image"],
+        skill_id="image_only_person",
+        display_name="图片人员检测",
+    )
+    controller = _controller(tmp_path)
+    effective = controller._dump(package)
+    editor = controller._dump(
+        controller._editor_document(effective, "", source_type="natural_language")
+    )
+    callbacks = {
+        item.fn.__name__: item.fn
+        for item in build_v2_app(controller).fns.values()
+        if item.fn.__name__ in {"_read_execution_updates", "_read_atomic_updates"}
+    }
+
+    execution = callbacks["_read_execution_updates"](effective, "video variant")
+    atomic = callbacks["_read_atomic_updates"](
+        effective, editor, "video variant", "自然语言生成"
+    )
+
+    assert len(execution) == 21
+    assert execution[-1] == "已读取当前 Effective 配置的真实参数。"
+    assert "规则图" in atomic[1]
+
+
 def test_empty_generation_output_does_not_cascade_into_json_parse_errors(tmp_path):
     controller = _controller(tmp_path)
 
@@ -1550,6 +2188,94 @@ def test_natural_generation_syncs_the_executable_variant_to_the_run_control(tmp_
         config["dependencies"][index].get("outputs", []) == [run_variant_id]
         for index in compile_chain
     )
+
+
+def test_natural_generation_refreshes_the_review_document_after_compile(tmp_path):
+    """03 审核 must receive the document created by the current generation."""
+    from app_v2 import build_v2_app
+
+    config = build_v2_app(_controller(tmp_path)).get_config_file()
+    components = {component["id"]: component for component in config["components"]}
+    editor_document_id = next(
+        component_id
+        for component_id, component in components.items()
+        if component.get("props", {}).get("label")
+        == "SkillEditorDocument@3.0（当前唯一配置源）"
+    )
+    compile_button_id = next(
+        component_id
+        for component_id, component in components.items()
+        if component["type"] == "button"
+        and component.get("props", {}).get("value") == "生成技能并继续"
+    )
+    compile_chain = {
+        index
+        for index, dependency in enumerate(config["dependencies"])
+        if (compile_button_id, "click") in dependency.get("targets", [])
+    }
+    while True:
+        descendants = {
+            index
+            for index, dependency in enumerate(config["dependencies"])
+            if dependency.get("trigger_after") in compile_chain
+        }
+        expanded = compile_chain | descendants
+        if expanded == compile_chain:
+            break
+        compile_chain = expanded
+
+    assert any(
+        editor_document_id in config["dependencies"][index].get("outputs", [])
+        for index in compile_chain
+    )
+
+
+def test_clear_existing_annotations_button_updates_package_and_refreshes_slots(tmp_path):
+    from app_v2 import build_v2_app
+
+    config = build_v2_app(_controller(tmp_path)).get_config_file()
+    components = {component["id"]: component for component in config["components"]}
+    clear_button_id = next(
+        component_id
+        for component_id, component in components.items()
+        if component["type"] == "button"
+        and component.get("props", {}).get("value") == "清空已有标注"
+    )
+    effective_id = next(
+        component_id
+        for component_id, component in components.items()
+        if component.get("props", {}).get("label")
+        == "Effective SkillPackage（唯一执行配置，可手动修改）"
+    )
+    clear_dependency = next(
+        dependency
+        for dependency in config["dependencies"]
+        if (clear_button_id, "click") in dependency.get("targets", [])
+    )
+    assert effective_id in clear_dependency["outputs"]
+
+    reachable = {clear_dependency["id"]}
+    changed = True
+    while changed:
+        changed = False
+        for dependency in config["dependencies"]:
+            if (
+                dependency.get("trigger_after") in reachable
+                and dependency["id"] not in reachable
+            ):
+                reachable.add(dependency["id"])
+                changed = True
+    labels = {
+        component_id: component.get("props", {}).get("label")
+        for component_id, component in components.items()
+    }
+    refreshed_labels = {
+        labels.get(component_id)
+        for dependency in config["dependencies"]
+        if dependency["id"] in reachable
+        for component_id in dependency.get("outputs", [])
+    }
+    assert "配置槽状态（当前选择已标记）" in refreshed_labels
 
 
 def test_pose_only_guidance_does_not_claim_to_prove_a_fall_action(tmp_path):
@@ -1735,6 +2461,45 @@ def test_p05_demo_default_uses_the_unpadded_road_video(tmp_path):
     assert (metadata["width"], metadata["height"]) == (720, 960)
 
 
+def test_p12_demo_default_keeps_the_standard_media_path(tmp_path):
+    from core.preset_media import seed_builtin_preset_media
+
+    controller = _controller(tmp_path)
+    seed_builtin_preset_media(
+        controller.preset_media_catalog, Path(__file__).resolve().parents[1]
+    )
+
+    path, media_type, metadata, _, _ = controller.preset_default_media(
+        "P12_person_fall", "video"
+    )
+
+    assert Path(path).is_file()
+    assert media_type == "video"
+    assert metadata["original_name"] == "P12.mp4"
+
+
+def test_p13_demo_default_uses_the_rebar_image_in_the_standard_location(tmp_path):
+    from core.preset_media import seed_builtin_preset_media
+
+    controller = _controller(tmp_path)
+    seed_builtin_preset_media(
+        controller.preset_media_catalog, Path(__file__).resolve().parents[1]
+    )
+
+    path, media_type, metadata, _, _ = controller.preset_default_media(
+        "P13_bridge_damage", "image"
+    )
+
+    assert Path(path).is_file()
+    assert media_type == "image"
+    assert metadata["original_name"] == "P13.png"
+    assert metadata["width"] == 2432
+    assert metadata["height"] == 1728
+    assert metadata["asset_id"] == (
+        "458c8f88e1a867651803eaef0bf5b06f43333baf146968450b0e7cffac727736"
+    )
+
+
 def test_loading_a_preset_bundle_selects_supported_variant_and_its_default_media(tmp_path):
     from core.preset_media import seed_builtin_preset_media
 
@@ -1909,6 +2674,10 @@ def test_natural_business_draft_is_cached_as_the_single_03_document(tmp_path):
         document.skill_template.business_branches[0].condition_root.capability_id
         == "target.detect"
     )
+    assert document.skill_template.final_decision.display_name == "人员检测结果"
+    assert controller.business_secondary_controls(
+        controller._dump(document), "image"
+    )[10] == 1
     assert "final_primary" in json.loads(effective)["variants"]["image"]["outputs"]
     assert "业务分支" in status
 
@@ -2163,6 +2932,164 @@ def test_preprocess_controls_mutate_real_variant_nodes_and_keep_dedup_explicit(t
         for node in dedup_nodes
     )
     assert controller.validate_json(updated).startswith("✅")
+
+
+def test_preprocess_controls_accept_empty_hidden_numbers_and_use_safe_defaults(tmp_path):
+    controller = _controller(tmp_path)
+    updated = controller.apply_preprocessing(
+        controller._dump(_package()),
+        "image",
+        "long_side",
+        1280,
+        None,
+        None,
+        True,
+        None,
+        None,
+        None,
+        None,
+        True,
+        "ios",
+        None,
+        "bilinear",
+    )
+    variant = json.loads(updated)["variants"]["image"]
+    resize = next(node for node in variant["nodes"] if node["op"] == "image.resize@1.1")
+    tile = next(node for node in variant["nodes"] if node["op"] == "image.tile@1.1")
+    assert resize["params"]["width"] == 1280
+    assert resize["params"]["height"] == 720
+    assert tile["params"] == {
+        "tile_width": 640,
+        "tile_height": 640,
+        "overlap_x": 0.2,
+        "overlap_y": 0.2,
+        "include_full_frame": True,
+    }
+    assert controller.validate_json(updated).startswith("✅")
+
+
+def test_preprocess_controls_can_disable_and_reenable_a_preset_named_tile(tmp_path):
+    controller = _controller(tmp_path)
+    package = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P04_highway_congestion.json"
+    ).read_text(encoding="utf-8")
+    controls = controller.read_execution_controls(package, "video")
+    assert controls["tile_enabled"] is True
+    assert controls["tile_width"] == 512
+
+    disabled = controller.apply_preprocessing(
+        package, "video", "long_side", 1280, 1280, 720, False,
+        512, 512, 0.25, 0.25, True, "ios", 0.7, "bilinear",
+    )
+    disabled_variant = json.loads(disabled)["variants"]["video"]
+    assert not [
+        node for node in disabled_variant["nodes"]
+        if node["op"].startswith("image.tile@")
+    ]
+    ground = next(
+        node for node in disabled_variant["nodes"]
+        if node["id"] == "vehicles_raw"
+    )
+    assert ground["inputs"]["frames"] == "$resized"
+
+    enabled = controller.apply_preprocessing(
+        disabled, "video", "long_side", 1280, 1280, 720, True,
+        448, 448, 0.2, 0.2, True, "ios", 0.7, "bilinear",
+    )
+    enabled_variant = json.loads(enabled)["variants"]["video"]
+    tile = next(
+        node for node in enabled_variant["nodes"]
+        if node["op"].startswith("image.tile@")
+    )
+    ground = next(
+        node for node in enabled_variant["nodes"]
+        if node["id"] == "vehicles_raw"
+    )
+    assert tile["params"]["tile_width"] == 448
+    assert ground["inputs"]["frames"] == f"${tile['id']}"
+
+
+def test_p11_projects_default_slice_and_primary_confirmation_candidates(tmp_path):
+    controller = _controller(tmp_path)
+    package = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P11_service_area_garbage.json"
+    ).read_text(encoding="utf-8")
+
+    execution = controller.read_execution_controls(package, "image")
+    confirmation = controller.context_confirmation_control_values(
+        package, "image variant"
+    )
+
+    assert execution["tile_enabled"] is True
+    assert execution["tile_width"] == 512
+    assert execution["tile_height"] == 512
+    assert execution["overlap_x"] == 0.2
+    assert execution["overlap_y"] == 0.2
+    assert confirmation["enabled"] is False
+    assert set(confirmation["labels"]) == {
+        "垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"
+    }
+    assert "整齐包装货物" not in confirmation["labels"]
+
+
+def test_context_confirmation_projection_excludes_its_own_evidence_label(tmp_path):
+    controller = _controller(tmp_path)
+    package = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P11_service_area_garbage.json"
+    ).read_text(encoding="utf-8")
+    enabled = controller.apply_context_confirmation_control(
+        package,
+        "image variant",
+        True,
+        ["垃圾容器"],
+        "complete trash bin with visible opening and body",
+        1.0,
+        640,
+    )
+
+    values = controller.context_confirmation_control_values(
+        enabled, "image variant"
+    )
+
+    assert values["enabled"] is True
+    assert values["selected_labels"] == ["垃圾容器"]
+    assert "二次可见性确认" not in values["labels"]
+
+
+def test_effective_change_auto_projects_execution_and_confirmation_controls(tmp_path):
+    from app_v2 import build_v2_app
+
+    config = build_v2_app(_controller(tmp_path)).get_config_file()
+    effective_id = next(
+        item["id"] for item in config["components"]
+        if item.get("props", {}).get("label") == "Effective SkillPackage（唯一执行配置，可手动修改）"
+    )
+    tile_enabled_id = next(
+        item["id"] for item in config["components"]
+        if item.get("props", {}).get("label") == "启用切片增强（小目标场景打开）"
+    )
+    context_enabled_id = next(
+        item["id"] for item in config["components"]
+        if item.get("props", {}).get("label") == "启用候选框二次可见性确认"
+    )
+    change_dependencies = [
+        item for item in config["dependencies"]
+        if any(trigger[0] == effective_id and trigger[1] == "change" for trigger in item.get("targets", []))
+    ]
+
+    projected_outputs = {
+        output
+        for item in change_dependencies
+        for output in item.get("outputs", [])
+    }
+    assert tile_enabled_id in projected_outputs
+    assert context_enabled_id in projected_outputs
 
 
 def test_identity_and_original_fps_are_explicit_execution_controls(tmp_path):
@@ -2428,6 +3355,22 @@ def test_output_media_configuration_mutates_only_draw_execution_params(tmp_path)
     assert draw["params"]["output_fps"] == 12.5
     assert data["semantic_ir"] == json.loads(original)["semantic_ir"]
     assert controller.validate_json(updated).startswith("✅")
+
+
+def test_annotated_video_uses_a_browser_playable_codec(tmp_path):
+    from operators.output import _write_browser_playable_video
+
+    output = tmp_path / "annotated.mp4"
+    _write_browser_playable_video(
+        output,
+        [Image.new("RGB", (64, 48), "red"), Image.new("RGB", (64, 48), "blue")],
+        2.0,
+        (64, 48),
+    )
+
+    data = output.read_bytes()
+    assert b"avc1" in data
+    assert b"mp4v" not in data
 
 
 def test_media_inspection_and_run_return_task_target_tables_and_trace(tmp_path):
@@ -2808,20 +3751,112 @@ def test_task_media_uses_upload_event_for_post_upload_ingestion(tmp_path):
     assert "change" not in media_events
 
 
+def test_canvas_and_context_buttons_keep_their_own_callback_inputs(tmp_path):
+    """Prevent config JSON from being routed through Gradio's FileData parser."""
+    from app_v2 import build_v2_app
+
+    config = build_v2_app(_controller(tmp_path)).get_config_file()
+    components = {component["id"]: component for component in config["components"]}
+
+    def button_id(value):
+        return next(
+            component_id
+            for component_id, component in components.items()
+            if component["type"] == "button"
+            and component.get("props", {}).get("value") == value
+        )
+
+    def dependency_for(value):
+        target = button_id(value)
+        return next(
+            dependency
+            for dependency in config["dependencies"]
+            if any(
+                component_id == target and event == "click"
+                for component_id, event in dependency.get("targets", [])
+            )
+        )
+
+    canvas = dependency_for("加载画布")
+    context_read = dependency_for("读取当前确认配置")
+    context_apply = dependency_for("应用二次确认配置")
+
+    assert canvas["api_name"] == "_prepare_annotation"
+    assert components[canvas["inputs"][0]]["type"] != "file"
+    assert context_read["api_name"] == "_read_context_confirmation"
+    assert context_apply["api_name"] == "apply_context_confirmation_control"
+
+
 def test_v2_app_exposes_actual_skill_asset_save_load_and_delete_controls(tmp_path):
     from app_v2 import build_v2_app
 
-    config = json.dumps(
-        build_v2_app(_controller(tmp_path)).get_config_file(), ensure_ascii=False
-    )
+    app_config = build_v2_app(_controller(tmp_path)).get_config_file()
+    config = json.dumps(app_config, ensure_ascii=False)
 
     for label in [
         "保存为独立版本",
         "资产保存技能标识",
         "资产保存显示名称",
+        "资产保存目录（可修改）",
+        "本次保存结果",
         "已保存版本",
         "加载选中版本",
         "删除选中版本",
-        "资产保存路径",
     ]:
         assert label in config
+
+    components = {item["id"]: item for item in app_config["components"]}
+    save_root_id = next(
+        component_id
+        for component_id, component in components.items()
+        if component.get("props", {}).get("label") == "资产保存目录（可修改）"
+    )
+    save_button_id = next(
+        component_id
+        for component_id, component in components.items()
+        if component["type"] == "button"
+        and component.get("props", {}).get("value") == "保存为独立版本"
+    )
+    save_dependency = next(
+        item
+        for item in app_config["dependencies"]
+        if any(
+            component_id == save_button_id and event == "click"
+            for component_id, event in item.get("targets", [])
+        )
+    )
+    assert components[save_root_id]["props"]["interactive"] is True
+    assert save_root_id in save_dependency["inputs"]
+
+
+def test_natural_language_skill_bundle_saves_to_editable_asset_root(tmp_path):
+    controller = _controller(tmp_path)
+    effective = controller._dump(_package())
+    document = controller._editor_document(
+        effective, "", source_type="natural_language"
+    )
+    custom_root = tmp_path / "用户选择的资产目录"
+
+    result = controller.save_skill_bundle(
+        effective,
+        controller._dump(document),
+        "saved_natural_skill",
+        "自然语言技能",
+        str(custom_root),
+    )
+
+    package_path = custom_root / "generated_packages" / "saved_natural_skill" / "1.json"
+    document_path = custom_root / "skill_documents" / "saved_natural_skill" / "1.json"
+    assert package_path.is_file()
+    assert document_path.is_file()
+    assert str(package_path) in result
+    assert str(document_path) in result
+    assert controller.saved_skill_choices(str(custom_root)) == [
+        "saved_natural_skill/v1"
+    ]
+    _, loaded, _, status, source = controller.load_saved_skill(
+        "saved_natural_skill/v1", str(custom_root)
+    )
+    assert SkillPackage.model_validate_json(loaded).display_name == "自然语言技能"
+    assert "已加载 saved_natural_skill/v1" in status
+    assert "已保存技能" in source

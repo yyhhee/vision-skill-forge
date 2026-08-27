@@ -509,6 +509,7 @@ class PatternGateway(StrictModel):
         "all_completed_within_window",
         "any",
         "n_of_m",
+        "exclusive",
         "overlap",
     ]
     stage_ids: list[str] = Field(min_length=1)

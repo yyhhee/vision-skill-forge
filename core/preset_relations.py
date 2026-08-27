@@ -129,30 +129,9 @@ def illegal_parking_builder(media_type: str) -> VariantDraft:
             {"mode": "center", "overlap_threshold": 0.5},
         ),
         node(
-            "speed",
-            "measure.speed@1.0",
-            {"tracks": "$tracks"},
-            {
-                "window_frames": 2,
-                "unit": "pixels_per_second",
-                "aggregation": "per_track",
-            },
-        ),
-        node(
-            "stationary",
-            "logic.compare@1.0",
-            {"left": "$speed"},
-            {"operator": "<", "value": 2.0},
-        ),
-        node(
-            "violation_condition",
-            "logic.all@1.0",
-            {"conditions": ["$inside_region", "$stationary"]},
-        ),
-        node(
             "events",
             "temporal.persist@1.0",
-            {"condition": "$violation_condition"},
+            {"condition": "$inside_region"},
             {
                 "seconds": 10.0,
                 "scope": "track",
@@ -185,8 +164,7 @@ def illegal_parking_builder(media_type: str) -> VariantDraft:
             "位于手工标注禁停区域内": [
                 "no_parking_region", "inside_region"
             ],
-            "像素速度低于2": ["tracks", "speed", "stationary"],
-            "持续10秒": ["violation_condition", "events", "alerts"],
+            "持续停留10秒": ["inside_region", "events", "alerts"],
         },
         [{
             "slot_id": "no_parking_region",
@@ -207,7 +185,7 @@ def illegal_parking_builder(media_type: str) -> VariantDraft:
 
 def road_debris_builder(media_type: str) -> VariantDraft:
     nodes, frames, detection_frames = start_nodes(media_type)
-    roads, road_nodes = append_grounding(
+    roads, _ = append_grounding(
         nodes,
         "roads",
         detection_frames,
@@ -222,29 +200,17 @@ def road_debris_builder(media_type: str) -> VariantDraft:
             "phrases": ["road debris", "fallen cargo", "road obstacle"],
         }],
     )
-    # Keep detector-derived ROI as an explicit disabled capability for
-    # migration/inspection, but make the active boundary hand-configured so
-    # every spatial assumption is visible and editable in 02 Annotation.
+    # The road boundary is semantic evidence produced from the same media, so
+    # the preset can run without forcing a separate manual ROI before every
+    # demo. The generated region remains visible in the annotated output.
     auto_region = node(
-        "road_regions_auto",
+        "road_regions",
         "region.from_objects@1.0",
         {"objects": roads},
         {"mode": "all"},
     )
-    auto_region["enabled"] = False
-    # Its upstream detector is disabled with the optional branch so the
-    # package has no hidden inference path and remains validator-clean.
-    for candidate in nodes:
-        if candidate["id"] in set(road_nodes):
-            candidate["enabled"] = False
     nodes.extend([
         auto_region,
-        node(
-            "road_regions",
-            "region.manual_set@1.0",
-            {},
-            {"regions": []},
-        ),
         node(
             "inside_road",
             "spatial.inside@1.0",
@@ -271,17 +237,6 @@ def road_debris_builder(media_type: str) -> VariantDraft:
                 "road_regions", "inside_road", "violations"
             ],
         },
-        [{
-            "slot_id": "road_regions",
-            "kind": "region_set",
-            "label": "道路检测区域",
-            "required": True,
-            "binding": {"node_id": "road_regions", "parameter": "regions"},
-            "allowed_shapes": ["rectangle", "polygon"],
-            "minimum_items": 1,
-            "source_atom_ids": ["atom_1"],
-            "help_text": "请在 02 标注中手工圈出需要检测抛洒物的道路区域，可添加多个区域。",
-        }],
     )
 
 

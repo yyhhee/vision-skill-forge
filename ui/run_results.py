@@ -21,6 +21,34 @@ def _safe(value: Any) -> str:
 
 
 def _value_text(value: Any, unit: str | None = None) -> str:
+    if isinstance(value, dict) and isinstance(value.get("items"), list):
+        items = value["items"]
+        latest_by_key: dict[str, dict[str, Any]] = {}
+        for item in items:
+            if not isinstance(item, dict) or "value" not in item:
+                continue
+            key = str(item.get("key") or "")
+            previous = latest_by_key.get(key)
+            marker = (item.get("timestamp", 0), item.get("frame_index", 0))
+            previous_marker = (
+                (previous.get("timestamp", 0), previous.get("frame_index", 0))
+                if previous else (-1, -1)
+            )
+            if marker >= previous_marker:
+                latest_by_key[key] = item
+        if latest_by_key:
+            return "；".join(
+                f"{key or '当前值'}：{item['value']}{unit or ''}"
+                for key, item in latest_by_key.items()
+            )
+        resource_names = [
+            str(item.get("label") or item.get("id"))
+            for item in items
+            if isinstance(item, dict) and (item.get("label") or item.get("id"))
+        ]
+        if resource_names:
+            return "、".join(resource_names)
+        return f"{len(items)} 条"
     if isinstance(value, (dict, list)):
         if isinstance(value, list):
             return f"{len(value)} 条"

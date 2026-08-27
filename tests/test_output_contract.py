@@ -5,12 +5,16 @@ from pathlib import Path
 from PIL import Image
 
 from core.context import (
+    Event,
+    EventSet,
     Frame,
+    ObjectSet,
     Region,
     RegionSet,
     ScalarSet,
     TimedValue,
     VectorSet,
+    VisualObject,
 )
 from operators.output import _annotate
 
@@ -74,6 +78,107 @@ def test_annotated_frame_draws_roi_exact_manual_arrow_and_count_overlay(tmp_path
         for x in range(120, 195)
         for y in range(5, 35)
     )
+
+
+def test_event_label_can_remain_visible_when_dense_scene_base_labels_are_hidden():
+    frame = Frame(
+        Image.new("RGB", (240, 120), "white"),
+        original_size=(240, 120),
+        frame_index=0,
+        timestamp=0.0,
+    )
+    objects = ObjectSet([
+        VisualObject(
+            "vehicle_1",
+            "车辆",
+            "vehicle",
+            (0.25, 0.35, 0.55, 0.8),
+            0,
+            0.0,
+            "detect",
+            track_id="track_1",
+        )
+    ])
+    events = EventSet([
+        Event("event_1", "逆行车辆", "track_1", 0.0, 0.0)
+    ])
+
+    rendered = _annotate(
+        frame,
+        objects=objects,
+        regions=None,
+        directions=None,
+        measurements=None,
+        events=events,
+        params={
+            "show_labels": False,
+            "show_event_labels": True,
+            "show_track_id": False,
+            "show_trajectory": False,
+            "show_regions": False,
+            "show_directions": False,
+            "show_measurements": False,
+        },
+    )
+
+    # The event text is drawn above the box even though the repeated “车辆”
+    # category and track id are suppressed.
+    assert any(
+        rendered.getpixel((x, y)) != (255, 255, 255)
+        for x in range(60, 150)
+        for y in range(18, 41)
+    )
+
+
+def test_confirmed_track_event_can_be_projected_back_to_first_observation():
+    frame = Frame(
+        Image.new("RGB", (200, 100), "white"),
+        original_size=(200, 100),
+        frame_index=0,
+        timestamp=0.0,
+    )
+    objects = ObjectSet([
+        VisualObject(
+            "vehicle_0",
+            "车辆",
+            "vehicle",
+            (0.2, 0.2, 0.5, 0.7),
+            0,
+            0.0,
+            "detect",
+            track_id="track_1",
+        ),
+        VisualObject(
+            "vehicle_1",
+            "车辆",
+            "vehicle",
+            (0.25, 0.25, 0.55, 0.75),
+            1,
+            1.0,
+            "detect",
+            track_id="track_1",
+        ),
+    ])
+    events = EventSet([Event("event_1", "逆行车辆", "track_1", 1.0, 2.0)])
+
+    default_render = _annotate(
+        frame, objects, None, None, None, events, {"show_labels": False}
+    )
+    history_render = _annotate(
+        frame,
+        objects,
+        None,
+        None,
+        None,
+        events,
+        {"show_labels": False, "event_time_window": "track_history"},
+    )
+
+    # The runtime event still starts at t=1.0.  Only offline evidence drawing
+    # changes: the same track is red by default and orange when back-projected.
+    assert default_render.getpixel((40, 20)) == (255, 0, 0)
+    assert history_render.getpixel((40, 20)) == (255, 165, 0)
+    assert events.items[0].start_time == 1.0
 
 
 def test_output_video_size_and_fps_modes_are_explicit_and_use_source_metadata(tmp_path):

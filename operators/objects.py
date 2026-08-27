@@ -5,12 +5,29 @@ from copy import deepcopy
 from core.context import ObjectSet
 
 
+def iter_object_samples(entity_set):
+    """Yield concrete detection samples from ObjectSet or TrackSet inputs.
+
+    Operators whose declared output is ObjectSet must never place Track objects
+    inside that wrapper.  EntitySet inputs are intentionally generic, so a
+    TrackSet is projected to its VisualObject history before object-level
+    filtering, merging, relabelling, deduplication, or region membership.
+    """
+
+    for entity in entity_set.items:
+        history = getattr(entity, "history", None)
+        if history is None:
+            yield entity
+        else:
+            yield from history
+
+
 def objects_merge(inputs, params, services, node_id):
     """Merge explicit ObjectSet branches without hidden category competition."""
 
     merged = []
-    for object_set in inputs["objects"]:
-        merged.extend(deepcopy(object_set.items))
+    for entity_set in inputs["objects"]:
+        merged.extend(deepcopy(list(iter_object_samples(entity_set))))
     return ObjectSet(merged)
 
 
@@ -32,10 +49,15 @@ def objects_from_tracks(inputs, params, services, node_id):
 
 
 def objects_relabel(inputs, params, services, node_id):
-    items = deepcopy(inputs["objects"].items)
+    items = deepcopy(list(iter_object_samples(inputs["objects"])))
     for item in items:
         item.label = params["label"]
     return ObjectSet(items)
 
 
-__all__ = ["objects_from_tracks", "objects_merge", "objects_relabel"]
+__all__ = [
+    "iter_object_samples",
+    "objects_from_tracks",
+    "objects_merge",
+    "objects_relabel",
+]

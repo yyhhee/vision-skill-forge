@@ -193,6 +193,7 @@ def _attach_runtime_event_evidence(events, detections, tracks):
                     "label": sample.get("label"),
                 }
             )
+            known.add(marker)
         metadata["evidence"] = existing
         event["evidence_boxes"] = [
             {
@@ -252,16 +253,22 @@ class SkillRuntime:
         directions = []
         object_count = 0
         rendered = None
+        seen_events: set[int] = set()
+        seen_objects: set[int] = set()
+        seen_tracks: set[int] = set()
         seen_measurements: set[int] = set()
         seen_regions: set[int] = set()
         seen_directions: set[int] = set()
         for value in result.outputs.values():
-            if isinstance(value, EventSet):
+            if isinstance(value, EventSet) and id(value) not in seen_events:
+                seen_events.add(id(value))
                 events.extend(asdict(item) for item in value.items)
-            elif isinstance(value, ObjectSet):
+            elif isinstance(value, ObjectSet) and id(value) not in seen_objects:
+                seen_objects.add(id(value))
                 object_count += len(value.items)
                 detections.extend(asdict(item) for item in value.items)
-            elif isinstance(value, TrackSet):
+            elif isinstance(value, TrackSet) and id(value) not in seen_tracks:
+                seen_tracks.add(id(value))
                 object_count += len(value.items)
                 tracks.extend(asdict(item) for item in value.items)
             elif isinstance(value, ScalarSet) and id(value) not in seen_measurements:

@@ -61,12 +61,21 @@ def _slot_active(slot: ConfigurationSlot, node: SkillNode | None) -> bool:
     )
 
 
+def _allowed_region_shapes(slot: ConfigurationSlot | dict[str, Any]) -> list[str]:
+    shapes = (
+        slot.allowed_shapes
+        if isinstance(slot, ConfigurationSlot)
+        else slot.get("allowed_shapes", [])
+    )
+    return list(shapes or ["rectangle", "polygon"])
+
+
 def _slot_configured(slot: ConfigurationSlot, node: SkillNode | None) -> bool:
     if not _slot_active(slot, node) or node is None:
         return True
     if slot.kind == "region":
         shape = node.params.get("shape")
-        return shape in slot.allowed_shapes and _valid_points(
+        return shape in _allowed_region_shapes(slot) and _valid_points(
             shape, node.params.get("points")
         )
     if slot.kind == "region_set":
@@ -77,7 +86,7 @@ def _slot_configured(slot: ConfigurationSlot, node: SkillNode | None) -> bool:
             and all(
                 isinstance(item, dict)
                 and bool(item.get("id"))
-                and item.get("shape") in slot.allowed_shapes
+                and item.get("shape") in _allowed_region_shapes(slot)
                 and _valid_points(item.get("shape"), item.get("points"))
                 for item in regions
             )
@@ -233,7 +242,7 @@ class ConfigurationBinder:
         slot, node = self._locate(data, media_type, slot_id)
         if slot["kind"] != "region":
             raise ValueError(f"slot {slot_id} is not a single region")
-        if shape not in slot.get("allowed_shapes", []):
+        if shape not in _allowed_region_shapes(slot):
             raise ValueError(f"shape {shape} is not allowed for slot {slot_id}")
         if not _valid_points(shape, points):
             raise ValueError(f"invalid {shape} points for slot {slot_id}")
@@ -264,7 +273,7 @@ class ConfigurationBinder:
         key = region_id.strip()
         if not key:
             raise ValueError("region_id cannot be empty")
-        if shape not in slot.get("allowed_shapes", []):
+        if shape not in _allowed_region_shapes(slot):
             raise ValueError(f"shape {shape} is not allowed for slot {slot_id}")
         if not _valid_points(shape, points):
             raise ValueError(f"invalid {shape} points for slot {slot_id}")
@@ -423,6 +432,47 @@ class ConfigurationBinder:
                 "end": [float(value) for value in end],
             },
         })
+        return self._finish_draft(data)
+
+    def clear_annotations(
+        self,
+        package: SkillPackage,
+        *,
+        media_type: str,
+    ) -> SkillPackage:
+        """Remove every saved manual region and direction in one variant.
+
+        Clearing the canvas is intentionally broader than clearing the
+        current unsaved draft: a user can have several named regions and
+        dependent arrows saved in the same workflow.  Resetting their bound
+        nodes to valid, empty manual values keeps the package reviewable while
+        correctly returning required slots to ``needs_configuration``.
+        Automatic regions and non-manual operators are left untouched.
+        """
+
+        data = deepcopy(package.model_dump(mode="json"))
+        variant = data.get("variants", {}).get(media_type)
+        if variant is None or variant.get("status") == "unsupported":
+            raise ValueError(f"skill has no configurable {media_type} variant")
+
+        for node in variant.get("nodes", []):
+            op = node.get("op")
+            if op == "region.manual@1.0":
+                params = node.get("params", {})
+                node["params"] = {
+                    "shape": params.get("shape") or "rectangle",
+                    "points": [],
+                }
+            elif op == "region.manual_set@1.0":
+                node["params"] = {"regions": []}
+            elif op == "direction.manual@1.0":
+                node["params"] = {
+                    "vector": [0.0, 0.0],
+                    "start": None,
+                    "end": None,
+                }
+            elif op == "direction.manual_set@1.0":
+                node["params"] = {"directions": []}
         return self._finish_draft(data)
 
     def _finish_draft(self, data: dict[str, Any]) -> SkillPackage:
