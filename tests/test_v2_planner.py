@@ -330,6 +330,95 @@ def test_v2_planner_validates_and_returns_optional_business_rule_draft():
     assert result.business_draft["results"][0]["result_kind"] == "entities"
 
 
+def test_ground_surface_position_becomes_a_visible_target_phrase_not_a_region():
+    from clients.v2_planner import DeepSeekSemanticPlanner
+
+    instruction = "检测地面是否有垃圾。"
+    payload = {
+        "mode": "direct_grounding",
+        "target": {
+            "concept": "litter",
+            "source_span": "垃圾",
+            "phrases": ["litter"],
+        },
+        "constraints": [{
+            "kind": "position",
+            "value": "on ground",
+            "source": instruction,
+            "source_span": "地面",
+            "phrases": ["litter on ground"],
+        }],
+        "logic": "all",
+        "unresolved": [],
+        "business_rule": {
+            "schema_version": "1.0",
+            "media_requirement": "image",
+            "branches": [{
+                "key": "ground_litter",
+                "name": "地面垃圾检测",
+                "media_type": "image",
+                "conditions": [
+                    {
+                        "key": "detect_litter",
+                        "name": "检测垃圾",
+                        "capability_id": "target.detect",
+                        "parameters": {
+                            "targets": ["litter"],
+                            "phrases": ["litter"],
+                            "business_label": "垃圾",
+                        },
+                    },
+                    {
+                        "key": "litter_on_ground",
+                        "name": "垃圾在地面",
+                        "capability_id": "spatial.membership",
+                        "parameters": {
+                            "source": "condition:detect_litter",
+                            "scope": "full_frame",
+                            "membership": "overlap",
+                            "inside": "ground",
+                        },
+                    },
+                ],
+            }],
+            "final_decision": {
+                "name": "地面垃圾检测结果",
+                "decision_type": "detection_summary",
+                "source_refs": ["branch:ground_litter"],
+            },
+            "results": [{
+                "key": "litter_boxes",
+                "name": "垃圾框",
+                "source_ref": "condition:ground_litter.detect_litter",
+                "result_kind": "entities",
+            }],
+        },
+    }
+    planner = DeepSeekSemanticPlanner(
+        build_default_registry(),
+        client=FakeClient([json.dumps(payload, ensure_ascii=False)]),
+        model="deepseek-test",
+    )
+
+    result = planner.compile(
+        instruction,
+        requested_accept=["image"],
+        skill_id="ground_litter",
+        display_name="地面垃圾检测",
+    )
+
+    assert result.package is not None
+    assert result.package.semantic_ir.constraints == []
+    ground = next(
+        node for node in result.package.variants["image"].nodes
+        if node.id == "candidates_raw"
+    )
+    assert ground.params["targets"][0]["phrases"] == ["litter on the ground"]
+    conditions = result.business_draft["branches"][0]["conditions"]
+    assert [item["capability_id"] for item in conditions] == ["target.detect"]
+    assert conditions[0]["parameters"]["phrases"] == ["litter on the ground"]
+
+
 def test_static_auto_media_retries_a_business_draft_that_only_builds_video():
     from clients.v2_planner import DeepSeekSemanticPlanner
 

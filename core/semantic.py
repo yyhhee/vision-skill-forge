@@ -324,13 +324,20 @@ def _append_grounding(
             "id": raw_id,
             "op": "rex.ground@1.1",
             "inputs": {"frames": frames},
-            "params": {"targets": targets},
+            "params": {
+                "targets": targets,
+                "phrase_selection": "primary_per_target",
+            },
         },
         {
             "id": dedup_id,
             "op": "objects.deduplicate@1.0",
             "inputs": {"objects": f"${raw_id}"},
-            "params": {"metric": "ios", "threshold": 0.5, "keep": "first"},
+            "params": {
+                "metric": "ios",
+                "threshold": 0.45,
+                "keep": "best_localization",
+            },
         },
     ])
     return f"${dedup_id}", [raw_id, dedup_id]

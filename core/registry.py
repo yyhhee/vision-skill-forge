@@ -194,10 +194,13 @@ def build_default_registry() -> OperatorRegistry:
             {"frames": "FrameSet"},
             "ObjectSet",
             {"targets": []},
-            "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；本节点不做隐藏去重。",
+            "将显式肯定式 phrase 发送给 Rex 并回映标签与原图坐标；计数型新技能可每个目标只发送一个主短语，以避免同义短语重复候选。本节点不做隐藏去重。",
             {
                 "targets": _p("target_list", required=True),
                 "query_prompt": _p("string"),
+                "phrase_selection": _p(
+                    "string", choices=("all_phrases", "primary_per_target")
+                ),
             },
         ),
         OperatorDefinition(

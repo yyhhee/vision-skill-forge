@@ -70,7 +70,22 @@ def rex_ground_raw(inputs, params, services, node_id):
         for target in targets
         for phrase in target["phrases"]
     }
-    phrases = list(phrase_to_label)
+    if params.get("phrase_selection", "all_phrases") == "primary_per_target":
+        phrases = []
+        seen = set()
+        for target in targets:
+            primary = next(
+                (
+                    phrase for phrase in target["phrases"]
+                    if isinstance(phrase, str) and phrase.strip()
+                ),
+                None,
+            )
+            if primary and primary not in seen:
+                phrases.append(primary)
+                seen.add(primary)
+    else:
+        phrases = list(phrase_to_label)
     query_prompt = params.get("query_prompt")
     query_kwargs = (
         {"query_prompt": query_prompt.strip()}

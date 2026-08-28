@@ -2927,13 +2927,30 @@ class V2AppController:
 
     @staticmethod
     def _default_grounding_query(params: dict[str, Any]) -> str:
-        phrases = [
-            str(phrase).strip()
-            for target in params.get("targets", [])
+        targets = [
+            target for target in params.get("targets", [])
             if isinstance(target, dict)
-            for phrase in target.get("phrases", [])
-            if isinstance(phrase, str) and phrase.strip()
         ]
+        if params.get("phrase_selection") == "primary_per_target":
+            phrases = [
+                next(
+                    (
+                        phrase.strip()
+                        for phrase in target.get("phrases", [])
+                        if isinstance(phrase, str) and phrase.strip()
+                    ),
+                    "",
+                )
+                for target in targets
+            ]
+            phrases = [phrase for phrase in phrases if phrase]
+        else:
+            phrases = [
+                str(phrase).strip()
+                for target in targets
+                for phrase in target.get("phrases", [])
+                if isinstance(phrase, str) and phrase.strip()
+            ]
         return f"Detect {', '.join(phrases)}" if phrases else "Detect requested targets"
 
     def grounding_prompt_controls(
@@ -8197,6 +8214,12 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                         "### 业务能力资产库\n"
                         "按业务类别查看 03 可组合的能力。选择一项后可查看输入输出、媒体要求、资源要求、可编辑参数、编译 Recipe 和证据契约。"
                     )
+                    with gr.Accordion("业务能力资产库是做什么的？", open=False):
+                        gr.Markdown(
+                            "业务能力是面向业务需求的可组合语义，例如检测目标、判断可见属性、限定区域、统计数量、判断关系或持续时间、发出事件。\n\n"
+                            "一句话生成技能时，大模型只在这一层理解并生成业务规则；随后系统会将每项业务能力自动编译为所需的执行原子。"
+                            "这里用于查看能力说明和可编辑业务参数，不需要手动选择抽帧、去重等底层执行步骤。"
+                        )
                     capability_asset_rows = gr.Dataframe(
                         headers=["类别", "业务能力", "媒体", "所需标注", "编译组合"],
                         datatype=["str", "str", "str", "str", "str"],
@@ -8252,6 +8275,13 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                         f"### 执行原子资产（当前注册 {len(operator_assets_initial)} 项）\n"
                         f"默认展示与业务能力直接关联的 {len(operator_assets_default)} 项。系统基础步骤由运行时自动补全。原子不是 03 的节点编辑入口。"
                     )
+                    with gr.Accordion("“业务组合 / 系统基础”有什么区别？", open=False):
+                        gr.Markdown(
+                            "两者都是实际执行的原子，区别只在展示分层：\n\n"
+                            "- **业务组合**：至少被一个业务能力直接使用，例如检测、区域、计数、关系、轨迹、时序、事件；默认展示，便于查看业务能力的实现。\n"
+                            "- **系统基础**：为运行提供支撑，例如抽帧、缩放、切片、去重、坐标处理、输出绘制；通常由系统自动补全，仅在排查运行细节时查看。\n\n"
+                            "一句话生成技能只面向业务能力；系统会自动编排所需执行原子。切换这里的目录不会改变技能配置或运行效果。"
+                        )
                     operator_asset_layer = gr.Radio(
                         choices=list(operator_asset_layers),
                         value="业务组合",

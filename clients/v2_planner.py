@@ -169,6 +169,111 @@ class DeepSeekSemanticPlanner:
         return ledger
 
     @staticmethod
+    def _repair_ground_surface_positions(
+        ledger: dict,
+        business_payload: dict | None,
+    ) -> dict:
+        """Treat an open ground surface as visible target evidence, not an ROI.
+
+        A phrase such as "garbage on the ground" is directly observable.  It
+        must not be turned into a spatial-membership card with ``inside=ground``:
+        that parameter is boolean and a generic ground surface is not a user
+        drawn region.
+        """
+
+        ground_values = {
+            "ground", "on ground", "on the ground", "floor", "on floor",
+            "on the floor", "pavement", "on pavement", "地面", "地上",
+            "地板", "路面",
+        }
+        constraints = ledger.get("constraints")
+        target = ledger.get("target")
+        if not isinstance(constraints, list) or not isinstance(target, dict):
+            return ledger
+        ground_constraints = [
+            item for item in constraints
+            if isinstance(item, dict)
+            and str(item.get("kind", "")).strip().lower() == "position"
+            and str(item.get("value", "")).strip().lower() in ground_values
+        ]
+        phrases = [
+            str(phrase).strip() for phrase in target.get("phrases", [])
+            if str(phrase).strip()
+        ]
+        if not ground_constraints or not phrases:
+            return ledger
+
+        visual_phrase = next(
+            (phrase for phrase in phrases if "ground" in phrase.lower()),
+            f"{phrases[0]} on the ground",
+        )
+        target["phrases"] = [visual_phrase]
+        ledger["target"] = target
+        ground_spans = {
+            str(item.get("source_span", "")).strip()
+            for item in ground_constraints
+        }
+        ledger["constraints"] = [
+            item for item in constraints if item not in ground_constraints
+        ]
+        ledger["unresolved"] = [
+            item for item in ledger.get("unresolved", [])
+            if str(item.get("source_span", "")).strip() not in ground_spans
+        ]
+
+        if not isinstance(business_payload, dict):
+            return ledger
+        source_keys: set[str] = set()
+
+        def collect_ground_memberships(items: list[dict]) -> None:
+            for condition in items:
+                if not isinstance(condition, dict):
+                    continue
+                parameters = condition.get("parameters")
+                inside = parameters.get("inside") if isinstance(parameters, dict) else None
+                if (
+                    condition.get("capability_id") == "spatial.membership"
+                    and isinstance(inside, str)
+                    and inside.strip().lower() in ground_values
+                ):
+                    source = str(parameters.get("source", ""))
+                    if source.startswith("condition:"):
+                        source_keys.add(source.split(":", 1)[1])
+                collect_ground_memberships(condition.get("children") or [])
+
+        def remove_ground_memberships(items: list[dict]) -> list[dict]:
+            retained = []
+            for condition in items:
+                if not isinstance(condition, dict):
+                    continue
+                parameters = condition.get("parameters")
+                inside = parameters.get("inside") if isinstance(parameters, dict) else None
+                if (
+                    condition.get("capability_id") == "spatial.membership"
+                    and isinstance(inside, str)
+                    and inside.strip().lower() in ground_values
+                ):
+                    continue
+                if condition.get("key") in source_keys and condition.get("capability_id") == "target.detect":
+                    condition.setdefault("parameters", {})["phrases"] = [visual_phrase]
+                condition["children"] = remove_ground_memberships(
+                    condition.get("children") or []
+                )
+                retained.append(condition)
+            return retained
+
+        for branch in business_payload.get("branches", []):
+            if not isinstance(branch, dict):
+                continue
+            collect_ground_memberships(branch.get("conditions") or [])
+        for branch in business_payload.get("branches", []):
+            if isinstance(branch, dict):
+                branch["conditions"] = remove_ground_memberships(
+                    branch.get("conditions") or []
+                )
+        return ledger
+
+    @staticmethod
     def _repair_business_region_positions(
         ledger: dict,
         business_payload: dict | None,
@@ -633,6 +738,9 @@ class DeepSeekSemanticPlanner:
                 ledger = self._parse_json_object(raw)
                 ledger = self._repair_target_fields(ledger, text)
                 business_payload = ledger.pop("business_rule", None)
+                ledger = self._repair_ground_surface_positions(
+                    ledger, business_payload
+                )
                 ledger = self._repair_business_region_positions(
                     ledger, business_payload
                 )

@@ -104,6 +104,14 @@ def test_enumerated_target_classes_compile_to_distinct_grounding_labels():
         if node.op == "rex.ground@1.1"
     )
     assert grounding.params["targets"] == target["classes"]
+    assert grounding.params["phrase_selection"] == "primary_per_target"
+    deduplication = next(
+        node for node in package.variants["image"].nodes
+        if node.op == "objects.deduplicate@1.0"
+    )
+    assert deduplication.params == {
+        "metric": "ios", "threshold": 0.45, "keep": "best_localization"
+    }
 
 
 def test_report_only_count_runs_after_attribute_filter_and_is_a_declared_output():

@@ -4,6 +4,8 @@ from PIL import Image
 
 from core.context import (
     ConditionSet,
+    Frame,
+    FrameSet,
     ObjectSet,
     Region,
     RegionSet,
@@ -35,6 +37,33 @@ def obj(
         source_entity_id=source_entity_id,
         original_size=(100, 100),
     )
+
+
+def test_primary_phrase_selection_avoids_alias_duplicate_detection_requests():
+    from operators.perception import rex_ground_raw
+
+    class RecordingRex:
+        def __init__(self):
+            self.phrases = None
+
+        def detect(self, image, phrases, **kwargs):
+            self.phrases = phrases
+            return [{"phrase": "vehicle", "bbox": [0.1, 0.1, 0.3, 0.3]}]
+
+    rex = RecordingRex()
+    frames = FrameSet([Frame(Image.new("RGB", (100, 100)), (100, 100))])
+    objects = rex_ground_raw(
+        {"frames": frames},
+        {
+            "targets": [{"label": "车辆", "phrases": ["vehicle", "car", "SUV"]}],
+            "phrase_selection": "primary_per_target",
+        },
+        SimpleNamespace(rex=rex),
+        "vehicles_raw",
+    )
+
+    assert rex.phrases == ["vehicle"]
+    assert [(item.label, item.phrase) for item in objects.items] == [("车辆", "vehicle")]
 
 
 def test_reduce_exists_can_preserve_track_identity_for_per_entity_persistence():
