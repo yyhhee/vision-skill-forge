@@ -7,6 +7,12 @@ from .parameter_presentations import parameter_presentation
 from .registry import OperatorDefinition, OperatorRegistry
 
 
+def _asset_layer(operator: str, business_atoms: set[str]) -> tuple[str, str]:
+    if operator in business_atoms:
+        return "业务组合", "由业务能力自动编译使用，可在此查看其实现说明。"
+    return "系统基础", "运行时自动补全的输入、资源、证据或输出步骤，不是业务配置入口。"
+
+
 def _category(definition: OperatorDefinition) -> str:
     prefix = definition.op.split(".", 1)[0]
     if prefix in {"media", "video", "image", "object", "objects", "filter"}:
@@ -56,8 +62,18 @@ def build_operator_asset_catalog(
     registry: OperatorRegistry,
     document: SkillEditorDocument | None = None,
 ) -> list[dict[str, Any]]:
+    # Keep the public catalog tied to business capabilities without changing the
+    # registry or compiler choices used by existing preset skills.
+    from .business_capabilities import build_business_capability_registry
+
+    business_atoms = {
+        atom
+        for capability in build_business_capability_registry(registry).definitions()
+        for atom in capability.atoms
+    }
     assets = []
     for definition in registry.definitions():
+        layer, layer_description = _asset_layer(definition.op, business_atoms)
         parameters = []
         names = sorted(set(definition.parameters) | set(definition.defaults))
         for name in names:
@@ -93,6 +109,9 @@ def build_operator_asset_catalog(
                 "operator": definition.op,
                 "display_name": definition.display_name,
                 "category": _category(definition),
+                "layer": layer,
+                "layer_description": layer_description,
+                "default_visible": layer == "业务组合",
                 "description": definition.fixed_rule_text,
                 "execution_scope": definition.execution_scope,
                 "input_types": definition.input_types,

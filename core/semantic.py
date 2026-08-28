@@ -3079,12 +3079,23 @@ class WorkflowCompiler:
             step_labels.append(step["label"])
         sequence_id = f"constraint_{index}_sequence"
         nodes.append({
-            "id": sequence_id, "op": "temporal.sequence@1.0",
+            "id": sequence_id, "op": "temporal.sequence@2.0",
             "inputs": {"events": step_events},
             "params": {
-                "steps": step_labels,
-                "max_gap_seconds": value.get("max_gap_seconds", 5.0),
-                "same_key": value.get("same_key", True),
+                "transitions": [
+                    {
+                        "relation": "after",
+                        "source_anchor": "end",
+                        "target_anchor": "start",
+                        "minimum_delay_seconds": 0.0,
+                        "maximum_delay_seconds": value.get("max_gap_seconds", 5.0),
+                    }
+                    for _ in range(len(step_events) - 1)
+                ],
+                "correlation_scope": "track" if value.get("same_key", True) else "global",
+                "correlation_fields": [],
+                "consume_events": True,
+                "label": step_labels[-1] if step_labels else "顺序事件",
             },
         })
         bound.append(sequence_id)

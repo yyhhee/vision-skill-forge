@@ -8233,10 +8233,30 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                 operator_assets_initial = build_operator_asset_catalog(
                     controller.registry
                 )
+                operator_asset_layers = {
+                    "业务组合": [
+                        item
+                        for item in operator_assets_initial
+                        if item["default_visible"]
+                    ],
+                    "系统基础": [
+                        item
+                        for item in operator_assets_initial
+                        if item["layer"] == "系统基础"
+                    ],
+                    "全部技术原子": operator_assets_initial,
+                }
+                operator_assets_default = operator_asset_layers["业务组合"]
                 with gr.Group(elem_classes="vs-section"):
                     gr.Markdown(
                         f"### 执行原子资产（当前注册 {len(operator_assets_initial)} 项）\n"
-                        "执行原子由编译器自动组合，不是 03 的节点编辑入口。每项均可查看参数说明；“当前使用”可追踪到业务分支。"
+                        f"默认展示与业务能力直接关联的 {len(operator_assets_default)} 项。系统基础步骤由运行时自动补全。原子不是 03 的节点编辑入口。"
+                    )
+                    operator_asset_layer = gr.Radio(
+                        choices=list(operator_asset_layers),
+                        value="业务组合",
+                        label="原子目录范围",
+                        info="需要排查运行细节时再查看系统基础或全部技术原子。旧技能会在加载时自动迁移。",
                     )
                     operator_asset_select = gr.Dropdown(
                         choices=[
@@ -8244,13 +8264,13 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                 f"{item['category']}｜{item['display_name']}（{item['operator']}）",
                                 item["operator"],
                             )
-                            for item in operator_assets_initial
+                            for item in operator_assets_default
                         ],
-                        value=operator_assets_initial[0]["operator"],
+                        value=operator_assets_default[0]["operator"],
                         label="查看执行原子说明",
                     )
                     operator_asset_detail = gr.JSON(
-                        operator_assets_initial[0],
+                        operator_assets_default[0],
                         label="原子能力配置说明（技术字段仅在 developer_info）",
                     )
                 with gr.Group(elem_classes="vs-section"):
@@ -8269,6 +8289,29 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             controller.business_capability_detail,
             capability_asset_select,
             capability_asset_detail,
+        )
+
+        def _filter_operator_assets(layer: str):
+            assets = operator_asset_layers[layer]
+            first = assets[0]
+            return (
+                gr.update(
+                    choices=[
+                        (
+                            f"{item['category']}｜{item['display_name']}（{item['operator']}）",
+                            item["operator"],
+                        )
+                        for item in assets
+                    ],
+                    value=first["operator"],
+                ),
+                first,
+            )
+
+        operator_asset_layer.change(
+            _filter_operator_assets,
+            operator_asset_layer,
+            [operator_asset_select, operator_asset_detail],
         )
         operator_asset_select.change(
             controller.operator_asset_detail,

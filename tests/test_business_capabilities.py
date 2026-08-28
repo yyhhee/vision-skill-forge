@@ -48,3 +48,20 @@ def test_business_capability_search_uses_business_terms_not_operator_ids():
     assert catalog.search("红色")[0].capability_id == "attribute.color"
     assert any(item.capability_id == "motion.wrong_way" for item in catalog.search("逆行"))
     assert any(item.capability_id == "measure.count" for item in catalog.search("拥堵"))
+
+
+def test_user_facing_capability_text_is_generic_while_ids_and_recipes_stay_stable():
+    catalog = build_business_capability_registry(build_default_registry())
+
+    color = catalog.require("attribute.color")
+    missing = catalog.require("subject.missing_equipment")
+    reverse = catalog.require("motion.wrong_way")
+    assert color.display_name == "可见属性颜色"
+    assert color.compiler_recipe == "visible_color"
+    assert color.atoms == ["visual.color_fraction@1.0", "filter.apply@1.0"]
+    assert missing.display_name == "主体缺少关联物"
+    assert "安全帽" not in missing.description
+    assert missing.compiler_recipe == "equipment_absence"
+    assert reverse.display_name == "相对参考方向反向运动"
+    assert "逆行只是交通场景" in reverse.description
+    assert reverse.compiler_recipe == "reverse_motion"

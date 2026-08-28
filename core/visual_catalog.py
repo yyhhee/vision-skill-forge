@@ -10,13 +10,13 @@ ATTRIBUTE_CATALOG = {
     "color": {"values": list(COLOR_NAMES), "executor": "visual.color_fraction@1.0"},
     "shape": {
         "values": ["round", "circle", "square", "rectangle", "triangle", "oval", "irregular"],
-        "executor": "rex.ground@1.0",
+        "executor": "rex.ground@1.1",
     },
     "size": {"values": ["small", "medium", "large"], "executor": "visual.geometry@1.0"},
     "material": {
         "values": ["metal", "wood", "plastic", "glass", "concrete", "fabric", "paper",
                    "rubber", "stone", "ceramic"],
-        "executor": "rex.ground@1.0",
+        "executor": "rex.ground@1.1",
     },
     "position": {
         "values": ["left", "center", "right", "top", "middle", "bottom"],
@@ -26,11 +26,11 @@ ATTRIBUTE_CATALOG = {
         "values": ["open", "closed", "broken", "intact", "damaged", "fallen", "standing",
                    "moving", "stationary", "on", "off", "full", "empty", "wet", "dry",
                    "rusty", "cracked", "smoking", "burning"],
-        "executor": "rex.ground@1.0",
+        "executor": "rex.ground@1.1",
     },
-    "wearable": {"values": "affirmative visible phrase", "executor": "rex.ground@1.0"},
-    "pose": {"values": "affirmative visible phrase", "executor": "rex.ground@1.0"},
-    "appearance": {"values": "affirmative visible phrase", "executor": "rex.ground@1.0"},
+    "wearable": {"values": "affirmative visible phrase", "executor": "rex.ground@1.1"},
+    "pose": {"values": "affirmative visible phrase", "executor": "rex.ground@1.1"},
+    "appearance": {"values": "affirmative visible phrase", "executor": "rex.ground@1.1"},
 }
 
 SPATIAL_RELATIONS = (

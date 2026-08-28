@@ -51,7 +51,7 @@ def _video_variant() -> dict:
             },
             {
                 "id": "frames",
-                "op": "video.sample@1.0",
+                "op": "video.sample@1.1",
                 "inputs": {"video": "$video"},
                 "params": {"mode": "fps", "fps": 2.0},
             },

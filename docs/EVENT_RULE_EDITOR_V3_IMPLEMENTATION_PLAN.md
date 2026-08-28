@@ -312,15 +312,15 @@ IoU 跟踪                         [视频] [当前推荐] [当前技能已使�
 
 | 类别 | 当前执行原子 |
 |---|---|
-| 媒体输入与采样 | `media.image@1.0`、`media.video@1.0`、`video.sample@1.0`、`video.sample@1.1` |
-| 图像预处理 | `image.resize@1.0`、`image.resize@1.1`、`image.tile@1.0`、`image.tile@1.1`、`object.crop@1.0` |
-| 感知与目标集合 | `rex.ground@1.0`、`rex.ground@1.1`、`objects.deduplicate@1.0`、`objects.filter_by_label@1.0`、`objects.filter_by_phrase@1.0`、`objects.merge@1.0`、`objects.relabel@1.0`、`objects.from_tracks@1.0`、`filter.apply@1.0` |
+| 媒体输入与采样 | `media.image@1.0`、`media.video@1.0`、`video.sample@1.1` |
+| 图像预处理 | `image.resize@1.1`、`image.tile@1.1`、`object.crop@1.0` |
+| 感知与目标集合 | `rex.ground@1.1`、`objects.deduplicate@1.0`、`objects.filter_by_label@1.0`、`objects.filter_by_phrase@1.0`、`objects.merge@1.0`、`objects.relabel@1.0`、`objects.from_tracks@1.0`、`filter.apply@1.0` |
 | 外观与状态 | `visual.color_fraction@1.0`、`visual.geometry@1.0`、`state.detect@1.0`、`state.transition@1.0` |
 | 区域与参考方向 | `region.full_frame@1.0`、`region.manual@1.0`、`region.manual_set@1.0`、`region.from_objects@1.0`、`regions.merge@1.0`、`direction.manual@1.0`、`direction.manual_set@1.0`、`direction.image_axis@1.0` |
 | 跟踪与运动测量 | `track.iou@1.0`、`track.confirm@1.0`、`tracks.filter@1.0`、`tracks.filter_by_events@1.0`、`measure.heading@1.0`、`measure.majority_heading@1.0`、`measure.lane_majority_heading@1.0`、`measure.speed@1.0`、`measure.region_speed@1.0`、`logic.heading_by_lane@1.0` |
 | 空间、目标对与集合关系 | `spatial.inside@1.0`、`spatial.associate@1.0`、`pairs.build@1.0`、`pairs.measure@1.0`、`pairs.filter@1.0`、`set.partition@1.0`、`set.difference@1.0`、`set.semi_join@1.0`、`set.anti_join@1.0` |
 | 数量、统计与逻辑 | `measure.count@1.0`、`measure.region_count@1.0`、`reduce.count@1.0`、`reduce.exists@1.0`、`reduce.all@1.0`、`reduce.statistic@1.0`、`reduce.quantify@1.0`、`logic.compare@1.0`、`logic.all@1.0`、`logic.any@1.0`、`logic.not@1.0` |
-| 时间与事件编排 | `temporal.hold@1.0`、`temporal.persist@1.0`、`temporal.qualify@1.0`、`temporal.event_duration@1.0`、`temporal.join@1.0`、`temporal.sequence@1.0`、`temporal.sequence@2.0`、`temporal.absence@1.0`、`temporal.repeat@1.0` |
+| 时间与事件编排 | `temporal.hold@1.0`、`temporal.persist@1.0`、`temporal.qualify@1.0`、`temporal.event_duration@1.0`、`temporal.join@1.0`、`temporal.sequence@2.0`、`temporal.absence@1.0`、`temporal.repeat@1.0` |
 | 事件、证据与结果 | `event.from_condition@1.0`、`event.relabel@1.0`、`event.trigger@2.0`、`evidence.collect@1.0`、`event.attach_evidence@1.0`、`result.project@1.0`、`output.draw@1.0`、`output.alert@1.0` |
 
 #### 4.5.4 参数可见性与资产追踪

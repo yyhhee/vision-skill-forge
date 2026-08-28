@@ -62,53 +62,6 @@ def _localization_score(frame, bbox):
     return detail_gain * (0.25 if clipped else 1.0)
 
 
-def rex_ground(inputs, params, services, node_id):
-    frames = inputs["frames"]
-    targets = params["targets"]
-    phrase_to_label = {
-        phrase: target["label"]
-        for target in targets
-        for phrase in target["phrases"]
-    }
-    phrases = list(phrase_to_label)
-    query_prompt = params.get("query_prompt")
-    query_kwargs = (
-        {"query_prompt": query_prompt.strip()}
-        if isinstance(query_prompt, str) and query_prompt.strip()
-        else {}
-    )
-    objects = []
-    sequence = 0
-    for frame in frames.items:
-        detections = services.rex.detect(frame.image, phrases, **query_kwargs)
-        for detection in detections:
-            phrase = detection["phrase"]
-            local_bbox = tuple(detection["bbox"])
-            bbox = frame.to_original_bbox(local_bbox)
-            sequence += 1
-            objects.append(
-                VisualObject(
-                    id=f"frame_{frame.frame_index}_{node_id}_{sequence}",
-                    label=phrase_to_label.get(phrase, phrase),
-                    phrase=phrase,
-                    bbox=bbox,
-                    frame_index=frame.frame_index,
-                    timestamp=frame.timestamp,
-                    source_node=node_id,
-                    source_entity_id=frame.source_entity_id,
-                    raw_output=detection.get("raw_output"),
-                    original_size=frame.original_size,
-                    localization_score=_localization_score(frame, local_bbox),
-                )
-            )
-    return ObjectSet(_deduplicate(
-        objects,
-        float(params["deduplicate_iou"]),
-        params["deduplicate_metric"],
-        "first",
-    ))
-
-
 def rex_ground_raw(inputs, params, services, node_id):
     frames = inputs["frames"]
     targets = params["targets"]

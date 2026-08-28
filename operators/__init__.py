@@ -35,7 +35,7 @@ from .pattern import (
     temporal_repeat,
     temporal_sequence_v2,
 )
-from .perception import objects_deduplicate, rex_ground, rex_ground_raw
+from .perception import objects_deduplicate, rex_ground_raw
 from .preprocess import image_resize, image_tile, object_crop
 from .objects import objects_from_tracks, objects_merge, objects_relabel
 from .region import (
@@ -59,7 +59,7 @@ from .reduce import (
 )
 from .result import evidence_collect, event_attach_evidence, result_project
 from .state import state_detect, state_transition
-from .temporal import temporal_hold, temporal_persist, temporal_sequence
+from .temporal import temporal_hold, temporal_persist
 from .tracking import track_confirm, track_iou
 
 
@@ -67,14 +67,10 @@ def build_default_implementations():
     return {
         "media.image@1.0": media_image,
         "media.video@1.0": media_video,
-        "video.sample@1.0": video_sample,
         "video.sample@1.1": video_sample,
-        "image.resize@1.0": image_resize,
         "image.resize@1.1": image_resize,
-        "image.tile@1.0": image_tile,
         "image.tile@1.1": image_tile,
         "object.crop@1.0": object_crop,
-        "rex.ground@1.0": rex_ground,
         "rex.ground@1.1": rex_ground_raw,
         "objects.deduplicate@1.0": objects_deduplicate,
         "objects.filter_by_phrase@1.0": objects_filter_by_phrase,
@@ -116,7 +112,6 @@ def build_default_implementations():
         "event.relabel@1.0": event_relabel,
         "temporal.hold@1.0": temporal_hold,
         "temporal.persist@1.0": temporal_persist,
-        "temporal.sequence@1.0": temporal_sequence,
         "temporal.join@1.0": temporal_join,
         "temporal.qualify@1.0": temporal_qualify,
         "temporal.event_duration@1.0": temporal_event_duration,

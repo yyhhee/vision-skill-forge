@@ -1260,10 +1260,18 @@ def test_sequence_atom_compiles_affirmative_steps_and_fixed_sequence_operator():
 
     video = package.select_variant("video")
     sequence = next(node for node in video.nodes if node.id == "constraint_1_sequence")
-    assert sequence.op == "temporal.sequence@1.0"
+    assert sequence.op == "temporal.sequence@2.0"
     assert sequence.params == {
-        "steps": ["进入", "离开"],
-        "max_gap_seconds": 5,
-        "same_key": False,
+        "transitions": [{
+            "relation": "after",
+            "source_anchor": "end",
+            "target_anchor": "start",
+            "minimum_delay_seconds": 0.0,
+            "maximum_delay_seconds": 5,
+        }],
+        "correlation_scope": "global",
+        "correlation_fields": [],
+        "consume_events": True,
+        "label": "离开",
     }
     assert len(sequence.inputs["events"]) == 2

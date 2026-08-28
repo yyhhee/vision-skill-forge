@@ -33,11 +33,11 @@ def _package() -> SkillPackage:
         else:
             start = [
                 {"id": "media", "op": "media.video@1.0", "inputs": {"media": "$input"}, "params": {}},
-                {"id": "frames", "op": "video.sample@1.0", "inputs": {"video": "$media"}, "params": {"mode": "fps", "fps": 1.0}},
+                {"id": "frames", "op": "video.sample@1.1", "inputs": {"video": "$media"}, "params": {"mode": "fps", "fps": 1.0}},
             ]
             frames = "$frames"
         return start + [
-            {"id": "objects", "op": "rex.ground@1.0", "inputs": {"frames": frames}, "params": {"targets": [{"label": "人员", "phrases": ["person"]}]}},
+            {"id": "objects", "op": "rex.ground@1.1", "inputs": {"frames": frames}, "params": {"targets": [{"label": "人员", "phrases": ["person"]}]}},
             {"id": "draw", "op": "output.draw@1.0", "inputs": {"frames": frames, "objects": "$objects"}, "params": {}},
         ]
 

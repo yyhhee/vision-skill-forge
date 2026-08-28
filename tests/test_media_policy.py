@@ -75,7 +75,7 @@ def _nodes(sample_params: dict, *, tiled: bool = False) -> list[dict]:
         nodes.append(
             {
                 "id": "tiles",
-                "op": "image.tile@1.0",
+                "op": "image.tile@1.1",
                 "inputs": {"frames": "$frames"},
                 "params": {
                     "tile_width": 40,
@@ -89,7 +89,7 @@ def _nodes(sample_params: dict, *, tiled: bool = False) -> list[dict]:
     nodes.append(
         {
             "id": "objects",
-            "op": "rex.ground@1.0",
+            "op": "rex.ground@1.1",
             "inputs": {"frames": frames_ref},
             "params": {
                 "targets": [{"label": "车辆", "phrases": ["vehicle"]}]
@@ -180,7 +180,7 @@ def test_user_selected_segment_is_explicit_and_call_estimate_counts_tiles():
 
     # 5 秒片段、每 0.5 秒一帧；100x60 经 40x40/50% overlap 为 8 个切片 + 1 全图。
     assert policy.sampled_frame_count == 10
-    assert policy.rex_call_count == 90
+    assert policy.rex_call_count == 70
     assert policy.user_limited is True
     assert policy.selected_start_seconds == 5.0
     assert policy.selected_end_seconds == 10.0

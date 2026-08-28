@@ -371,7 +371,7 @@ def validate_skill(spec: VisualSkillSpec, registry: OperatorRegistry) -> list[st
         node.op.startswith("video.sample@") for node in enabled_nodes
     ):
         errors.append(
-            "video skill requires explicit video.sample@1.0 or later operator"
+            "video skill requires explicit video.sample@1.1 or later operator"
         )
 
     return errors

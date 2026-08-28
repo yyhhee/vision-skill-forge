@@ -16,6 +16,15 @@ def test_operator_assets_match_runtime_registry_and_every_parameter_has_help():
     assert {item["operator"] for item in assets} == {
         item.op for item in registry.definitions()
     }
+    assert {item["layer"] for item in assets} == {"业务组合", "系统基础"}
+    assert all(item["layer_description"] for item in assets)
+    assert all(
+        item["default_visible"] == (item["layer"] == "业务组合")
+        for item in assets
+    )
+    assert next(item for item in assets if item["operator"] == "rex.ground@1.1")[
+        "layer"
+    ] == "业务组合"
     for asset in assets:
         assert asset["category"]
         assert asset["description"]
