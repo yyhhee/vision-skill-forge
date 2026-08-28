@@ -24,6 +24,33 @@ data/acceptance_media/
 data/demo_media/
 data/media_assets/
 data/generated_skills/
+data/preset_media_defaults.json
+
+# Local service state and source media. Preset demos are bundled in data/demo_media.
+media_assets/
+imgs/
+project_state.json
+preset_media_defaults.json
+data/debug_white_car_numbered.png
+data/generated_packages/
+data/skill_documents/
+presets/
+
+# Superseded local development entry points and working notes.
+app.py
+run_v2_6124.py
+run_v2_6125.py
+run_v2_6126.py
+run_v2_6127.py
+run_v2_6128.py
+run_v2_6130_current.py
+ACCEPTANCE_REPORT.md
+IMPLEMENTATION_PLAN.md
+PROJECT_CONTEXT.md
+TEST_PLAN.md
+UNIVERSAL_VISUAL_SKILL_IMPLEMENTATION_PLAN.md
+api_dump.txt
+tests/natural_language_preset_reproduction*.json
 
 output/
 graphify-out/

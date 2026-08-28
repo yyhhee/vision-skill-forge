@@ -8,7 +8,7 @@
 
 V2 Demo 已打通：自然语言经 DeepSeek Thinking 抽取为 Canonical Semantic IR，再由固定编译器生成可编辑的图片/视频 DAG；原始媒体、ROI/方向配置、前处理、真实执行结果与逐节点 Trace 均可在 Gradio 查看。
 
-当前证据：自动化 `271 passed`；P01～P13 的 63 个正/负/混淆、图片/视频案例为 `63/63 semantic_passed`；10 个历史失败语句为 `10/10 automatic_passed`。运行成功与语义通过仍是两个独立状态，详见 `ACCEPTANCE_REPORT.md`。
+当前版本包含 P01～P13 预置演示技能及其默认图片/视频素材；启动后可直接在页面选择并运行。
 
 ## 运行
 
@@ -18,7 +18,7 @@ cd C:\yhe_user\detection_project\vision_skill
 python app_v2.py
 ```
 
-浏览器打开 `http://127.0.0.1:6122`。Rex vLLM 服务需在 `http://127.0.0.1:8000/v1` 可用。
+浏览器打开 `http://127.0.0.1:6131`。Rex vLLM 服务需在 `http://127.0.0.1:8000/v1` 可用。
 
 五个页签分别用于：技能来源、Semantic IR 与 Effective SkillPackage、媒体与场景标注、运行与结果、技能与能力目录。
 
@@ -33,21 +33,10 @@ conda run -n vision-skill python scripts\run_historical_v2_acceptance.py
 ```
 
 - V2 预置技能：`presets_v2/P*.json`
-- 默认素材目录：`data/preset_media_defaults.json`（13 个预置、21 个声明 variant 均有默认素材）
+- 默认素材目录：`data/demo_media/`（13 个预置演示技能均有可直接使用的默认素材）
 - 真实运行产物：`data/runs/<run_id>/` 与 `data/runs_v2/<run_id>/`
 - V2 预置验收：`tests/preset_v2_acceptance_results.json`
 - 历史语句验收：`tests/historical_v2_acceptance_consolidated_20260814.json`
-
-## 上下文压缩或后续修改前
-
-按以下顺序读取：
-
-1. `PROJECT_CONTEXT.md`
-2. `IMPLEMENTATION_PLAN.md`
-3. `ACCEPTANCE_REPORT.md`
-4. `TEST_PLAN.md`
-5. `project_state.json`
-6. `tests/preset_v2_acceptance_results.json`
 
 ## 配置
 
