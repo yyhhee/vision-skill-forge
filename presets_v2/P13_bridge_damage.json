@@ -3,7 +3,7 @@
   "skill_id": "bridge_damage",
   "version": 1,
   "display_name": "桥梁病害",
-  "original_instruction": "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋。",
+  "original_instruction": "识别桥梁病害露筋、裂纹、锈蚀、渗水、混凝土剥落。",
   "compile_status": "compiled",
   "input": {
     "requested_accept": [
@@ -24,7 +24,7 @@
     "mode": "direct_grounding",
     "target": {
       "concept": "bridge_damage",
-      "source_span": "裂纹、锈蚀、渗水、混凝土剥落和露筋",
+      "source_span": "露筋、裂纹、锈蚀、渗水、混凝土剥落",
       "phrases": [
         "thin irregular crack line on a concrete bridge surface",
         "localized visible concrete crack",
@@ -103,31 +103,15 @@
             "frames": "$media"
           },
           "params": {
-            "mode": "long_side",
-            "long_side": 2048
+            "mode": "identity"
           },
           "enabled": true
         },
         {
-          "id": "tiles",
-          "op": "image.tile@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "tile_width": 768,
-            "tile_height": 768,
-            "overlap_x": 0.25,
-            "overlap_y": 0.25,
-            "include_full_frame": true
-          },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_raw",
+          "id": "candidates_raw",
           "op": "rex.ground@1.1",
           "inputs": {
-            "frames": "$tiles"
+            "frames": "$resized"
           },
           "params": {
             "targets": [
@@ -167,19 +151,20 @@
                   "small dark exposed reinforcing steel ends in concrete"
                 ]
               }
-            ]
+            ],
+            "phrase_selection": "primary_per_target"
           },
           "enabled": true
         },
         {
-          "id": "bridge_damage",
+          "id": "candidates",
           "op": "objects.deduplicate@1.0",
           "inputs": {
-            "objects": "$bridge_damage_raw"
+            "objects": "$candidates_raw"
           },
           "params": {
-            "metric": "ios",
-            "threshold": 0.55,
+            "metric": "instance",
+            "threshold": 0.45,
             "keep": "best_localization"
           },
           "enabled": true
@@ -189,18 +174,15 @@
           "op": "output.draw@1.0",
           "inputs": {
             "frames": "$resized",
-            "objects": "$bridge_damage"
+            "objects": "$candidates"
           },
-          "params": {
-            "show_labels": true,
-            "show_track_id": true
-          },
+          "params": {},
           "enabled": true
         }
       ],
       "outputs": {
         "media": "$draw",
-        "objects": "$bridge_damage"
+        "objects": "$candidates"
       },
       "atom_bindings": {},
       "configuration_slots": [],
@@ -227,7 +209,10 @@
           },
           "params": {
             "mode": "fps",
-            "fps": 1.0
+            "fps": 1.0,
+            "start_seconds": 0.0,
+            "end_seconds": null,
+            "max_frames": null
           },
           "enabled": true
         },
@@ -238,31 +223,15 @@
             "frames": "$frames"
           },
           "params": {
-            "mode": "long_side",
-            "long_side": 2048
+            "mode": "identity"
           },
           "enabled": true
         },
         {
-          "id": "tiles",
-          "op": "image.tile@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "tile_width": 768,
-            "tile_height": 768,
-            "overlap_x": 0.25,
-            "overlap_y": 0.25,
-            "include_full_frame": true
-          },
-          "enabled": true
-        },
-        {
-          "id": "bridge_damage_raw",
+          "id": "candidates_raw",
           "op": "rex.ground@1.1",
           "inputs": {
-            "frames": "$tiles"
+            "frames": "$resized"
           },
           "params": {
             "targets": [
@@ -302,56 +271,21 @@
                   "small dark exposed reinforcing steel ends in concrete"
                 ]
               }
-            ]
+            ],
+            "phrase_selection": "primary_per_target"
           },
           "enabled": true
         },
         {
-          "id": "bridge_damage",
+          "id": "candidates",
           "op": "objects.deduplicate@1.0",
           "inputs": {
-            "objects": "$bridge_damage_raw"
+            "objects": "$candidates_raw"
           },
           "params": {
-            "metric": "ios",
-            "threshold": 0.55,
+            "metric": "instance",
+            "threshold": 0.45,
             "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "result_tracks",
-          "op": "track.iou@1.0",
-          "inputs": {
-            "objects": "$bridge_damage"
-          },
-          "params": {
-            "iou_threshold": 0.2,
-            "max_missing_frames": 1,
-            "same_label_only": true
-          },
-          "enabled": true
-        },
-        {
-          "id": "confirmed_tracks",
-          "op": "track.confirm@1.0",
-          "inputs": {
-            "tracks": "$result_tracks"
-          },
-          "params": {
-            "min_hits": 2,
-            "min_span_seconds": 0.5
-          },
-          "enabled": true
-        },
-        {
-          "id": "confirmed_objects",
-          "op": "objects.from_tracks@1.0",
-          "inputs": {
-            "tracks": "$confirmed_tracks"
-          },
-          "params": {
-            "selection": "all"
           },
           "enabled": true
         },
@@ -360,20 +294,15 @@
           "op": "output.draw@1.0",
           "inputs": {
             "frames": "$resized",
-            "objects": "$confirmed_tracks"
+            "objects": "$candidates"
           },
-          "params": {
-            "show_labels": true,
-            "show_track_id": true,
-            "show_trajectory": true
-          },
+          "params": {},
           "enabled": true
         }
       ],
       "outputs": {
         "media": "$draw",
-        "objects": "$confirmed_objects",
-        "tracks": "$confirmed_tracks"
+        "objects": "$candidates"
       },
       "atom_bindings": {},
       "configuration_slots": [],

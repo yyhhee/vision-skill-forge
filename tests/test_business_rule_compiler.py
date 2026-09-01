@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from core.business_capabilities import build_business_capability_registry
 from core.business_result_projector import build_runtime_contract
 from core.business_rule_editor import BusinessRuleEditor
@@ -220,29 +222,28 @@ def test_image_business_tree_compiles_to_atomic_graph_and_semantic_outputs():
         for node in variant.nodes
         if node.op == "visual.color_fraction@1.0" and node.params["color"] == "red"
     )
-    assert red_color.params["min_fraction"] == 0.2
-    assert red_color.params["subject_region"] == [0, 0, 1, 1]
-    red_evidence = next(
+    assert red_color.params["min_fraction"] == 0.1
+    assert red_color.params["subject_region"] == [0.0, 0.05, 1.0, 0.58]
+    shared_ground = next(
         node
         for node in variant.nodes
         if node.op == "rex.ground@1.1"
-        and node.params.get("targets", [{}])[0].get("phrases")
-        == ["red upper body clothing"]
+        and any(
+            target.get("phrases") == ["red upper body clothing"]
+            for target in node.params.get("targets", [])
+        )
     )
-    gray_evidence = next(
-        node
-        for node in variant.nodes
-        if node.op == "rex.ground@1.1"
-        and node.params.get("targets", [{}])[0].get("phrases")
-        == ["gray trousers"]
+    assert any(
+        target.get("phrases") == ["gray trousers"]
+        for target in shared_ground.params["targets"]
     )
-    assert red_color.inputs["objects"] == f"${red_evidence.id}"
+    assert red_color.inputs["objects"] != f"${shared_ground.id}"
     assert any(
         node.op == "spatial.associate@1.0"
         and node.params == {"relation": "best_owner", "threshold": 0.1}
         for node in variant.nodes
     )
-    assert gray_evidence.id
+    assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 1
     pair_filter = next(
         node for node in variant.nodes if node.op == "pairs.filter@1.0"
     )
@@ -306,6 +307,98 @@ def test_image_business_tree_compiles_to_atomic_graph_and_semantic_outputs():
     reapplied = EditorService(registry).apply(compiled)
     assert reapplied.validation_report["can_run"] is True
     assert "objects" in reapplied.effective_skill_package.variants["image"].outputs
+
+
+@pytest.mark.parametrize(
+    ("dimension", "value"),
+    [("size", "small"), ("position", "left"), ("aspect_ratio", "vertical")],
+)
+def test_geometry_business_value_is_forwarded_to_visual_operator(dimension, value):
+    registry, editor, document = _document("image")
+    document.skill_template.business_branches = [
+        BusinessBranch(branch_id="branch_geometry", display_name="几何筛选", media_type="image")
+    ]
+    document, detect_id = _condition(
+        editor,
+        document,
+        "branch_geometry",
+        "target.detect",
+        "检测目标",
+        {"targets": ["object"], "phrases": "object", "business_label": "目标"},
+    )
+    document, geometry_id = _condition(
+        editor,
+        document,
+        "branch_geometry",
+        "attribute.geometry",
+        "几何属性",
+        {
+            "source": f"condition:{detect_id}",
+            "dimension": dimension,
+            "value": value,
+            "operator": ">=",
+            "threshold": 1,
+        },
+    )
+    document = editor.set_final_decision(
+        document,
+        "几何筛选结果",
+        "detection_summary",
+        "branch:branch_geometry",
+        source_refs=[f"condition:{geometry_id}"],
+        combination="AND",
+    )
+
+    compiled = EditorService(registry).apply(document)
+    variant = compiled.effective_skill_package.variants["image"]
+    geometry = next(node for node in variant.nodes if node.op == "visual.geometry@1.0")
+    assert geometry.params["dimension"] == dimension
+    assert geometry.params["value"] == value
+    if dimension == "aspect_ratio":
+        assert geometry.params["aspect_ratio_threshold"] == 1.0
+
+
+def test_geometry_business_value_defaults_for_legacy_saved_condition():
+    registry, editor, document = _document("image")
+    document.skill_template.business_branches = [
+        BusinessBranch(branch_id="branch_geometry", display_name="几何筛选", media_type="image")
+    ]
+    document, detect_id = _condition(
+        editor,
+        document,
+        "branch_geometry",
+        "target.detect",
+        "检测目标",
+        {"targets": ["object"], "phrases": "object", "business_label": "目标"},
+    )
+    document, geometry_id = _condition(
+        editor,
+        document,
+        "branch_geometry",
+        "attribute.geometry",
+        "历史尺寸条件",
+        {
+            "source": f"condition:{detect_id}",
+            "dimension": "size",
+            "operator": ">=",
+            "threshold": 1,
+        },
+    )
+    document = editor.set_final_decision(
+        document,
+        "几何筛选结果",
+        "detection_summary",
+        "branch:branch_geometry",
+        source_refs=[f"condition:{geometry_id}"],
+        combination="AND",
+    )
+
+    compiled = EditorService(registry).apply(document)
+    geometry = next(
+        node for node in compiled.effective_skill_package.variants["image"].nodes
+        if node.op == "visual.geometry@1.0"
+    )
+    assert geometry.params["value"] == "medium"
 
 
 def test_shared_region_requirement_compiles_one_resource_node_and_slot():
@@ -602,12 +695,14 @@ def test_upper_clothing_color_compiles_tight_carrier_evidence_before_hsv_project
 
     compiled = EditorService(registry).apply(document)
     variant = compiled.effective_skill_package.variants["image"]
-    evidence = next(
+    shared_ground = next(
         node
         for node in variant.nodes
         if node.op == "rex.ground@1.1"
-        and node.params.get("targets", [{}])[0].get("phrases")
-        == ["white shirt"]
+        and any(
+            target.get("phrases") == ["white shirt"]
+            for target in node.params.get("targets", [])
+        )
     )
     color = next(
         node
@@ -621,15 +716,22 @@ def test_upper_clothing_color_compiles_tight_carrier_evidence_before_hsv_project
         if node.op == "spatial.associate@1.0"
         and node.params.get("relation") == "best_owner"
     )
-    assert color.inputs["objects"] == f"${evidence.id}"
+    assert color.inputs["objects"] != f"${shared_ground.id}"
     assert color.params["selection_mode"] == "fraction"
-    assert color.params["subject_region"] == [0, 0, 1, 1]
-    assert color.params["min_fraction"] == 0.2
+    assert color.params["subject_region"] == [0.0, 0.05, 1.0, 0.58]
+    assert color.params["min_fraction"] == 0.1
     assert owner.inputs["objects"].startswith("$"), owner.inputs
+    combined = next(
+        node
+        for node in variant.nodes
+        if node.op == "logic.all@1.0"
+        and node.id.endswith("_and")
+    )
+    assert len(combined.inputs["conditions"]) == 2
     # The result is projected back to the original person set after owner
     # matching, so output boxes remain person boxes rather than shirt boxes.
     assert variant.outputs["objects"].startswith("$")
-    assert variant.outputs["objects"].removeprefix("$") != evidence.id
+    assert variant.outputs["objects"].removeprefix("$") != shared_ground.id
 
 
 def test_color_compiler_is_generic_across_carriers_and_aliases():
@@ -691,12 +793,14 @@ def test_color_compiler_is_generic_across_carriers_and_aliases():
         )
         compiled = EditorService(registry).apply(document)
         variant = compiled.effective_skill_package.variants["image"]
-        evidence = next(
+        shared_ground = next(
             node
             for node in variant.nodes
             if node.op == "rex.ground@1.1"
-            and node.params.get("targets", [{}])[0].get("phrases")
-            == [expected_phrase]
+            and any(
+                target.get("phrases") == [expected_phrase]
+                for target in node.params.get("targets", [])
+            )
         )
         color = next(
             node
@@ -704,13 +808,13 @@ def test_color_compiler_is_generic_across_carriers_and_aliases():
             if node.op == "visual.color_fraction@1.0"
             and node.params["color"] == expected_color
         )
-        assert color.inputs["objects"] == f"${evidence.id}"
+        assert color.inputs["objects"] != f"${shared_ground.id}"
         assert color.params["color_tolerance"] == "semantic"
         assert color.params["selection_mode"] == "fraction"
         if expected_phrase == "black clothing":
             # A direct editor value is authoritative; planner-inferred
             # defaults get the carrier-aware recall baseline (covered below).
-            assert color.params["min_fraction"] == 0.2
+            assert color.params["min_fraction"] == 0.1
 
 
 def test_llm_inferred_generic_clothing_uses_recall_baseline():
@@ -765,7 +869,7 @@ def test_llm_inferred_generic_clothing_uses_recall_baseline():
         if node.op == "visual.color_fraction@1.0"
         and node.params["color"] == "black"
     )
-    assert color.params["min_fraction"] == 0.15
+    assert color.params["min_fraction"] == 0.1
 
 
 def test_color_compiler_uses_attribute_evidence_for_non_clothing_targets():
@@ -799,14 +903,16 @@ def test_color_compiler_uses_attribute_evidence_for_non_clothing_targets():
         document, "红色汽车", "detection_summary", f"condition:{color_id}"
     )
 
-    variant = EditorService(registry).apply(document).effective_skill_package.variants[
-        "image"
-    ]
-    evidence = next(
+    compiled_document = EditorService(registry).apply(document)
+    variant = compiled_document.effective_skill_package.variants["image"]
+    shared_ground = next(
         node
         for node in variant.nodes
         if node.op == "rex.ground@1.1"
-        and node.params.get("targets", [{}])[0].get("phrases") == ["red car"]
+        and any(
+            target.get("phrases") == ["red car"]
+            for target in node.params.get("targets", [])
+        )
     )
     color = next(
         node
@@ -820,9 +926,206 @@ def test_color_compiler_uses_attribute_evidence_for_non_clothing_targets():
         if node.op == "spatial.associate@1.0"
         and node.params.get("relation") == "best_owner"
     )
-    assert color.inputs["objects"] == f"${evidence.id}"
+    assert color.inputs["objects"] != f"${shared_ground.id}"
     assert color.params["selection_mode"] == "fraction"
     assert owner.inputs["subjects"].startswith("$")
     assert owner.inputs["objects"].startswith("$")
     assert variant.outputs["objects"].startswith("$")
-    assert variant.outputs["objects"].removeprefix("$") != evidence.id
+    assert variant.outputs["objects"].removeprefix("$") != shared_ground.id
+
+
+def test_parallel_coloured_target_branches_share_one_grounding_request():
+    """Independent branches share inference but keep evidence chains separate."""
+
+    registry, editor, document = _document("image")
+    document.skill_template.business_branches = [
+        BusinessBranch(
+            branch_id="branch_sofa", display_name="黄色沙发", media_type="image"
+        ),
+        BusinessBranch(
+            branch_id="branch_chair", display_name="白色椅子", media_type="image"
+        ),
+    ]
+    document, sofa_id = _condition(
+        editor,
+        document,
+        "branch_sofa",
+        "target.detect",
+        "检测沙发",
+        {"targets": ["sofa"], "phrases": "sofa", "business_label": "沙发"},
+    )
+    document, yellow_sofa_id = _condition(
+        editor,
+        document,
+        "branch_sofa",
+        "attribute.color",
+        "沙发颜色黄色",
+        {"source": f"condition:{sofa_id}", "part": "whole", "color": "yellow"},
+    )
+    document, chair_id = _condition(
+        editor,
+        document,
+        "branch_chair",
+        "target.detect",
+        "检测椅子",
+        {"targets": ["chair"], "phrases": "chair", "business_label": "椅子"},
+    )
+    document, white_chair_id = _condition(
+        editor,
+        document,
+        "branch_chair",
+        "attribute.color",
+        "椅子颜色白色",
+        {"source": f"condition:{chair_id}", "part": "whole", "color": "white"},
+    )
+    document, _ = _condition(
+        editor,
+        document,
+        "branch_chair",
+        "subject.same_attributes",
+        "椅子与颜色同一主体",
+        {
+            "subject": f"condition:{chair_id}",
+            "attributes": [f"condition:{white_chair_id}"],
+        },
+    )
+    document = editor.set_final_decision(
+        document,
+        "黄色沙发与白色椅子",
+        "detection_summary",
+        "branch:branch_sofa",
+        source_refs=["branch:branch_sofa", "branch:branch_chair"],
+        combination="AND",
+    )
+
+    compiled_document = EditorService(registry).apply(document)
+    variant = compiled_document.effective_skill_package.variants["image"]
+    grounds = [node for node in variant.nodes if node.op == "rex.ground@1.1"]
+    assert len(grounds) == 1
+    deduplicated = [
+        node for node in variant.nodes if node.op == "objects.deduplicate@1.0"
+    ]
+    assert len(deduplicated) == 1
+    assert deduplicated[0].inputs == {"objects": f"${grounds[0].id}"}
+    assert deduplicated[0].params == {
+        "metric": "instance",
+        "threshold": 0.45,
+        "keep": "best_localization",
+    }
+    phrases = {
+        tuple(target["phrases"])
+        for target in grounds[0].params["targets"]
+    }
+    assert phrases == {("sofa",), ("yellow sofa",), ("chair",), ("white chair",)}
+    assert sum(node.op == "spatial.associate@1.0" for node in variant.nodes) == 2
+    assert not any(
+        node.op in {"pairs.build@1.0", "pairs.measure@1.0", "pairs.filter@1.0"}
+        for node in variant.nodes
+    )
+    color_rows = BusinessRuleEditor(
+        build_business_capability_registry(registry), registry
+    ).condition_rows(compiled_document, "branch_sofa")
+    yellow_row = next(row for row in color_rows if row["name"] == "沙发颜色黄色")
+    assert "yellow sofa" in yellow_row["summary"]
+    assert "模型属性证据「yellow sofa」归属于基础目标「检测沙发」" in yellow_row["summary"]
+    assert "yellow占比校验与该归属证据同时满足" in yellow_row["summary"]
+    sofa_root = next(row for row in color_rows if row["parent_id"] is None)
+    assert sofa_root["verification_logic"] == "AND"
+    assert [
+        member["name"] for member in sofa_root["verification_members"]
+    ] == [
+        "模型「sofa」+ yellow占比",
+        "模型「yellow sofa」+ 同一主体归属",
+    ]
+
+
+def test_color_evidence_combination_mode_controls_execution_generically():
+    expected = {
+        "AND": (True, True, "logic.all@1.0"),
+        "OR": (True, True, "logic.any@1.0"),
+        "FRACTION_ONLY": (True, False, None),
+        "SEMANTIC_ONLY": (False, True, None),
+    }
+
+    for mode, (has_fraction, has_semantic, logic_op) in expected.items():
+        registry, editor, document = _document("image")
+        document.skill_template.business_branches = [
+            BusinessBranch(
+                branch_id="branch_main",
+                display_name="颜色目标",
+                media_type="image",
+            )
+        ]
+        document, target_id = _condition(
+            editor,
+            document,
+            "branch_main",
+            "target.detect",
+            "检测目标",
+            {"targets": ["sofa"], "phrases": "sofa"},
+        )
+        document, color_id = _condition(
+            editor,
+            document,
+            "branch_main",
+            "attribute.color",
+            "颜色属性",
+            {
+                "source": f"condition:{target_id}",
+                "part": "whole",
+                "color": "yellow",
+                "verification_logic": mode,
+            },
+        )
+        document = editor.set_final_decision(
+            document,
+            "颜色目标结果",
+            "detection_summary",
+            "branch:branch_main",
+        )
+
+        compiled = EditorService(registry).apply(document)
+        variant = compiled.effective_skill_package.variants["image"]
+        assert any(
+            node.op == "visual.color_fraction@1.0" for node in variant.nodes
+        ) is has_fraction
+        assert any(
+            node.op == "spatial.associate@1.0"
+            and node.params.get("relation") == "best_owner"
+            for node in variant.nodes
+        ) is has_semantic
+        phrases = {
+            phrase
+            for node in variant.nodes
+            if node.op == "rex.ground@1.1"
+            for target in node.params["targets"]
+            for phrase in target["phrases"]
+        }
+        assert ("yellow sofa" in phrases) is has_semantic
+        if logic_op is None:
+            assert not any(
+                node.op in {"logic.all@1.0", "logic.any@1.0"}
+                and node.id.endswith(("_and", "_or"))
+                and color_id in node.id
+                for node in variant.nodes
+            )
+        else:
+            combined = next(
+                node
+                for node in variant.nodes
+                if node.op == logic_op
+                and node.id.endswith(("_and", "_or"))
+                and color_id in node.id
+            )
+            assert combined.params["combine_scope"] == "by_key"
+            assert len(combined.inputs["conditions"]) == 2
+        rows = BusinessRuleEditor(
+            build_business_capability_registry(registry), registry
+        ).condition_rows(compiled, "branch_main")
+        root = next(row for row in rows if row["parent_id"] is None)
+        assert len(root["verification_members"]) == (
+            2 if mode in {"AND", "OR"} else 1
+        )
+        assert root["verification_logic"] == (
+            mode if mode in {"AND", "OR"} else ""
+        )

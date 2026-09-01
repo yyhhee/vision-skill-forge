@@ -12,6 +12,228 @@ from core.registry import build_default_registry
 from core.schema import SkillPackage
 
 
+def test_current_config_table_keeps_a_and_b_as_separate_effective_rows():
+    from app_v2 import effective_condition_config_rows
+
+    table = effective_condition_config_rows(
+        [{"name": "颜色", "value": "黄色", "unit": "", "source": "LLM建议", "help": "用户选择的颜色。"}],
+        [{
+            "condition_id": "group",
+            "verification_child_ids": ["base", "color"],
+            "verification_logic": "AND",
+            "verification_members": [
+                {"name": "模型「sofa」+ yellow占比", "summary": "条件 A：校验黄色占比。"},
+                {"name": "模型「yellow sofa」+ 同一主体归属", "summary": "条件 B：匹配回同一主体。"},
+            ],
+        }],
+        "color",
+    )
+
+    assert table[-3][0:2] == ["条件 A", "模型「sofa」+ yellow占比"]
+    assert table[-2][0:2] == ["条件 B", "模型「yellow sofa」+ 同一主体归属"]
+    assert table[-1][0:2] == ["最终复核组合", "（条件 A） AND （条件 B）"]
+    assert table[-1][3] == "LLM业务编排 + 系统确定性编译"
+    assert "条件 A：" not in table[-2][4]
+
+
+def test_internal_verification_modes_have_user_facing_labels():
+    from ui.event_rule_editor import friendly_choice_label
+
+    assert friendly_choice_label("FRACTION_ONLY") == "仅颜色占比"
+    assert friendly_choice_label("SEMANTIC_ONLY") == "仅模型属性证据"
+
+
+def test_current_config_table_scales_logic_members_beyond_b():
+    from app_v2 import effective_condition_config_rows
+
+    table = effective_condition_config_rows(
+        [],
+        [{
+            "condition_id": "group",
+            "logic_child_ids": ["a", "b", "c", "d"],
+            "logic_relation_label": "AND",
+            "member_summaries": ["条件甲", "条件乙", "条件丙", "条件丁"],
+        },
+        {"condition_id": "a", "name": "条件甲", "summary": "甲说明"},
+        {"condition_id": "b", "name": "条件乙", "summary": "乙说明"},
+        {"condition_id": "c", "name": "条件丙", "summary": "丙说明"},
+        {"condition_id": "d", "name": "条件丁", "summary": "丁说明"}],
+        "c",
+    )
+
+    assert [row[0] for row in table] == [
+        "条件 A", "条件 B", "条件 C", "条件 D", "最终复核组合"
+    ]
+    assert table[-1][1] == "（条件 A） AND （条件 B） AND （条件 C） AND （条件 D）"
+
+
+def test_condition_tree_separates_formula_group_members_and_atomic_details():
+    from ui.event_rule_editor import render_condition_tree
+
+    rows = [
+        {
+            "condition_id": "group",
+            "parent_id": None,
+            "depth": 0,
+            "kind": "条件组",
+            "logic": "AND",
+            "category": "逻辑组合",
+            "name": "属性条件组",
+            "summary": "检测目标 AND 属性复核",
+            "status": "可用",
+            "member_summaries": ["检测目标", "属性复核"],
+            "logic_relation_label": "AND",
+        },
+        {
+            "condition_id": "a",
+            "parent_id": "group",
+            "depth": 1,
+            "kind": "条件",
+            "logic": "ATOM",
+            "category": "目标与属性",
+            "name": "检测目标",
+            "summary": "模型检测基础目标。",
+            "status": "已配置",
+            "logic_member_label": "条件 A",
+        },
+        {
+            "condition_id": "b",
+            "parent_id": "group",
+            "depth": 1,
+            "kind": "条件",
+            "logic": "ATOM",
+            "category": "目标与属性",
+            "name": "属性复核",
+            "summary": "模型属性证据归属于同一主体。",
+            "status": "已配置",
+            "logic_member_label": "条件 B",
+        },
+    ]
+
+    rendered = render_condition_tree(rows)
+    assert rendered.count("检测目标 AND 属性复核") == 1
+    assert rendered.count("模型检测基础目标。") == 1
+    assert rendered.count("模型属性证据归属于同一主体。") == 1
+    assert "<i>条件 A</i>检测目标" in rendered
+    assert "<i>条件 B</i>属性复核" in rendered
+
+
+def test_colour_branch_renders_effective_a_b_evidence_instead_of_dependencies():
+    from ui.event_rule_editor import render_condition_tree
+
+    rows = [
+        {
+            "condition_id": "group",
+            "parent_id": None,
+            "depth": 0,
+            "kind": "条件组",
+            "logic": "AND",
+            "category": "逻辑组合",
+            "name": "黄色目标条件组",
+            "summary": "检测目标 AND 黄色属性",
+            "status": "可用",
+            "effective_formula": (
+                "模型「object」+ yellow占比 AND "
+                "模型「yellow object」+ 同一主体归属"
+            ),
+            "verification_logic": "AND",
+            "verification_child_ids": ["base", "color"],
+            "verification_members": [
+                {
+                    "name": "模型「object」+ yellow占比",
+                    "summary": "条件 A：在基础主体框内校验黄色占比。",
+                },
+                {
+                    "name": "模型「yellow object」+ 同一主体归属",
+                    "summary": "条件 B：语义证据匹配回同一主体。",
+                },
+            ],
+        },
+        {"condition_id": "base", "parent_id": "group", "kind": "条件"},
+        {"condition_id": "color", "parent_id": "group", "kind": "条件"},
+    ]
+
+    rendered = render_condition_tree(rows)
+    assert "检测目标 AND 黄色属性" not in rendered
+    assert rendered.count("模型「object」+ yellow占比") == 3
+    assert rendered.count("模型「yellow object」+ 同一主体归属") == 3
+    assert "条件 A：在基础主体框内校验黄色占比。" in rendered
+    assert "条件 B：语义证据匹配回同一主体。" in rendered
+
+
+def test_colour_review_defaults_to_the_editable_a_b_capability(tmp_path):
+    from core.business_capabilities import build_business_capability_registry
+    from core.business_rule_draft import apply_business_rule_draft
+    from core.editor_service import EditorService
+    from tests.test_business_rule_draft import _base
+
+    registry, document, _ = _base(("image",))
+    draft = {
+        "schema_version": "1.0",
+        "media_requirement": "image",
+        "branches": [{
+            "key": "colored_object",
+            "name": "黄色目标",
+            "media_type": "image",
+            "logic": "AND",
+            "conditions": [
+                {
+                    "key": "object",
+                    "name": "检测目标",
+                    "capability_id": "target.detect",
+                    "parameters": {"targets": ["object"], "phrases": "object"},
+                },
+                {
+                    "key": "yellow",
+                    "name": "黄色属性",
+                    "capability_id": "attribute.color",
+                    "parameters": {
+                        "source": "condition:object",
+                        "part": "whole",
+                        "color": "yellow",
+                        "verification_logic": "AND",
+                    },
+                },
+            ],
+        }],
+        "final_decision": {
+            "name": "黄色目标结果",
+            "decision_type": "detection_summary",
+            "source_refs": ["branch:colored_object"],
+            "combination": "AND",
+        },
+        "results": [{
+            "key": "matches",
+            "name": "黄色目标",
+            "source_ref": "condition:colored_object.yellow",
+            "result_kind": "entities",
+        }],
+    }
+    converted = apply_business_rule_draft(
+        document,
+        draft,
+        build_business_capability_registry(registry),
+        requested_accept=["image"],
+    )
+    compiled = EditorService(registry).apply(converted)
+    controller = _controller(tmp_path)
+    view = controller.business_rule_view(
+        controller._dump(compiled), "image"
+    )
+
+    selected = next(
+        row
+        for row in view["conditions"]
+        if row["condition_id"] == view["condition_id"]
+    )
+    assert selected["capability_id"] == "attribute.color"
+    assert selected["review_primary"] is True
+    assert view["condition_name"] == "黄色属性复核（AND）"
+    assert "条件 A（颜色占比）" in view["parameter_help"]
+    assert "条件 B（模型属性语义 + 同一主体归属）" in view["parameter_help"]
+    assert "模型「object」+ yellow占比" in view["condition_tree"]
+
+
 def test_json_object_or_empty_preserves_ui_after_a_failed_generation():
     from app_v2 import json_object_or_empty
 
@@ -259,30 +481,32 @@ def test_business_parameters_use_controlled_editor_instead_of_freeform_table(tmp
     assert "可直接修改" in phrase[8]
 
 
-def test_dual_input_operator_help_names_both_concrete_targets(tmp_path):
+def test_missing_association_editor_help_uses_generic_business_terms(tmp_path):
     controller = _controller(tmp_path)
-    effective = (
-        Path(__file__).resolve().parents[1]
-        / "presets_v2"
-        / "P10_no_safety_rope.json"
-    ).read_text("utf-8")
+    _, effective, *_ = controller.load_preset("P10_no_safety_rope")
     document = controller._editor_document(effective, "", source_type="preset")
     branch = document.skill_template.business_branches[0]
     editor_json = controller._dump(document)
 
+    missing_condition = next(
+        row["condition_id"]
+        for row in controller.business_rule_editor.condition_rows(
+            document, branch.branch_id
+        )
+        if row.get("capability_id") == "subject.missing_equipment"
+    )
     controls = controller.business_parameter_controls(
         editor_json,
         "image",
         branch.branch_id,
-        "existing_node:has_equipment",
+        missing_condition,
         False,
     )
 
-    assert "目标 A（主体）" in controls[8]
+    assert "主体目标" in controls[8]
     assert "高处作业人员" in controls[8]
-    assert "目标 B（关联对象）" in controls[8]
-    assert "防坠挂绳钩" in controls[8]
-    assert "B 的中心点必须落在 A" in controls[8]
+    assert "应有关联物" in controls[8]
+    assert "模型正向语义证据" in controls[8]
 
 
 def test_event_editor_restores_the_loaded_default_after_parameter_changes(tmp_path):
@@ -652,6 +876,35 @@ def test_grounding_prompt_controls_expose_every_grounding_node(tmp_path):
     assert controls[0]["is_override"] is False
 
 
+def test_grounding_prompt_control_shows_model_phrases_and_business_labels(tmp_path):
+    controller = _controller(tmp_path)
+    data = json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "presets_v2"
+            / "P12_person_fall.json"
+        ).read_text(encoding="utf-8")
+    )
+    node = next(
+        node for node in data["variants"]["video"]["nodes"]
+        if node["op"].startswith("rex.ground@")
+    )
+    node["params"]["targets"] = [
+        {"label": "沙发", "phrases": ["sofa"]},
+        {"label": "黄色", "phrases": ["yellow sofa"]},
+        {"label": "椅子", "phrases": ["chair"]},
+        {"label": "白色", "phrases": ["white chair"]},
+    ]
+
+    controls = controller.grounding_prompt_controls(
+        json.dumps(data, ensure_ascii=False), "video"
+    )
+
+    assert controls[0]["label"] == (
+        "sofa（沙发）；yellow sofa（黄色）；chair（椅子）；white chair（白色）"
+    )
+
+
 def test_grounding_prompt_control_updates_and_resets_only_selected_node(tmp_path):
     controller = _controller(tmp_path)
     effective = (
@@ -749,7 +1002,7 @@ def test_boolean_state_event_can_edit_duration_and_alert_without_numeric_cards(t
     assert nodes["alerts"]["params"]["label"] == "摔倒告警"
 
 
-def test_auto_generated_regions_are_explained_on_annotation_page(tmp_path):
+def test_p08_manual_road_region_is_explained_on_annotation_page(tmp_path):
     controller = _controller(tmp_path)
     effective = (
         Path(__file__).resolve().parents[1]
@@ -759,11 +1012,11 @@ def test_auto_generated_regions_are_explained_on_annotation_page(tmp_path):
 
     overview = controller.annotation_overview(effective, "image")
 
-    assert "自动生成区域" in overview
-    assert "不可手工编辑" in overview
+    assert "02 标注道路区域" in overview
+    assert "标注" in overview
 
 
-def test_p08_auto_road_region_has_no_manual_run_blocker(tmp_path):
+def test_p08_manual_road_region_requires_annotation_before_run(tmp_path):
     controller = _controller(tmp_path)
     effective = (
         Path(__file__).resolve().parents[1]
@@ -776,19 +1029,53 @@ def test_p08_auto_road_region_has_no_manual_run_blocker(tmp_path):
     )
     package = SkillPackage.model_validate_json(effective)
 
-    assert document.skill_template.resource_requirements == []
-    assert document.validation_report["resource_blockers"] == []
-    assert document.validation_report["can_run"] is True
+    assert {
+        item.display_name for item in document.skill_template.resource_requirements
+    } == {"02 标注道路区域"}
+    assert document.validation_report["resource_blockers"]
+    assert document.validation_report["can_run"] is False
     for variant in package.variants.values():
-        road_region = next(
-            node for node in variant.nodes if node.id == "road_regions"
+        assert not any(
+            node.op == "region.from_objects@1.0" for node in variant.nodes
         )
-        assert road_region.op == "region.from_objects@1.0"
+        road_region = next(
+            node for node in variant.nodes if node.op == "region.manual_set@1.0"
+        )
         assert road_region.enabled is True
-        assert variant.configuration_slots == []
+        assert len(variant.configuration_slots) == 1
 
 
-def test_p11_optional_detection_regions_do_not_block_run(tmp_path):
+def test_p08_image_annotation_unblocks_only_the_image_execution_path(tmp_path):
+    controller = _controller(tmp_path)
+    effective = (
+        Path(__file__).resolve().parents[1]
+        / "presets_v2"
+        / "P08_road_debris.json"
+    ).read_text(encoding="utf-8")
+    editor_json = controller._dump(
+        controller._editor_document(effective, "", source_type="preset")
+    )
+    updated, _, _ = controller.bind_annotation(
+        effective,
+        "image",
+        "slot_resource_road_area",
+        "rectangle",
+        "[[0.1, 0.1], [0.8, 0.8]]",
+    )
+
+    image_document = controller._parse_editor_json(
+        controller.prepare_run_editor_document(updated, editor_json, "image")
+    )
+    video_document = controller._parse_editor_json(
+        controller.prepare_run_editor_document(updated, editor_json, "video")
+    )
+
+    assert image_document.validation_report["can_run"] is True
+    assert video_document.validation_report["can_run"] is False
+    assert video_document.validation_report["resource_blockers"]
+
+
+def test_p11_generic_llm_flow_has_no_unrequested_detection_region_requirement(tmp_path):
     controller = _controller(tmp_path)
     effective = (
         Path(__file__).resolve().parents[1]
@@ -801,27 +1088,9 @@ def test_p11_optional_detection_regions_do_not_block_run(tmp_path):
     )
 
     requirements = document.skill_template.resource_requirements
-    assert {item.requirement_id for item in requirements} == {
-        "image_garbage_detection_regions",
-        "video_garbage_detection_regions",
-    }
-    assert all(item.required_before == "never" for item in requirements)
+    assert requirements == []
     assert document.validation_report["resource_blockers"] == []
     assert document.validation_report["can_run"] is True
-
-    for requirement in requirements:
-        requirement.required_before = "run"
-    prepared = controller._parse_editor_json(
-        controller.prepare_run_editor_document(
-            effective, controller._dump(document)
-        )
-    )
-    assert all(
-        item.required_before == "never"
-        for item in prepared.skill_template.resource_requirements
-    )
-    assert prepared.validation_report["resource_blockers"] == []
-    assert prepared.validation_report["can_run"] is True
 
 
 def test_render_label_positions_stack_same_anchor():
@@ -2928,7 +3197,11 @@ def test_preprocess_controls_mutate_real_variant_nodes_and_keep_dedup_explicit(t
         "include_full_frame": True,
     }
     assert all(
-        node["params"] == {"metric": "iou", "threshold": 0.65, "keep": "first"}
+        node["params"] == {
+            "metric": "iou",
+            "threshold": 0.65,
+            "keep": "best_localization",
+        }
         for node in dedup_nodes
     )
     assert controller.validate_json(updated).startswith("✅")
@@ -3011,7 +3284,7 @@ def test_preprocess_controls_can_disable_and_reenable_a_preset_named_tile(tmp_pa
     assert ground["inputs"]["frames"] == f"${tile['id']}"
 
 
-def test_p11_projects_default_slice_and_primary_confirmation_candidates(tmp_path):
+def test_p11_projects_generic_detection_and_count_controls(tmp_path):
     controller = _controller(tmp_path)
     package = (
         Path(__file__).resolve().parents[1]
@@ -3024,11 +3297,7 @@ def test_p11_projects_default_slice_and_primary_confirmation_candidates(tmp_path
         package, "image variant"
     )
 
-    assert execution["tile_enabled"] is True
-    assert execution["tile_width"] == 512
-    assert execution["tile_height"] == 512
-    assert execution["overlap_x"] == 0.2
-    assert execution["overlap_y"] == 0.2
+    assert execution["tile_enabled"] is False
     assert confirmation["enabled"] is False
     assert set(confirmation["labels"]) == {
         "垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"
@@ -3036,30 +3305,18 @@ def test_p11_projects_default_slice_and_primary_confirmation_candidates(tmp_path
     assert "整齐包装货物" not in confirmation["labels"]
 
 
-def test_context_confirmation_projection_excludes_its_own_evidence_label(tmp_path):
+def test_context_confirmation_projection_can_be_enabled_for_generic_labels(tmp_path):
     controller = _controller(tmp_path)
     package = (
         Path(__file__).resolve().parents[1]
         / "presets_v2"
         / "P11_service_area_garbage.json"
     ).read_text(encoding="utf-8")
-    enabled = controller.apply_context_confirmation_control(
-        package,
-        "image variant",
-        True,
-        ["垃圾容器"],
-        "complete trash bin with visible opening and body",
-        1.0,
-        640,
-    )
-
-    values = controller.context_confirmation_control_values(
-        enabled, "image variant"
-    )
-
-    assert values["enabled"] is True
-    assert values["selected_labels"] == ["垃圾容器"]
-    assert "二次可见性确认" not in values["labels"]
+    values = controller.context_confirmation_control_values(package, "image variant")
+    assert values["enabled"] is False
+    assert set(values["labels"]) == {
+        "垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"
+    }
 
 
 def test_effective_change_auto_projects_execution_and_confirmation_controls(tmp_path):
@@ -3090,6 +3347,17 @@ def test_effective_change_auto_projects_execution_and_confirmation_controls(tmp_
     }
     assert tile_enabled_id in projected_outputs
     assert context_enabled_id in projected_outputs
+
+
+def test_tile_deduplication_help_is_available_on_demand(tmp_path):
+    from app_v2 import build_v2_app
+
+    config = build_v2_app(_controller(tmp_path)).get_config_file()
+    labels = {
+        item.get("props", {}).get("label")
+        for item in config["components"]
+    }
+    assert "查看：实例级融合、IoS、IoU 有什么区别" in labels
 
 
 def test_identity_and_original_fps_are_explicit_execution_controls(tmp_path):
@@ -3273,7 +3541,7 @@ def test_execution_read_callback_keeps_video_only_fields_unchanged_for_image_var
     values = callback(effective, "image variant")
 
     assert len(values) == 21
-    assert values[:5] == ("long_side", 1280, None, None, "bilinear")
+    assert values[:5] == ("identity", 1280, None, None, "bilinear")
 
 
 def test_preprocess_switch_rewires_only_primary_grounding_branch(tmp_path):

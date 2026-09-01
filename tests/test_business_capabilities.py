@@ -65,3 +65,47 @@ def test_user_facing_capability_text_is_generic_while_ids_and_recipes_stay_stabl
     assert reverse.display_name == "相对参考方向反向运动"
     assert "逆行只是交通场景" in reverse.description
     assert reverse.compiler_recipe == "reverse_motion"
+
+
+def test_business_capabilities_declare_their_generic_orchestration_slots():
+    catalog = build_business_capability_registry(build_default_registry())
+
+    assert catalog.require("target.detect").orchestration_slot == "condition"
+    assert catalog.require("temporal.persist").orchestration_slot == "branch_time"
+    assert catalog.require("temporal.join").orchestration_slot == "pattern"
+    assert catalog.require("logic.group").orchestration_slot == "condition_operator"
+    assert catalog.require("output.business_result").orchestration_slot == "result"
+
+
+def test_color_capability_exposes_generic_evidence_combination_modes():
+    color = build_business_capability_registry(
+        build_default_registry()
+    ).require("attribute.color")
+    mode = next(
+        parameter
+        for parameter in color.parameters
+        if parameter.parameter_id == "verification_logic"
+    )
+
+    assert mode.default == "AND"
+    assert mode.choices == ["AND", "OR", "FRACTION_ONLY", "SEMANTIC_ONLY"]
+    color_parameter = next(
+        parameter
+        for parameter in color.parameters
+        if parameter.parameter_id == "color"
+    )
+    assert {"red", "yellow", "white", "black"} <= set(color_parameter.choices)
+
+
+def test_geometry_capability_exposes_qualitative_value_for_each_dimension():
+    geometry = build_business_capability_registry(
+        build_default_registry()
+    ).require("attribute.geometry")
+    value = next(
+        parameter
+        for parameter in geometry.parameters
+        if parameter.parameter_id == "value"
+    )
+
+    assert {"small", "medium", "large", "left", "center", "right",
+            "top", "middle", "bottom", "horizontal", "vertical"} <= set(value.choices)

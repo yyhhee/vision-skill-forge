@@ -1,9 +1,9 @@
 {
   "schema_version": "2.0",
   "skill_id": "service_area_garbage",
-  "version": 1,
+  "version": 2,
   "display_name": "服务区垃圾",
-  "original_instruction": "检测服务区画面中的垃圾堆、散落垃圾、垃圾容器及溢出垃圾。",
+  "original_instruction": "检测服务区画面中的垃圾堆、散落垃圾、垃圾容器及溢出垃圾，分别标注类别并输出数量。",
   "compile_status": "compiled",
   "input": {
     "requested_accept": [
@@ -21,31 +21,67 @@
   },
   "semantic_ir": {
     "schema_version": "1.0",
-    "mode": "direct_grounding",
+    "mode": "entity_query",
     "target": {
-      "concept": "garbage",
+      "concept": "waste",
       "source_span": "垃圾堆、散落垃圾、垃圾容器及溢出垃圾",
       "phrases": [
-        "single individual black wheeled garbage bin",
-        "each separate outdoor garbage bin",
-        "trash visibly protruding above the rim of a garbage bin",
-        "garbage piled above the top opening of a garbage bin",
-        "waste spilling out over the upper edge of a garbage bin",
-        "large pile of mixed garbage bags and loose waste",
-        "heap of household trash accumulated on the pavement",
-        "visible garbage pile beside a trash collection point",
-        "isolated loose waste item lying on the pavement",
-        "discarded white plastic bag on the ground",
-        "crumpled plastic bag lying on the pavement",
-        "clearly visible litter item separated from a garbage pile",
-        "group of mixed small litter pieces scattered near a garbage bin"
+        "garbage pile",
+        "scattered garbage",
+        "garbage container",
+        "overflowing garbage"
       ],
-      "classes": []
+      "classes": [
+        {
+          "label": "垃圾堆",
+          "phrases": [
+            "garbage pile"
+          ]
+        },
+        {
+          "label": "散落垃圾",
+          "phrases": [
+            "scattered garbage"
+          ]
+        },
+        {
+          "label": "垃圾容器",
+          "phrases": [
+            "garbage container"
+          ]
+        },
+        {
+          "label": "溢出垃圾",
+          "phrases": [
+            "overflowing garbage"
+          ]
+        }
+      ]
     },
-    "constraints": [],
+    "constraints": [
+      {
+        "atom_id": "atom_1",
+        "kind": "quantity",
+        "value": {
+          "measure": "count"
+        },
+        "source": "分别标注类别并输出数量",
+        "source_span": "输出数量",
+        "polarity": "required",
+        "carrier": null,
+        "carrier_span": null,
+        "phrases": [
+          "garbage pile",
+          "scattered garbage",
+          "garbage container",
+          "overflowing garbage"
+        ],
+        "temporal": false
+      }
+    ],
     "logic": "all",
     "unresolved": [],
-    "semantic_hash": "eb734c13b88fa52618fca502dbafa0eb473ac20b2b8acb881ec2311b34f582b6"
+    "semantic_hash": "f50a49275f29b4e74ccb0db5f842a6ce657b9c24464c8b39e7228817738cb827"
   },
   "variants": {
     "image": {
@@ -68,154 +104,40 @@
             "frames": "$media"
           },
           "params": {
-            "mode": "long_side",
-            "long_side": 1280
+            "mode": "identity"
           },
           "enabled": true
         },
         {
-          "id": "tiles",
-          "op": "image.tile@1.1",
+          "id": "business_shared_grounding",
+          "op": "rex.ground@1.1",
           "inputs": {
             "frames": "$resized"
           },
           "params": {
-            "tile_width": 512,
-            "tile_height": 512,
-            "overlap_x": 0.2,
-            "overlap_y": 0.2,
-            "include_full_frame": true
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$tiles"
-          },
-          "params": {
             "targets": [
-              {
-                "label": "垃圾容器",
-                "phrases": [
-                  "single individual black wheeled garbage bin",
-                  "each separate outdoor garbage bin"
-                ]
-              },
-              {
-                "label": "溢出垃圾",
-                "phrases": [
-                  "trash visibly protruding above the rim of a garbage bin",
-                  "garbage piled above the top opening of a garbage bin",
-                  "waste spilling out over the upper edge of a garbage bin"
-                ]
-              },
               {
                 "label": "垃圾堆",
                 "phrases": [
-                  "large pile of mixed garbage bags and loose waste",
-                  "heap of household trash accumulated on the pavement",
-                  "visible garbage pile beside a trash collection point"
+                  "garbage pile"
                 ]
               },
               {
                 "label": "散落垃圾",
                 "phrases": [
-                  "isolated loose waste item lying on the pavement",
-                  "discarded white plastic bag on the ground",
-                  "crumpled plastic bag lying on the pavement",
-                  "clearly visible litter item separated from a garbage pile",
-                  "group of mixed small litter pieces scattered near a garbage bin"
+                  "scattered garbage"
                 ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$garbage_raw"
-          },
-          "params": {
-            "metric": "iou",
-            "threshold": 0.5,
-            "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_container_candidates",
-          "op": "objects.filter_by_label@1.0",
-          "inputs": {
-            "objects": "$garbage"
-          },
-          "params": {
-            "labels": [
-              "垃圾容器"
-            ],
-            "mode": "include"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_containers",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$garbage_container_candidates"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_container_crops",
-          "op": "object.crop@1.0",
-          "inputs": {
-            "frames": "$resized",
-            "objects": "$garbage_containers"
-          },
-          "params": {
-            "padding_fraction": 0.75,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_container_crops_resized",
-          "op": "image.resize@1.1",
-          "inputs": {
-            "frames": "$garbage_container_crops"
-          },
-          "params": {
-            "mode": "long_side",
-            "long_side": 640
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_container_evidence_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$garbage_container_crops_resized"
-          },
-          "params": {
-            "targets": [
+              },
               {
-                "label": "垃圾容器复核证据",
+                "label": "垃圾容器",
                 "phrases": [
-                  "complete freestanding outdoor garbage bin with visible container body",
-                  "complete wheeled garbage bin with visible opening and body"
+                  "garbage container"
+                ]
+              },
+              {
+                "label": "溢出垃圾",
+                "phrases": [
+                  "overflowing garbage"
                 ]
               }
             ]
@@ -223,64 +145,29 @@
           "enabled": true
         },
         {
-          "id": "garbage_container_evidence",
+          "id": "business_shared_grounding_deduplicated",
           "op": "objects.deduplicate@1.0",
           "inputs": {
-            "objects": "$garbage_container_evidence_raw"
+            "objects": "$business_shared_grounding"
           },
           "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
+            "metric": "instance",
+            "threshold": 0.45,
+            "keep": "best_localization"
           },
           "enabled": true
         },
         {
-          "id": "garbage_container_confirmed",
-          "op": "spatial.associate@1.0",
-          "inputs": {
-            "subjects": "$garbage_containers",
-            "objects": "$garbage_container_evidence"
-          },
-          "params": {
-            "relation": "source_entity",
-            "threshold": 0.0,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ],
-            "object_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ],
-            "same_source_only": false
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_containers_visible",
-          "op": "filter.apply@1.0",
-          "inputs": {
-            "objects": "$garbage_containers",
-            "condition": "$garbage_container_confirmed"
-          },
-          "params": {
-            "output_label": "垃圾容器"
-          },
-          "enabled": true
-        },
-        {
-          "id": "overflow_candidates",
+          "id": "business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste",
           "op": "objects.filter_by_label@1.0",
           "inputs": {
-            "objects": "$garbage"
+            "objects": "$business_shared_grounding_deduplicated"
           },
           "params": {
             "labels": [
+              "垃圾堆",
+              "散落垃圾",
+              "垃圾容器",
               "溢出垃圾"
             ],
             "mode": "include"
@@ -288,146 +175,10 @@
           "enabled": true
         },
         {
-          "id": "overflow_deduplicated",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$overflow_candidates"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "overflow_above_container",
-          "op": "spatial.associate@1.0",
-          "inputs": {
-            "subjects": "$overflow_deduplicated",
-            "objects": "$garbage_containers_visible"
-          },
-          "params": {
-            "relation": "center_in_object_region",
-            "threshold": 0.0,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ],
-            "object_region": [
-              -0.25,
-              -0.5,
-              1.25,
-              0.4
-            ],
-            "same_source_only": false
-          },
-          "enabled": true
-        },
-        {
-          "id": "overflow_visible",
-          "op": "filter.apply@1.0",
-          "inputs": {
-            "objects": "$overflow_deduplicated",
-            "condition": "$overflow_above_container"
-          },
-          "params": {
-            "output_label": "溢出垃圾"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_pile_full_frame_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "targets": [
-              {
-                "label": "垃圾堆",
-                "phrases": [
-                  "large pile of mixed garbage bags and loose waste",
-                  "heap of household trash accumulated on the pavement",
-                  "visible garbage pile beside a trash collection point"
-                ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_piles",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$garbage_pile_full_frame_raw"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "scattered_garbage",
-          "op": "objects.filter_by_label@1.0",
-          "inputs": {
-            "objects": "$garbage"
-          },
-          "params": {
-            "labels": [
-              "散落垃圾"
-            ],
-            "mode": "include"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_semantic_results",
-          "op": "objects.merge@1.0",
-          "inputs": {
-            "objects": [
-              "$garbage_containers_visible",
-              "$overflow_visible",
-              "$garbage_piles",
-              "$scattered_garbage"
-            ]
-          },
-          "params": {},
-          "enabled": true
-        },
-        {
-          "id": "garbage_detection_regions",
-          "op": "region.manual_set@1.0",
-          "inputs": {},
-          "params": {
-            "regions": []
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_in_detection_regions",
-          "op": "objects.filter_by_regions@1.0",
-          "inputs": {
-            "objects": "$garbage_semantic_results",
-            "regions": "$garbage_detection_regions"
-          },
-          "params": {
-            "membership_mode": "center",
-            "overlap_threshold": 0.1,
-            "keep": "inside",
-            "empty_regions": "passthrough"
-          },
-          "enabled": true
-        },
-        {
-          "id": "count",
+          "id": "branch_branch_waste_detection_image_condition_branch_waste_detection_image_cond_count_waste_count",
           "op": "measure.count@1.0",
           "inputs": {
-            "entities": "$garbage_in_detection_regions"
+            "entities": "$business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste"
           },
           "params": {
             "scope": "frame",
@@ -436,49 +187,72 @@
           "enabled": true
         },
         {
-          "id": "draw",
+          "id": "branch_branch_waste_detection_image_condition_branch_waste_detection_image_cond_count_waste_compare",
+          "op": "logic.compare@1.0",
+          "inputs": {
+            "left": "$branch_branch_waste_detection_image_condition_branch_waste_detection_image_cond_count_waste_count"
+          },
+          "params": {
+            "operator": ">=",
+            "value": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_branch_waste_detection_image_group_branch_waste_detection_image_business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste_exists",
+          "op": "reduce.exists@1.0",
+          "inputs": {
+            "sets": "$business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "branch_branch_waste_detection_image_group_branch_waste_detection_image_and",
+          "op": "logic.all@1.0",
+          "inputs": {
+            "conditions": [
+              "$branch_branch_waste_detection_image_group_branch_waste_detection_image_business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste_exists",
+              "$branch_branch_waste_detection_image_condition_branch_waste_detection_image_cond_count_waste_compare"
+            ]
+          },
+          "params": {
+            "combine_scope": "frame_any"
+          },
+          "enabled": true
+        },
+        {
+          "id": "result_draw",
           "op": "output.draw@1.0",
           "inputs": {
             "frames": "$resized",
-            "objects": "$garbage_in_detection_regions",
-            "regions": "$garbage_detection_regions",
-            "measurements": "$count"
+            "objects": "$business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste",
+            "measurements": "$branch_branch_waste_detection_image_condition_branch_waste_detection_image_cond_count_waste_count"
           },
-          "params": {
-            "show_labels": true,
-            "show_track_id": true
-          },
+          "params": {},
           "enabled": true
         }
       ],
       "outputs": {
-        "media": "$draw",
-        "objects": "$garbage_in_detection_regions",
-        "regions": "$garbage_detection_regions",
-        "measurements": "$count"
+        "objects": "$business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste",
+        "result_result_result_waste_entities_image": "$business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste",
+        "result_result_result_waste_counts_image": "$branch_branch_waste_detection_image_condition_branch_waste_detection_image_cond_count_waste_count",
+        "branch_branch_branch_waste_detection_image": "$branch_branch_waste_detection_image_group_branch_waste_detection_image_and",
+        "final_primary": "$branch_branch_waste_detection_image_group_branch_waste_detection_image_and",
+        "media": "$result_draw"
       },
-      "atom_bindings": {},
-      "configuration_slots": [
-        {
-          "slot_id": "garbage_detection_regions",
-          "kind": "region_set",
-          "label": "垃圾检测区域",
-          "required": false,
-          "binding": {
-            "node_id": "garbage_detection_regions",
-            "parameter": "regions"
-          },
-          "allowed_shapes": [
-            "rectangle",
-            "polygon"
-          ],
-          "minimum_items": 1,
-          "source_atom_ids": [],
-          "help_text": "可围住两处垃圾容器及其周边需要检查的地面；可绘制一个或两个区域。已绘制时仅保留区域内结果，未绘制时检测全画面。",
-          "active_when_op": null,
-          "key_source_slot_id": null
-        }
-      ],
+      "atom_bindings": {
+        "atom_1": [
+          "business_shared_grounding",
+          "business_shared_grounding_deduplicated",
+          "business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste",
+          "branch_branch_waste_detection_image_condition_branch_waste_detection_image_cond_count_waste_count",
+          "branch_branch_waste_detection_image_condition_branch_waste_detection_image_cond_count_waste_compare",
+          "branch_branch_waste_detection_image_group_branch_waste_detection_image_business_ground_select_condition_condition_branch_waste_detection_image_cond_detect_waste_exists",
+          "branch_branch_waste_detection_image_group_branch_waste_detection_image_and"
+        ]
+      },
+      "configuration_slots": [],
       "issue": null
     },
     "video": {
@@ -502,7 +276,10 @@
           },
           "params": {
             "mode": "fps",
-            "fps": 1.0
+            "fps": 1.0,
+            "start_seconds": 0.0,
+            "end_seconds": null,
+            "max_frames": null
           },
           "enabled": true
         },
@@ -513,154 +290,40 @@
             "frames": "$frames"
           },
           "params": {
-            "mode": "long_side",
-            "long_side": 1280
+            "mode": "identity"
           },
           "enabled": true
         },
         {
-          "id": "tiles",
-          "op": "image.tile@1.1",
+          "id": "business_shared_grounding",
+          "op": "rex.ground@1.1",
           "inputs": {
             "frames": "$resized"
           },
           "params": {
-            "tile_width": 512,
-            "tile_height": 512,
-            "overlap_x": 0.2,
-            "overlap_y": 0.2,
-            "include_full_frame": true
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$tiles"
-          },
-          "params": {
             "targets": [
-              {
-                "label": "垃圾容器",
-                "phrases": [
-                  "single individual black wheeled garbage bin",
-                  "each separate outdoor garbage bin"
-                ]
-              },
-              {
-                "label": "溢出垃圾",
-                "phrases": [
-                  "trash visibly protruding above the rim of a garbage bin",
-                  "garbage piled above the top opening of a garbage bin",
-                  "waste spilling out over the upper edge of a garbage bin"
-                ]
-              },
               {
                 "label": "垃圾堆",
                 "phrases": [
-                  "large pile of mixed garbage bags and loose waste",
-                  "heap of household trash accumulated on the pavement",
-                  "visible garbage pile beside a trash collection point"
+                  "garbage pile"
                 ]
               },
               {
                 "label": "散落垃圾",
                 "phrases": [
-                  "isolated loose waste item lying on the pavement",
-                  "discarded white plastic bag on the ground",
-                  "crumpled plastic bag lying on the pavement",
-                  "clearly visible litter item separated from a garbage pile",
-                  "group of mixed small litter pieces scattered near a garbage bin"
+                  "scattered garbage"
                 ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$garbage_raw"
-          },
-          "params": {
-            "metric": "iou",
-            "threshold": 0.5,
-            "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_container_candidates",
-          "op": "objects.filter_by_label@1.0",
-          "inputs": {
-            "objects": "$garbage"
-          },
-          "params": {
-            "labels": [
-              "垃圾容器"
-            ],
-            "mode": "include"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_containers",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$garbage_container_candidates"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_container_crops",
-          "op": "object.crop@1.0",
-          "inputs": {
-            "frames": "$resized",
-            "objects": "$garbage_containers"
-          },
-          "params": {
-            "padding_fraction": 0.75,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_container_crops_resized",
-          "op": "image.resize@1.1",
-          "inputs": {
-            "frames": "$garbage_container_crops"
-          },
-          "params": {
-            "mode": "long_side",
-            "long_side": 640
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_container_evidence_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$garbage_container_crops_resized"
-          },
-          "params": {
-            "targets": [
+              },
               {
-                "label": "垃圾容器复核证据",
+                "label": "垃圾容器",
                 "phrases": [
-                  "complete freestanding outdoor garbage bin with visible container body",
-                  "complete wheeled garbage bin with visible opening and body"
+                  "garbage container"
+                ]
+              },
+              {
+                "label": "溢出垃圾",
+                "phrases": [
+                  "overflowing garbage"
                 ]
               }
             ]
@@ -668,64 +331,29 @@
           "enabled": true
         },
         {
-          "id": "garbage_container_evidence",
+          "id": "business_shared_grounding_deduplicated",
           "op": "objects.deduplicate@1.0",
           "inputs": {
-            "objects": "$garbage_container_evidence_raw"
+            "objects": "$business_shared_grounding"
           },
           "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
+            "metric": "instance",
+            "threshold": 0.45,
+            "keep": "best_localization"
           },
           "enabled": true
         },
         {
-          "id": "garbage_container_confirmed",
-          "op": "spatial.associate@1.0",
-          "inputs": {
-            "subjects": "$garbage_containers",
-            "objects": "$garbage_container_evidence"
-          },
-          "params": {
-            "relation": "source_entity",
-            "threshold": 0.0,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ],
-            "object_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ],
-            "same_source_only": false
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_containers_visible",
-          "op": "filter.apply@1.0",
-          "inputs": {
-            "objects": "$garbage_containers",
-            "condition": "$garbage_container_confirmed"
-          },
-          "params": {
-            "output_label": "垃圾容器"
-          },
-          "enabled": true
-        },
-        {
-          "id": "overflow_candidates",
+          "id": "business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste",
           "op": "objects.filter_by_label@1.0",
           "inputs": {
-            "objects": "$garbage"
+            "objects": "$business_shared_grounding_deduplicated"
           },
           "params": {
             "labels": [
+              "垃圾堆",
+              "散落垃圾",
+              "垃圾容器",
               "溢出垃圾"
             ],
             "mode": "include"
@@ -733,235 +361,84 @@
           "enabled": true
         },
         {
-          "id": "overflow_deduplicated",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$overflow_candidates"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "overflow_above_container",
-          "op": "spatial.associate@1.0",
-          "inputs": {
-            "subjects": "$overflow_deduplicated",
-            "objects": "$garbage_containers_visible"
-          },
-          "params": {
-            "relation": "center_in_object_region",
-            "threshold": 0.0,
-            "subject_region": [
-              0.0,
-              0.0,
-              1.0,
-              1.0
-            ],
-            "object_region": [
-              -0.25,
-              -0.5,
-              1.25,
-              0.4
-            ],
-            "same_source_only": false
-          },
-          "enabled": true
-        },
-        {
-          "id": "overflow_visible",
-          "op": "filter.apply@1.0",
-          "inputs": {
-            "objects": "$overflow_deduplicated",
-            "condition": "$overflow_above_container"
-          },
-          "params": {
-            "output_label": "溢出垃圾"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_pile_full_frame_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "targets": [
-              {
-                "label": "垃圾堆",
-                "phrases": [
-                  "large pile of mixed garbage bags and loose waste",
-                  "heap of household trash accumulated on the pavement",
-                  "visible garbage pile beside a trash collection point"
-                ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_piles",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$garbage_pile_full_frame_raw"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization"
-          },
-          "enabled": true
-        },
-        {
-          "id": "scattered_garbage",
-          "op": "objects.filter_by_label@1.0",
-          "inputs": {
-            "objects": "$garbage"
-          },
-          "params": {
-            "labels": [
-              "散落垃圾"
-            ],
-            "mode": "include"
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_semantic_results",
-          "op": "objects.merge@1.0",
-          "inputs": {
-            "objects": [
-              "$garbage_containers_visible",
-              "$overflow_visible",
-              "$garbage_piles",
-              "$scattered_garbage"
-            ]
-          },
-          "params": {},
-          "enabled": true
-        },
-        {
-          "id": "garbage_detection_regions",
-          "op": "region.manual_set@1.0",
-          "inputs": {},
-          "params": {
-            "regions": []
-          },
-          "enabled": true
-        },
-        {
-          "id": "garbage_in_detection_regions",
-          "op": "objects.filter_by_regions@1.0",
-          "inputs": {
-            "objects": "$garbage_semantic_results",
-            "regions": "$garbage_detection_regions"
-          },
-          "params": {
-            "membership_mode": "center",
-            "overlap_threshold": 0.1,
-            "keep": "inside",
-            "empty_regions": "passthrough"
-          },
-          "enabled": true
-        },
-        {
-          "id": "result_tracks",
-          "op": "track.iou@1.0",
-          "inputs": {
-            "objects": "$garbage_in_detection_regions"
-          },
-          "params": {
-            "iou_threshold": 0.2,
-            "max_missing_frames": 1,
-            "same_label_only": true
-          },
-          "enabled": true
-        },
-        {
-          "id": "confirmed_tracks",
-          "op": "track.confirm@1.0",
-          "inputs": {
-            "tracks": "$result_tracks"
-          },
-          "params": {
-            "min_hits": 2,
-            "min_span_seconds": 0.5
-          },
-          "enabled": true
-        },
-        {
-          "id": "confirmed_objects",
-          "op": "objects.from_tracks@1.0",
-          "inputs": {
-            "tracks": "$confirmed_tracks"
-          },
-          "params": {
-            "selection": "all"
-          },
-          "enabled": true
-        },
-        {
-          "id": "count",
+          "id": "branch_branch_waste_detection_video_condition_branch_waste_detection_video_cond_count_waste_count",
           "op": "measure.count@1.0",
           "inputs": {
-            "entities": "$confirmed_tracks"
+            "entities": "$business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste"
           },
           "params": {
-            "scope": "unique",
+            "scope": "frame",
             "group_by": "label"
           },
           "enabled": true
         },
         {
-          "id": "draw",
+          "id": "branch_branch_waste_detection_video_condition_branch_waste_detection_video_cond_count_waste_compare",
+          "op": "logic.compare@1.0",
+          "inputs": {
+            "left": "$branch_branch_waste_detection_video_condition_branch_waste_detection_video_cond_count_waste_count"
+          },
+          "params": {
+            "operator": ">=",
+            "value": 1.0
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_branch_waste_detection_video_group_branch_waste_detection_video_business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste_exists",
+          "op": "reduce.exists@1.0",
+          "inputs": {
+            "sets": "$business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "branch_branch_waste_detection_video_group_branch_waste_detection_video_and",
+          "op": "logic.all@1.0",
+          "inputs": {
+            "conditions": [
+              "$branch_branch_waste_detection_video_group_branch_waste_detection_video_business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste_exists",
+              "$branch_branch_waste_detection_video_condition_branch_waste_detection_video_cond_count_waste_compare"
+            ]
+          },
+          "params": {
+            "combine_scope": "frame_any"
+          },
+          "enabled": true
+        },
+        {
+          "id": "result_draw",
           "op": "output.draw@1.0",
           "inputs": {
             "frames": "$resized",
-            "objects": "$confirmed_tracks",
-            "regions": "$garbage_detection_regions",
-            "measurements": "$count"
+            "objects": "$business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste",
+            "measurements": "$branch_branch_waste_detection_video_condition_branch_waste_detection_video_cond_count_waste_count"
           },
-          "params": {
-            "show_labels": true,
-            "show_track_id": true,
-            "show_trajectory": true
-          },
+          "params": {},
           "enabled": true
         }
       ],
       "outputs": {
-        "media": "$draw",
-        "objects": "$confirmed_objects",
-        "regions": "$garbage_detection_regions",
-        "tracks": "$confirmed_tracks",
-        "measurements": "$count"
+        "objects": "$business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste",
+        "result_result_result_waste_entities_video": "$business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste",
+        "result_result_result_waste_counts_video": "$branch_branch_waste_detection_video_condition_branch_waste_detection_video_cond_count_waste_count",
+        "branch_branch_branch_waste_detection_video": "$branch_branch_waste_detection_video_group_branch_waste_detection_video_and",
+        "final_primary": "$branch_branch_waste_detection_video_group_branch_waste_detection_video_and",
+        "media": "$result_draw"
       },
-      "atom_bindings": {},
-      "configuration_slots": [
-        {
-          "slot_id": "garbage_detection_regions",
-          "kind": "region_set",
-          "label": "垃圾检测区域",
-          "required": false,
-          "binding": {
-            "node_id": "garbage_detection_regions",
-            "parameter": "regions"
-          },
-          "allowed_shapes": [
-            "rectangle",
-            "polygon"
-          ],
-          "minimum_items": 1,
-          "source_atom_ids": [],
-          "help_text": "可围住两处垃圾容器及其周边需要检查的地面；可绘制一个或两个区域。已绘制时仅保留区域内结果，未绘制时检测全画面。",
-          "active_when_op": null,
-          "key_source_slot_id": null
-        }
-      ],
+      "atom_bindings": {
+        "atom_1": [
+          "business_shared_grounding",
+          "business_shared_grounding_deduplicated",
+          "business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste",
+          "branch_branch_waste_detection_video_condition_branch_waste_detection_video_cond_count_waste_count",
+          "branch_branch_waste_detection_video_condition_branch_waste_detection_video_cond_count_waste_compare",
+          "branch_branch_waste_detection_video_group_branch_waste_detection_video_business_ground_select_condition_condition_branch_waste_detection_video_cond_detect_waste_exists",
+          "branch_branch_waste_detection_video_group_branch_waste_detection_video_and"
+        ]
+      },
+      "configuration_slots": [],
       "issue": null
     }
   },

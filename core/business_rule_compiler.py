@@ -22,7 +22,6 @@ from .visual_catalog import (
     CARRIER_CATALOG,
     CARRIER_TEXT_ALIASES,
     COLOR_ALIASES,
-    COLOR_MIN_FRACTIONS,
 )
 
 
@@ -54,7 +53,10 @@ def _walk(expression: ConditionExpression | None) -> Iterable[ConditionExpressio
 
 
 def _safe_id(*parts: str) -> str:
-    text = "_".join(parts)
+    # Callers commonly include a branch/index counter when creating stable
+    # fan-out node ids.  Normalize all parts here so generated business
+    # graphs remain valid for any number of branches.
+    text = "_".join(str(part) for part in parts)
     text = re.sub(r"[^A-Za-z0-9_-]+", "_", text).strip("_")
     if not text or not text[0].isalpha():
         text = "rule_" + text
@@ -245,6 +247,18 @@ class BusinessRuleCompiler:
                 ]
             builder = _GraphBuilder(graph, self.registry)
             compiling: set[str] = set()
+            # Rex accepts a category list in one inference.  Business
+            # conditions used to create an independent grounding node for
+            # every base target and every attribute evidence phrase, even
+            # when all of them inspect the same image/video frame.  Keep one
+            # shared request per media graph and split its labelled results
+            # back into the individual condition chains below.
+            shared_grounding: dict[str, Any] = {
+                "raw": None,
+                "value": None,
+                "targets": {},
+                "source_refs": [],
+            }
 
             def compile_source(
                 source_ref: str | None,
@@ -304,12 +318,34 @@ class BusinessRuleCompiler:
                             branch,
                             expression,
                             compile_source,
+                            shared_grounding,
+                            expression_index,
                         )
                     else:
+                        sibling_ids = {
+                            child.expression_id
+                            for child in expression.children
+                            if child.enabled
+                        }
                         children = [
                             compile_expression(branch, child)
                             for child in expression.children
                             if child.enabled
+                            and not (
+                                expression.operator == "AND"
+                                and (
+                                    (
+                                        self._is_redundant_single_attribute_join(
+                                            child, expression_index
+                                        )
+                                        and self._single_attribute_reference(child)
+                                        in sibling_ids
+                                    )
+                                    or self._is_supporting_evidence_condition(
+                                        child, sibling_ids, expression_index
+                                    )
+                                )
+                            )
                         ]
                         if expression.operator == "NOT":
                             condition = self._as_condition(
@@ -515,22 +551,37 @@ class BusinessRuleCompiler:
             for node in builder.graph.nodes
             for name in ([node.output_name] if node.output_name else []) + node.output_names
         }
+        exposed_objects_node_id: str | None = None
         if "objects" not in existing_outputs:
             priorities = {
                 "spatial.membership": 50,
                 "subject.same_attributes": 40,
+                "subject.missing_equipment": 40,
                 "state.detect": 35,
                 "state.transition": 35,
                 "attribute.color": 30,
                 "attribute.classify": 30,
                 "target.detect": 10,
             }
-            selected = []
+            selected: list[tuple[str, str, str | None]] = []
             for branch in branches:
                 if branch.media_type != media_type or not branch.enabled:
                     continue
                 if branch.condition_root is None:
                     continue
+                # A single business branch may intentionally detect several
+                # categories in one batched model request (for example,
+                # garbage pile/container/overflow/litter).  Do not overwrite
+                # those model labels with the branch display name: doing so
+                # destroys the category information in the public evidence
+                # output.  Branch relabeling remains appropriate for a
+                # single-target branch.
+                multi_target_branch = any(
+                    expression.capability_id == "target.detect"
+                    and isinstance(expression.parameters.get("targets"), list)
+                    and len(expression.parameters.get("targets") or []) > 1
+                    for expression in _walk(branch.condition_root)
+                )
                 candidates = []
                 for index, expression in enumerate(_walk(branch.condition_root)):
                     value = expressions.get(expression.expression_id)
@@ -544,19 +595,87 @@ class BusinessRuleCompiler:
                         )
                     )
                 if candidates:
-                    selected.append(max(candidates)[2])
+                    # OR means every child may independently be the matched
+                    # entity.  Preserve the union of those entity sets rather
+                    # than selecting the last/highest-ranked child (which
+                    # silently dropped labels such as smoke when fire was
+                    # listed later).  The child detector already owns its
+                    # semantic label, so it must not be overwritten by the
+                    # branch label.
+                    if branch.condition_root.operator == "OR":
+                        selected.extend(
+                            (entity_node_id, branch.branch_id, None)
+                            for _, _, entity_node_id in candidates
+                        )
+                    else:
+                        selected.append((
+                            max(candidates)[2],
+                            branch.branch_id,
+                            None if multi_target_branch else branch.display_name,
+                        ))
             selected = list(dict.fromkeys(selected))
-            if len(selected) == 1:
-                builder.expose(selected[0], "objects")
-            elif selected:
+            labeled_nodes = []
+            for index, (node_id, branch_id, branch_label) in enumerate(selected):
+                if branch_label is None:
+                    labeled_nodes.append(node_id)
+                    continue
+                labeled = builder.add(
+                    node_id=_safe_id(
+                        "business", "branch_evidence", branch_id, index, "label"
+                    ),
+                    operator="objects.relabel@1.0",
+                    display_name=f"{branch_label}结果标签",
+                    inputs={"objects": builder.existing(node_id)},
+                    params={"label": branch_label},
+                    business_source_refs=[
+                        f"node:system:branch_entity_label:{branch_id}"
+                    ],
+                )
+                labeled_nodes.append(labeled.node_id)
+            if len(labeled_nodes) == 1:
+                builder.expose(labeled_nodes[0], "objects")
+                exposed_objects_node_id = labeled_nodes[0]
+            elif labeled_nodes:
                 merged = builder.add(
                     node_id=_safe_id("business", "branch_evidence", "objects"),
                     operator="objects.merge@1.0",
                     display_name="业务分支目标证据",
-                    inputs={"objects": [builder.existing(item) for item in selected]},
+                    inputs={
+                        "objects": [
+                            builder.existing(item) for item in labeled_nodes
+                        ]
+                    },
                     business_source_refs=["node:system:branch_entity_evidence"],
                 )
                 builder.expose(merged.node_id, "objects")
+                exposed_objects_node_id = merged.node_id
+
+        if exposed_objects_node_id is not None:
+            # The package object output and the annotated media must describe
+            # the same final business entities. Imported graphs may already
+            # contain a draw node wired to an earlier intermediate entity set;
+            # rebind that explicit edge to the newly exposed, relabelled
+            # evidence without changing any condition or event dependency.
+            draw_ids = {
+                node.node_id
+                for node in builder.graph.nodes
+                if node.operator == "output.draw@1.0"
+            }
+            for draw_id in draw_ids:
+                object_edges = [
+                    edge
+                    for edge in builder.graph.edges
+                    if edge.target == draw_id and edge.port == "objects"
+                ]
+                if object_edges:
+                    for edge in object_edges:
+                        edge.source = exposed_objects_node_id
+                else:
+                    builder.graph.edges.append(RuleEdge(
+                        source=exposed_objects_node_id,
+                        target=draw_id,
+                        port="objects",
+                    ))
 
         if "regions" not in existing_outputs:
             region_nodes = [
@@ -583,6 +702,8 @@ class BusinessRuleCompiler:
         branch: BusinessBranch,
         expression: ConditionExpression,
         compile_source,
+        shared_grounding: dict[str, Any],
+        expression_index: dict[str, tuple[BusinessBranch, ConditionExpression]],
     ) -> CompiledValue:
         if expression.source_ref and expression.source_ref.startswith("node:"):
             return builder.existing(expression.source_ref.split(":", 1)[1])
@@ -621,15 +742,19 @@ class BusinessRuleCompiler:
         capability = expression.capability_id
         if capability == "target.detect":
             targets = self._target_list(p)
-            value = builder.add(
-                node_id=_safe_id(base, "detect"),
-                operator="rex.ground@1.1",
+            value = self._shared_grounding_value(
+                builder,
+                targets,
                 display_name=expression.display_name,
-                params={"targets": targets},
-                business_source_refs=[source_ref],
+                source_ref=source_ref,
+                cache=shared_grounding,
             )
             business_label = str(p.get("business_label") or "").strip()
-            if business_label:
+            # Preserve the model's per-target labels for a batched detector.
+            # A branch label is only a safe replacement when the detector has
+            # one target; otherwise all categories would collapse into one
+            # generic box label in the final evidence output.
+            if business_label and len(targets) <= 1:
                 value = builder.add(
                     node_id=_safe_id(base, "label"),
                     operator="objects.relabel@1.0",
@@ -652,6 +777,13 @@ class BusinessRuleCompiler:
         if capability == "attribute.color":
             upstream = source()
             color_value = _canonical_color(p.get("color"))
+            verification_logic = str(
+                p.get("verification_logic") or "AND"
+            ).strip().upper()
+            if verification_logic not in {
+                "AND", "OR", "FRACTION_ONLY", "SEMANTIC_ONLY",
+            }:
+                verification_logic = "AND"
             carrier_key, carrier_phrase = self._infer_color_carrier(
                 p, expression.display_name
             )
@@ -666,22 +798,19 @@ class BusinessRuleCompiler:
                 # whole person box and defeats the colour verification.
                 generic_clothing = carrier_key == "clothing"
                 subject_phrase = f"{color_value} {carrier_phrase}".strip()
-                catalog_default = max(
-                    10,
-                    100 * COLOR_MIN_FRACTIONS.get(color_value, 0.2) * 0.75,
-                )
+                # Business-level colour tuning uses one transparent baseline
+                # for every carrier. Direct legacy semantic workflows keep
+                # their historical colour catalog defaults.
+                catalog_default = 10
                 # Natural-language drafts materialize omitted tuning fields
-                # with the capability default (20%).  For generic clothing
-                # that default is too strict for small/partially visible
-                # garment boxes, so only the planner-inferred value uses the
-                # carrier-aware 15% baseline; an explicit editor value remains
-                # authoritative.
+                # with the capability default (10%). Explicit editor values
+                # remain authoritative.
                 inferred_default = generic_clothing and getattr(
                     expression.parameter_sources.get("minimum_fraction"),
                     "source",
                     None,
                 ) == "llm_business_draft"
-                default_fraction = catalog_default if inferred_default else 20
+                default_fraction = catalog_default if inferred_default else 10
                 minimum_fraction = (
                     default_fraction
                     if inferred_default
@@ -689,73 +818,67 @@ class BusinessRuleCompiler:
                         p.get("minimum_fraction"), default_fraction
                     )
                 )
-                evidence = builder.add(
-                    node_id=_safe_id(base, "wearing_evidence"),
-                    operator="rex.ground@1.1",
-                    display_name=f"{expression.display_name}语义证据",
-                    params={
-                        "targets": [{
+                color_condition = None
+                if verification_logic != "SEMANTIC_ONLY":
+                    color_condition = builder.add(
+                        node_id=_safe_id(base, "color"),
+                        operator="visual.color_fraction@1.0",
+                        display_name=expression.display_name,
+                        inputs={"objects": upstream},
+                        params={
+                            "color": color_value,
+                            "subject_region": self._subject_region(p.get("part", "whole")),
+                            "min_fraction": minimum_fraction / 100.0,
+                            "selection_mode": "fraction",
+                            "dominance_margin": 0.05,
+                            "color_tolerance": "semantic",
+                        },
+                        business_source_refs=[source_ref],
+                    )
+                owner_condition = None
+                if verification_logic != "FRACTION_ONLY":
+                    evidence = self._shared_grounding_value(
+                        builder,
+                        [{
                             "label": expression.display_name,
                             "phrases": [subject_phrase],
                         }],
-                    },
-                    business_source_refs=[source_ref],
-                )
-                color_condition = builder.add(
-                    node_id=_safe_id(base, "color"),
-                    operator="visual.color_fraction@1.0",
-                    display_name=expression.display_name,
-                    inputs={"objects": evidence},
-                    params={
-                        "color": color_value,
-                        # The grounding result is already the carrier box;
-                        # never reapply a person-oriented upper/lower crop to
-                        # it, or a small garment can be cropped away.
-                        "subject_region": [0, 0, 1, 1],
-                        "min_fraction": minimum_fraction / 100.0,
-                        # Rex has already provided a named attribute box. A
-                        # fraction is therefore a consistency check rather
-                        # than the primary classifier, keeping the rule
-                        # robust to multicolour, shaded and partially visible
-                        # garments or equipment.
-                        "selection_mode": "fraction",
-                        "dominance_margin": 0.05,
-                        # This check corroborates an already grounded
-                        # attribute box.  It can therefore tolerate the
-                        # narrow yellow/orange boundary used for mustard and
-                        # golden garments without weakening raw box checks.
-                        "color_tolerance": "semantic",
-                    },
-                    business_source_refs=[source_ref],
-                )
-                colored_evidence = builder.add(
-                    node_id=_safe_id(base, "colored_evidence"),
-                    operator="filter.apply@1.0",
-                    display_name=f"{expression.display_name}颜色证据",
-                    inputs={"objects": evidence, "condition": color_condition},
-                    params={"output_label": None},
-                    business_source_refs=[source_ref],
-                )
-                owner_condition = builder.add(
-                    node_id=_safe_id(base, "owner"),
-                    operator="spatial.associate@1.0",
-                    display_name=f"{expression.display_name}归属目标",
-                    inputs={
-                        "subjects": upstream,
-                        "objects": colored_evidence,
-                    },
-                    # Carrier evidence is normally smaller than its person or
-                    # vehicle. Select the best enclosing target rather than
-                    # requiring a symmetric overlap between two differently
-                    # sized boxes.
-                    params={"relation": "best_owner", "threshold": 0.1},
-                    business_source_refs=[source_ref],
-                )
+                        display_name=f"{expression.display_name}语义证据",
+                        source_ref=source_ref,
+                        cache=shared_grounding,
+                    )
+                    owner_condition = builder.add(
+                        node_id=_safe_id(base, "owner"),
+                        operator="spatial.associate@1.0",
+                        display_name=f"{expression.display_name}归属目标",
+                        inputs={"subjects": upstream, "objects": evidence},
+                        params={"relation": "best_owner", "threshold": 0.1},
+                        business_source_refs=[source_ref],
+                    )
+                if verification_logic in {"AND", "OR"}:
+                    combined_condition = builder.add(
+                        node_id=_safe_id(base, verification_logic.lower()),
+                        operator=(
+                            "logic.all@1.0"
+                            if verification_logic == "AND"
+                            else "logic.any@1.0"
+                        ),
+                        display_name=f"{expression.display_name}双证据复核",
+                        inputs={"conditions": [color_condition, owner_condition]},
+                        params={"combine_scope": "by_key"},
+                        business_source_refs=[source_ref],
+                    )
+                else:
+                    combined_condition = (
+                        color_condition
+                        if verification_logic == "FRACTION_ONLY"
+                        else owner_condition
+                    )
                 return builder.add(
                     node_id=_safe_id(base, "apply"),
                     operator="filter.apply@1.0",
                     display_name=f"符合{expression.display_name}的目标",
-                    inputs={"objects": upstream, "condition": owner_condition},
+                    inputs={"objects": upstream, "condition": combined_condition},
                     params={"output_label": None},
                     business_source_refs=[source_ref],
                 )
@@ -770,62 +893,70 @@ class BusinessRuleCompiler:
             # evidence-first strategy available outside clothing tasks.
             target_phrase = self._grounding_phrase(builder, upstream)
             if target_phrase:
-                evidence = builder.add(
-                    node_id=_safe_id(base, "attribute_evidence"),
-                    operator="rex.ground@1.1",
-                    display_name=f"{expression.display_name}语义证据",
-                    params={
-                        "targets": [{
+                color_condition = None
+                if verification_logic != "SEMANTIC_ONLY":
+                    color_condition = builder.add(
+                        node_id=_safe_id(base, "color"),
+                        operator="visual.color_fraction@1.0",
+                        display_name=expression.display_name,
+                        inputs={"objects": upstream},
+                        params={
+                            "color": color_value,
+                            "subject_region": self._subject_region(p.get("part", "whole")),
+                            "min_fraction": _float_or_default(
+                                p.get("minimum_fraction"), 10
+                            )
+                            / 100.0,
+                            "selection_mode": "fraction",
+                            "dominance_margin": 0.05,
+                            "color_tolerance": "semantic",
+                        },
+                        business_source_refs=[source_ref],
+                    )
+                owner_condition = None
+                if verification_logic != "FRACTION_ONLY":
+                    evidence = self._shared_grounding_value(
+                        builder,
+                        [{
                             "label": expression.display_name,
                             "phrases": [f"{color_value} {target_phrase}"],
                         }],
-                    },
-                    business_source_refs=[source_ref],
-                )
-                color_condition = builder.add(
-                    node_id=_safe_id(base, "color"),
-                    operator="visual.color_fraction@1.0",
-                    display_name=expression.display_name,
-                    inputs={"objects": evidence},
-                    params={
-                        "color": color_value,
-                        "subject_region": self._subject_region(p.get("part", "whole")),
-                        "min_fraction": _float_or_default(
-                            p.get("minimum_fraction"), 20
-                        )
-                        / 100.0,
-                        # The model supplies the semantic/attribute box;
-                        # fraction is only a colour-consistency check.  A
-                        # fraction test tolerates multicolour objects and
-                        # partial visibility without requiring one dominant
-                        # hue to fill the entire evidence crop.
-                        "selection_mode": "fraction",
-                        "dominance_margin": 0.05,
-                        "color_tolerance": "semantic",
-                    },
-                    business_source_refs=[source_ref],
-                )
-                colored_evidence = builder.add(
-                    node_id=_safe_id(base, "colored_evidence"),
-                    operator="filter.apply@1.0",
-                    display_name=f"{expression.display_name}颜色证据",
-                    inputs={"objects": evidence, "condition": color_condition},
-                    params={"output_label": None},
-                    business_source_refs=[source_ref],
-                )
-                owner_condition = builder.add(
-                    node_id=_safe_id(base, "owner"),
-                    operator="spatial.associate@1.0",
-                    display_name=f"{expression.display_name}归属目标",
-                    inputs={"subjects": upstream, "objects": colored_evidence},
-                    params={"relation": "best_owner", "threshold": 0.1},
-                    business_source_refs=[source_ref],
-                )
+                        display_name=f"{expression.display_name}语义证据",
+                        source_ref=source_ref,
+                        cache=shared_grounding,
+                    )
+                    owner_condition = builder.add(
+                        node_id=_safe_id(base, "owner"),
+                        operator="spatial.associate@1.0",
+                        display_name=f"{expression.display_name}归属目标",
+                        inputs={"subjects": upstream, "objects": evidence},
+                        params={"relation": "best_owner", "threshold": 0.1},
+                        business_source_refs=[source_ref],
+                    )
+                if verification_logic in {"AND", "OR"}:
+                    combined_condition = builder.add(
+                        node_id=_safe_id(base, verification_logic.lower()),
+                        operator=(
+                            "logic.all@1.0"
+                            if verification_logic == "AND"
+                            else "logic.any@1.0"
+                        ),
+                        display_name=f"{expression.display_name}双证据复核",
+                        inputs={"conditions": [color_condition, owner_condition]},
+                        params={"combine_scope": "by_key"},
+                        business_source_refs=[source_ref],
+                    )
+                else:
+                    combined_condition = (
+                        color_condition
+                        if verification_logic == "FRACTION_ONLY"
+                        else owner_condition
+                    )
                 return builder.add(
                     node_id=_safe_id(base, "apply"),
                     operator="filter.apply@1.0",
                     display_name=f"符合{expression.display_name}的目标",
-                    inputs={"objects": upstream, "condition": owner_condition},
+                    inputs={"objects": upstream, "condition": combined_condition},
                     params={"output_label": None},
                     business_source_refs=[source_ref],
                 )
@@ -842,7 +973,7 @@ class BusinessRuleCompiler:
                     "color": color_value,
                     "subject_region": self._subject_region(p.get("part", "whole")),
                     "min_fraction": _float_or_default(
-                        p.get("minimum_fraction"), 20,
+                        p.get("minimum_fraction"), 10,
                     )
                     / 100.0,
                     "selection_mode": "fraction",
@@ -860,16 +991,27 @@ class BusinessRuleCompiler:
             )
         if capability == "attribute.geometry":
             upstream = source()
-            dimension = p.get("dimension", "size")
+            dimension = str(p.get("dimension") or "size").strip().lower()
             threshold = _float_or_default(p.get("threshold"), 1)
-            params = {"dimension": dimension}
+            allowed_values = {
+                "size": {"small", "medium", "large"},
+                "position": {"left", "center", "right", "top", "middle", "bottom"},
+                "aspect_ratio": {"horizontal", "vertical"},
+            }
+            # ``value`` is optional for old saved skills.  New drafts carry
+            # the qualitative target explicitly; invalid/missing values fall
+            # back to the historical defaults instead of silently selecting a
+            # different dimension.  Aspect-ratio drafts from the old schema
+            # retain their operator-based horizontal/vertical inference.
+            value = str(p.get("value") or "").strip().lower()
+            if value not in allowed_values.get(dimension, set()):
+                if dimension == "aspect_ratio":
+                    value = "horizontal" if p.get("operator", ">=") in {">", ">="} else "vertical"
+                else:
+                    value = {"size": "medium", "position": "center"}.get(dimension, "medium")
+            params = {"dimension": dimension, "value": value}
             if dimension == "aspect_ratio":
-                params.update(
-                    {
-                        "value": "horizontal" if p.get("operator", ">=") in {">", ">="} else "vertical",
-                        "aspect_ratio_threshold": max(threshold, 0.01),
-                    }
-                )
+                params["aspect_ratio_threshold"] = max(threshold, 0.01)
             condition = builder.add(
                 node_id=_safe_id(base, "geometry"),
                 operator="visual.geometry@1.0",
@@ -886,7 +1028,120 @@ class BusinessRuleCompiler:
                 business_source_refs=[source_ref],
             )
         if capability in {"subject.same_attributes", "subject.missing_equipment"}:
+            if (
+                capability == "subject.same_attributes"
+                and self._is_redundant_single_attribute_join(
+                    expression, expression_index
+                )
+            ):
+                # Attribute colour compilation already returns the original
+                # subject boxes after binding its surviving evidence to the
+                # subject.  Repeating an IoS pair/join for that one same
+                # attribute adds work without changing the result.
+                return compile_source(
+                    (p.get("attributes") or [None])[0],
+                    branch,
+                    "属性或装备证据",
+                )
             subject = compile_source(p.get("subject"), branch, "主体目标")
+            if capability == "subject.missing_equipment":
+                mode = str(
+                    p.get("verification_mode") or "模型语义优先"
+                ).strip()
+                semantic_ref = p.get("semantic_evidence")
+                semantic_present = None
+                if semantic_ref:
+                    semantic = compile_source(
+                        semantic_ref, branch, "模型正向语义证据"
+                    )
+                    semantic_present = builder.add(
+                        node_id=_safe_id(base, "semantic_present"),
+                        operator="spatial.associate@1.0",
+                        display_name=f"{expression.display_name}模型语义归属",
+                        inputs={"subjects": subject, "objects": semantic},
+                        params={"relation": "mutual_match", "threshold": 0.5},
+                        business_source_refs=[source_ref],
+                    )
+
+                if mode == "仅模型语义" and semantic_present is None:
+                    raise BusinessRuleCompileError(
+                        f"条件“{expression.display_name}”选择了仅模型语义，但尚未配置模型正向语义证据。"
+                    )
+                needs_relation = (
+                    semantic_present is None
+                    or mode in {
+                        "仅关系复核",
+                        "模型语义且关系复核",
+                        "模型语义或关系复核",
+                    }
+                )
+                relation_present = None
+                if needs_relation:
+                    equipment = compile_source(
+                        p.get("equipment"), branch, "关联物证据"
+                    )
+                    subject_region = self._missing_equipment_subject_region(
+                        p, expression_index
+                    )
+                    relation_present = builder.add(
+                        node_id=_safe_id(base, "relation_present"),
+                        operator="spatial.associate@1.0",
+                        display_name=f"{expression.display_name}关系复核",
+                        inputs={"subjects": subject, "objects": equipment},
+                        params=(
+                            {
+                                "relation": "center_in_subject_region",
+                                "subject_region": subject_region,
+                            }
+                            if subject_region is not None
+                            else {
+                                "relation": "contains",
+                                "threshold": _float_or_default(
+                                    p.get("association"), 30
+                                ) / 100.0,
+                            }
+                        ),
+                        business_source_refs=[source_ref],
+                    )
+                if mode in {"仅模型语义", "模型语义优先"} and semantic_present is not None:
+                    present = semantic_present
+                elif mode == "模型语义且关系复核" and semantic_present is not None:
+                    present = builder.add(
+                        node_id=_safe_id(base, "semantic_and_relation"),
+                        operator="logic.all@1.0",
+                        display_name=f"{expression.display_name}双证据同时满足",
+                        inputs={"conditions": [semantic_present, relation_present]},
+                        params={"combine_scope": "by_key"},
+                        business_source_refs=[source_ref],
+                    )
+                elif mode == "模型语义或关系复核" and semantic_present is not None:
+                    present = builder.add(
+                        node_id=_safe_id(base, "semantic_or_relation"),
+                        operator="logic.any@1.0",
+                        display_name=f"{expression.display_name}任一证据满足",
+                        inputs={"conditions": [semantic_present, relation_present]},
+                        params={"combine_scope": "by_key"},
+                        business_source_refs=[source_ref],
+                    )
+                else:
+                    assert relation_present is not None
+                    present = relation_present
+
+                missing = builder.add(
+                    node_id=_safe_id(base, "missing"),
+                    operator="logic.not@1.0",
+                    display_name=expression.display_name,
+                    inputs={"condition": present},
+                    business_source_refs=[source_ref],
+                )
+                return builder.add(
+                    node_id=_safe_id(base, "missing_subjects"),
+                    operator="filter.apply@1.0",
+                    display_name=expression.display_name,
+                    inputs={"objects": subject, "condition": missing},
+                    params={"output_label": None},
+                    business_source_refs=[source_ref],
+                )
             references = p.get("attributes") if capability == "subject.same_attributes" else [p.get("equipment")]
             current = subject
             for index, reference in enumerate(references or [], start=1):
@@ -1388,6 +1643,234 @@ class BusinessRuleCompiler:
             builder.expose(node_id, output_name)
             spec.required_outputs = [output_name]
 
+    def _shared_grounding_value(
+        self,
+        builder: _GraphBuilder,
+        targets: list[dict[str, Any]],
+        *,
+        display_name: str,
+        source_ref: str,
+        cache: dict[str, Any],
+    ) -> CompiledValue:
+        """Add targets to the media-level Rex request and select its labels.
+
+        A condition still receives its own ObjectSet, so downstream colour,
+        geometry and association rules remain independently editable.  Only
+        the model invocation is shared.
+        """
+
+        raw = cache.get("raw")
+        if raw is None:
+            raw = builder.add(
+                node_id="business_shared_grounding",
+                operator="rex.ground@1.1",
+                display_name="一次模型检测",
+                params={"targets": []},
+                business_source_refs=[],
+            )
+            cache["raw"] = raw
+            # A shared Rex request returns all requested categories at once.
+            # Its raw output is evidence, not yet a business entity set: model
+            # repetitions for the same visible instance must not inflate any
+            # downstream selector, count, relation, or event.  Keep this
+            # explicit in the graph so every generated skill has the same
+            # reviewable per-frame, per-label instance policy.
+            cache["value"] = builder.add(
+                node_id="business_shared_grounding_deduplicated",
+                operator="objects.deduplicate@1.0",
+                display_name="统一实例去重",
+                inputs={"objects": raw},
+                params={
+                    "metric": "instance",
+                    "threshold": 0.45,
+                    "keep": "best_localization",
+                },
+                business_source_refs=["node:system:shared_grounding_dedup"],
+            )
+
+        raw_node = builder.nodes[raw.node_id]
+        labels: list[str] = []
+        for target in targets:
+            label = str(target.get("label") or "").strip()
+            phrases = tuple(
+                str(item).strip()
+                for item in (target.get("phrases") or [])
+                if str(item).strip()
+            )
+            if not label or not phrases:
+                raise BusinessRuleCompileError("检测目标至少需要一个类别或短语。")
+            key = (label, phrases)
+            entry = cache["targets"].get(key)
+            if entry is None:
+                used_labels = {
+                    item["ground_label"] for item in cache["targets"].values()
+                }
+                ground_label = label
+                suffix = 2
+                while ground_label in used_labels:
+                    ground_label = f"{label} {suffix}"
+                    suffix += 1
+                entry = {"ground_label": ground_label}
+                cache["targets"][key] = entry
+                raw_node.params["targets"].append(
+                    {"label": ground_label, "phrases": list(phrases)}
+                )
+            labels.append(entry["ground_label"])
+
+        if source_ref not in cache["source_refs"]:
+            cache["source_refs"].append(source_ref)
+            raw_node.business_source_refs.append(source_ref)
+        return builder.add(
+            node_id=_safe_id("business", "ground_select", source_ref),
+            operator="objects.filter_by_label@1.0",
+            display_name=display_name,
+            inputs={"objects": cache["value"]},
+            params={"labels": labels, "mode": "include"},
+            business_source_refs=[source_ref],
+        )
+
+    @staticmethod
+    def _single_attribute_reference(expression: ConditionExpression) -> str | None:
+        references = expression.parameters.get("attributes") or []
+        references = references if isinstance(references, list) else [references]
+        reference = references[0] if len(references) == 1 else None
+        if isinstance(reference, str) and reference.startswith("condition:"):
+            return reference.split(":", 1)[1]
+        return None
+
+    @staticmethod
+    def _is_redundant_single_attribute_join(
+        expression: ConditionExpression,
+        expression_index: dict[str, tuple[BusinessBranch, ConditionExpression]],
+    ) -> bool:
+        """Whether an explicit one-attribute join duplicates colour binding."""
+
+        subject = expression.parameters.get("subject")
+        references = expression.parameters.get("attributes") or []
+        references = references if isinstance(references, list) else [references]
+        if not isinstance(subject, str) or len(references) != 1:
+            return False
+        reference = references[0]
+        if not isinstance(reference, str) or not reference.startswith("condition:"):
+            return False
+        pair = expression_index.get(reference.split(":", 1)[1])
+        if pair is None:
+            return False
+        _, attribute = pair
+        return (
+            attribute.capability_id == "attribute.color"
+            and attribute.parameters.get("source") == subject
+        )
+
+    @staticmethod
+    def _is_supporting_evidence_condition(
+        expression: ConditionExpression,
+        sibling_ids: set[str],
+        expression_index: dict[str, tuple[BusinessBranch, ConditionExpression]],
+    ) -> bool:
+        """Return whether a sibling detector is input-only evidence.
+
+        A detector referenced by ``subject.missing_equipment.equipment`` is
+        necessary to construct the absence check, but is not an affirmative
+        business fact.  Leaving it in an AND group made no-equipment rules
+        require the equipment to be visible, which is contradictory when the
+        object is genuinely absent.  This only applies to direct AND siblings;
+        explicit OR/N-of-M authoring keeps its declared semantics.
+        """
+
+        if expression.operator != "ATOM" or expression.capability_id != "target.detect":
+            return False
+        reference = f"condition:{expression.expression_id}"
+        for sibling_id in sibling_ids:
+            pair = expression_index.get(sibling_id)
+            if pair is None:
+                continue
+            _, sibling = pair
+            if sibling.capability_id != "subject.missing_equipment":
+                continue
+            for evidence in (
+                sibling.parameters.get("equipment"),
+                sibling.parameters.get("semantic_evidence"),
+            ):
+                if evidence == reference:
+                    return True
+                if isinstance(evidence, list) and reference in evidence:
+                    return True
+        return False
+
+    @staticmethod
+    def _missing_equipment_subject_region(
+        parameters: dict[str, Any],
+        expression_index: dict[str, tuple[BusinessBranch, ConditionExpression]],
+    ) -> list[float] | None:
+        """Resolve the body-relative region used to prove a wearable is worn.
+
+        ``None`` deliberately represents an unknown associated object.  It
+        then retains the historical generic association route, because no
+        body-placement claim can be made safely.  Known placement categories
+        reuse the shared carrier catalog and therefore extend with it.
+        """
+
+        requested = str(parameters.get("wear_location") or "auto").strip().lower()
+        explicit_locations = {
+            "head": "headwear",
+            "upper_body": "upper_body_clothing",
+            "lower_body": "lower_body_clothing",
+            "feet": "footwear",
+            "whole": "clothing",
+            "hands": "hands",
+        }
+        location = explicit_locations.get(requested)
+        if requested not in {"", "auto"} and location is None:
+            return None
+
+        if location is None:
+            evidence = parameters.get("equipment")
+            texts: list[str] = []
+            if isinstance(evidence, str) and evidence.startswith("condition:"):
+                pair = expression_index.get(evidence.split(":", 1)[1])
+                if pair is not None:
+                    _, source = pair
+                    texts.extend([
+                        source.display_name,
+                        str(source.parameters.get("business_label") or ""),
+                    ])
+                    targets = source.parameters.get("targets") or []
+                    targets = targets if isinstance(targets, list) else [targets]
+                    for target in targets:
+                        if isinstance(target, dict):
+                            texts.append(str(target.get("label") or ""))
+                            phrases = target.get("phrases") or []
+                            texts.extend(str(item) for item in phrases)
+                        else:
+                            texts.append(str(target))
+                    phrases = source.parameters.get("phrases") or []
+                    texts.extend(
+                        str(item)
+                        for item in (phrases if isinstance(phrases, list) else [phrases])
+                    )
+            elif evidence is not None:
+                texts.append(str(evidence))
+            text = " ".join(texts).lower()
+            semantic_locations = {
+                "headwear": ("helmet", "hard hat", "headwear", "hat", "cap", "安全帽", "头盔", "帽子"),
+                "footwear": ("shoe", "boot", "footwear", "鞋", "靴"),
+                "hands": ("glove", "mitt", "手套"),
+                "upper_body_clothing": ("vest", "harness", "reflective clothing", "reflective vest", "belt", "背心", "反光衣", "安全带"),
+                "lower_body_clothing": ("trousers", "pants", "shorts", "skirt", "裤", "裙"),
+            }
+            for candidate, aliases in semantic_locations.items():
+                if any(alias in text for alias in aliases):
+                    location = candidate
+                    break
+
+        if location == "hands":
+            # Gloves occupy hands/forearms rather than a small point; keep a
+            # broad bilateral band while excluding the head and feet.
+            return [0.0, 0.22, 1.0, 0.88]
+        catalog = CARRIER_CATALOG.get(location or "")
+        return list(catalog["subject_region"]) if catalog else None
+
     @staticmethod
     def _target_list(parameters: dict[str, Any]) -> list[dict[str, Any]]:
         targets = parameters.get("targets") or []
@@ -1423,13 +1906,17 @@ class BusinessRuleCompiler:
         assuming a particular number or order of intermediate filters.
         """
 
-        pending = [value.node_id]
-        visited: set[str] = set()
+        pending: list[tuple[str, set[str] | None]] = [(value.node_id, None)]
+        visited: set[tuple[str, tuple[str, ...] | None]] = set()
         while pending:
-            node_id = pending.pop()
-            if node_id in visited:
+            node_id, requested_labels = pending.pop()
+            visit_key = (
+                node_id,
+                tuple(sorted(requested_labels)) if requested_labels else None,
+            )
+            if visit_key in visited:
                 continue
-            visited.add(node_id)
+            visited.add(visit_key)
             node = builder.nodes.get(node_id)
             if node is None:
                 continue
@@ -1438,11 +1925,20 @@ class BusinessRuleCompiler:
                 for target in targets:
                     if not isinstance(target, dict):
                         continue
+                    if (
+                        requested_labels is not None
+                        and str(target.get("label")) not in requested_labels
+                    ):
+                        continue
                     phrases = target.get("phrases") or []
                     if phrases and str(phrases[0]).strip():
                         return str(phrases[0]).strip()
+            labels = requested_labels
+            if node.operator == "objects.filter_by_label@1.0":
+                configured = node.params.get("labels") or []
+                labels = {str(label) for label in configured if str(label)}
             pending.extend(
-                edge.source
+                (edge.source, labels)
                 for edge in builder.graph.edges
                 if edge.target == node_id
             )

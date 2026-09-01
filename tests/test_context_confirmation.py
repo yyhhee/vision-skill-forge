@@ -100,7 +100,9 @@ def test_controller_exposes_context_confirmation_as_editable_effective_configura
     nodes = {node["id"] for node in variant_nodes}
     assert "context_confirmation_evidence_raw" in nodes
     assert sum(node.startswith("context_confirmation_") for node in nodes) == 10
-    count = next(node for node in variant_nodes if node["id"] == "count")
+    count = next(
+        node for node in variant_nodes if node["op"] == "measure.count@1.0"
+    )
     assert count["inputs"]["entities"] == "$context_confirmation_deduplicated"
 
 

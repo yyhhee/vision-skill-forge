@@ -394,24 +394,6 @@ def build_preset_definitions() -> list[PresetDefinition]:
         ]
         return draft
 
-    bridge_visible_base = visible_builder(
-        "bridge_damage",
-        BRIDGE_DAMAGE_TARGETS,
-        tile=True,
-        tile_params={
-            "tile_width": 768,
-            "tile_height": 768,
-            "overlap_x": 0.25,
-            "overlap_y": 0.25,
-        },
-        dedup_threshold=0.55,
-    )
-
-    def bridge_visible(media_type: str):
-        draft = bridge_visible_base(media_type)
-        resize = next(item for item in draft.nodes if item["id"] == "resized")
-        resize["params"] = {"mode": "long_side", "long_side": 2048}
-        return draft
     return [
         PresetDefinition(
             "P01",
@@ -762,11 +744,11 @@ def build_preset_definitions() -> list[PresetDefinition]:
             "P13_bridge_damage.json",
             "bridge_damage",
             "桥梁病害",
-            "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋。",
+            "识别桥梁病害露筋、裂纹、锈蚀、渗水、混凝土剥落。",
             ("image", "video"),
             ledger(
                 "bridge_damage",
-                "裂纹、锈蚀、渗水、混凝土剥落和露筋",
+                "露筋、裂纹、锈蚀、渗水、混凝土剥落",
                 [
                     phrase
                     for target in BRIDGE_DAMAGE_TARGETS
@@ -775,7 +757,8 @@ def build_preset_definitions() -> list[PresetDefinition]:
                 [],
                 classes=BRIDGE_DAMAGE_TARGETS,
             ),
-            stable_video(bridge_visible),
+            None,
+            use_generic_compiler=True,
         ),
     ]
 

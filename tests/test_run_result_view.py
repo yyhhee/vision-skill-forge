@@ -106,3 +106,24 @@ def test_grouped_series_and_resources_render_as_business_values():
     rendered = render_run_result_html(build_run_result_view(result, []))
     assert "lane_1：8辆；lane_2：5辆" in rendered
     assert "车道1、车道2" in rendered
+
+
+def test_video_entity_output_is_labeled_as_cross_frame_samples():
+    result = _run_result()
+    result.media_type = "video"
+    result.variant = "video"
+    result.business_outputs = [
+        BusinessOutputValue(
+            result_id="objects",
+            display_name="目标框",
+            semantic_type="entity_set",
+            value_shape="list",
+            status="satisfied",
+            value=[{"id": "frame_0"}, {"id": "frame_1"}],
+            source_ref="output:objects",
+        )
+    ]
+
+    rendered = render_run_result_html(build_run_result_view(result, []))
+
+    assert "2 个检测样本（跨帧，非唯一目标数）" in rendered

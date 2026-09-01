@@ -20,7 +20,13 @@ def _safe(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
 
-def _value_text(value: Any, unit: str | None = None) -> str:
+def _value_text(
+    value: Any,
+    unit: str | None = None,
+    *,
+    semantic_type: str = "",
+    media_type: str = "image",
+) -> str:
     if isinstance(value, dict) and isinstance(value.get("items"), list):
         items = value["items"]
         latest_by_key: dict[str, dict[str, Any]] = {}
@@ -51,6 +57,10 @@ def _value_text(value: Any, unit: str | None = None) -> str:
         return f"{len(items)} 条"
     if isinstance(value, (dict, list)):
         if isinstance(value, list):
+            if semantic_type == "entity_set":
+                if media_type == "video":
+                    return f"{len(value)} 个检测样本（跨帧，非唯一目标数）"
+                return f"{len(value)} 个目标"
             return f"{len(value)} 条"
         return json.dumps(value, ensure_ascii=False)
     if value is None:
@@ -66,7 +76,7 @@ def render_run_result_html(view: RunResultViewModel) -> str:
         (
             '<article class="vs-result-card" tabindex="0">'
             f'<div class="vs-result-card-title">{_safe(card.title)}</div>'
-            f'<div class="vs-result-card-value">{_safe(_value_text(card.value, card.unit))}</div>'
+            f'<div class="vs-result-card-value">{_safe(_value_text(card.value, card.unit, semantic_type=card.semantic_type, media_type=card.media_type))}</div>'
             f'<div class="vs-result-card-status">{_safe(_STATUS_LABELS.get(card.status, card.status))}</div>'
             f'<p>{_safe(card.reason or "")}</p>'
             f'<small>证据 {len(card.evidence_refs)} 条 · {_safe(card.renderer_id)}</small>'

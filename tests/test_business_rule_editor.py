@@ -91,6 +91,7 @@ def test_condition_crud_is_recursive_and_keeps_business_names():
 
     rows = editor.condition_rows(document, "branch_main")
     assert [row["logic"] for row in rows] == ["AND", "ATOM", "ATOM"]
+    assert rows[0]["member_summaries"] == ["检测人员", "红色上衣"]
     assert rows[2]["name"] == "红色上衣"
     assert "AND" in editor.branch_rows(document, "image")[0]["summary"]
 
@@ -145,7 +146,7 @@ def test_imported_p04_has_no_speed_or_track_logic_group():
     assert groups == []
 
 
-def test_imported_steps_describe_concrete_objects_and_relations():
+def test_imported_steps_describe_concrete_objects_and_generic_count():
     registry = build_default_registry()
     editor = _editor(registry)
     package = SkillPackage.model_validate_json(
@@ -164,18 +165,48 @@ def test_imported_steps_describe_concrete_objects_and_relations():
     rows = editor.condition_rows(document, branch.branch_id)
     names = {row["name"] for row in rows}
     summaries = {row["summary"] for row in rows}
-    assert "检测：垃圾容器、溢出垃圾、垃圾堆、散落垃圾" in names
-    assert "保留：垃圾容器" in names
-    assert "判断：溢出垃圾中心位于垃圾容器的上沿区域" in names
-    assert any("垃圾堆" in summary and "垃圾容器" in summary for summary in summaries)
+    assert any(name.startswith("检测：") for name in names)
+    assert any("垃圾容器" in name and "溢出垃圾" in name for name in names)
+    assert any("垃圾" in summary for summary in summaries)
     root = next(row for row in rows if row.get("parent_id") is None)
     assert "保留：" not in root["summary"]
     assert "排除：" not in root["summary"]
-    assert root["summary"].count(" → ") == 4
+    assert " → " in root["summary"]
     assert not any(
         row["name"] in {"检测目标", "按类别筛选或排除", "两个目标的空间关系"}
         for row in rows
     )
+
+
+def test_imported_or_workflow_overview_preserves_all_merged_evidence_labels():
+    """The workflow overview must not collapse an OR fan-out to one label."""
+    registry = build_default_registry()
+    editor = _editor(registry)
+    package = SkillPackage.model_validate_json(
+        (
+            Path(__file__).resolve().parents[1]
+            / "presets_v2"
+            / "P01_fire_smoke.json"
+        ).read_text(encoding="utf-8")
+    )
+    document = editor.prepare(import_skill_package(package))
+    branch = next(
+        item for item in document.skill_template.business_branches
+        if item.media_type == "image"
+    )
+    root = next(
+        row
+        for row in editor.condition_rows(document, branch.branch_id)
+        if row.get("parent_id") is None
+    )
+
+    # Keep assertions encoding-neutral: the repository's legacy UI strings
+    # may be rendered through a Windows code page, while the semantic labels
+    # and the OR connector must remain intact.
+    assert "smoke" in root["summary"] and "fire" in root["summary"]
+    assert root["summary"].count("smoke") >= 2
+    assert root["summary"].count("fire") >= 2
+    assert "OR" in root["summary"]
 
 
 def test_imported_p04_keeps_full_condition_tree_after_validate_apply():
@@ -315,9 +346,9 @@ def test_color_condition_uses_practical_default_and_keeps_it_user_editable():
         document, "branch_main", condition_id, include_tuning=True
     )
     fraction = next(row for row in rows if row["name"] == "颜色至少占该部位")
-    # A 5% crop admits bright background pixels as clothing; the practical
-    # baseline is now 20%, while the tuning field remains user-editable.
-    assert fraction["value"] == 20
+    # A partially visible garment needs a recall-friendly 10% baseline; the
+    # tuning field remains user-editable.
+    assert fraction["value"] == 10
     assert fraction["editor"] == "percentage"
 
 

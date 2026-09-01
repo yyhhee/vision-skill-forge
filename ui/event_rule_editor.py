@@ -58,6 +58,11 @@ _CHOICE_LABELS = {
     "up_left": "左上", "up_right": "右上", "down_left": "左下", "down_right": "右下",
     "horizontal": "水平", "vertical": "垂直", "top": "顶部", "middle": "中部",
     "bottom": "底部", "small": "小", "medium": "中", "large": "大",
+    # Keep these labels independent of the number of members in a group.
+    # A two-member example may be shown as A/B, but real LLM plans can have
+    # C, D, … or nested groups as well.
+    "AND": "全部条件同时满足", "OR": "任一条件满足",
+    "FRACTION_ONLY": "仅颜色占比", "SEMANTIC_ONLY": "仅模型属性证据",
 }
 
 
@@ -138,7 +143,14 @@ def render_condition_tree(rows: list[dict[str, Any]]) -> str:
             '<span>从下方能力列表新增第一个条件。系统会根据媒体类型只显示可执行能力。</span></section>'
         )
     root = next((row for row in rows if row.get("parent_id") is None), rows[0])
-    formula = html.escape(str(root.get("summary") or root.get("name") or ""))
+    formula = html.escape(
+        str(
+            root.get("effective_formula")
+            or root.get("summary")
+            or root.get("name")
+            or ""
+        )
+    )
     is_workflow = root.get("formula_kind") == "workflow"
     formula_card = (
         '<section class="vs-rule-formula" aria-label="当前生效条件组合">'
@@ -148,8 +160,15 @@ def render_condition_tree(rows: list[dict[str, Any]]) -> str:
         '</section>'
     )
     cards = []
+    projected_child_ids = {
+        child_id
+        for item in rows
+        for child_id in (item.get("verification_child_ids") or [])
+    }
     for row in rows:
         if is_workflow and row.get("kind") == "导入判定":
+            continue
+        if row.get("condition_id") in projected_child_ids:
             continue
         depth = min(int(row.get("display_depth", row.get("depth", 0))), 6)
         name = html.escape(str(row.get("name") or "未命名条件"))
@@ -164,7 +183,18 @@ def render_condition_tree(rows: list[dict[str, Any]]) -> str:
                 f'{html.escape(str(row["logic_member_label"]))}</span>'
             )
         elif row.get("kind") == "条件组":
-            relation = f'<span class="vs-logic-badge">{html.escape(logic)}</span>'
+            displayed_logic = (
+                str(row.get("verification_logic") or "")
+                if row.get("verification_members")
+                else logic
+            )
+            relation = (
+                f'<span class="vs-logic-badge">{html.escape(displayed_logic)}</span>'
+                if displayed_logic
+                else ""
+            )
+        elif row.get("workflow_role") == "evidence_branch":
+            relation = '<span class="vs-condition-badge">证据分支</span>'
         elif row.get("workflow_index"):
             relation = (
                 f'<span class="vs-step-badge">步骤 {int(row["workflow_index"])}</span>'
@@ -173,10 +203,19 @@ def render_condition_tree(rows: list[dict[str, Any]]) -> str:
         if status == "已停用":
             state_class = "is-disabled"
         logic_members = ""
-        member_summaries = row.get("member_summaries") or []
+        verification_members = row.get("verification_members") or []
+        member_summaries = (
+            [member.get("name", "") for member in verification_members]
+            if verification_members
+            else row.get("member_summaries") or []
+        )
         if member_summaries:
             relation_label = html.escape(
-                str(row.get("logic_relation_label") or logic)
+                str(
+                    row.get("verification_logic")
+                    if verification_members
+                    else row.get("logic_relation_label") or logic
+                )
             )
             parts = []
             for index, member in enumerate(member_summaries):
@@ -198,12 +237,34 @@ def render_condition_tree(rows: list[dict[str, Any]]) -> str:
                 + "".join(parts)
                 + "</div>"
             )
+        summary_html = (
+            ""
+            if member_summaries and not is_workflow
+            else f"<p>{summary}</p>"
+        )
         cards.append(
             f'<article class="vs-rule-node {state_class}{" is-workflow-step" if row.get("imported_step") else ""}{" is-logic-group" if member_summaries else ""}" style="--rule-depth:{depth}">'
             f'<div class="vs-rule-node-head"><span class="vs-rule-category">{category}</span>{relation}'
             f'<span class="vs-rule-status">{status}</span></div>'
-            f'<strong>{name}</strong><p>{summary}</p>{logic_members}</article>'
+            f'<strong>{name}</strong>{summary_html}{logic_members}</article>'
         )
+        for index, member in enumerate(verification_members):
+            member_name = html.escape(str(member.get("name") or "复核证据"))
+            member_summary = html.escape(str(member.get("summary") or ""))
+            member_label = (
+                f"条件 {chr(65 + index)}"
+                if index < 26
+                else f"条件 {index + 1}"
+            )
+            cards.append(
+                '<article class="vs-rule-node is-ready" '
+                f'style="--rule-depth:{min(depth + 1, 6)}">'
+                '<div class="vs-rule-node-head">'
+                '<span class="vs-rule-category">目标与属性</span>'
+                f'<span class="vs-condition-badge">{member_label}</span>'
+                '<span class="vs-rule-status">已配置</span></div>'
+                f'<strong>{member_name}</strong><p>{member_summary}</p></article>'
+            )
     return formula_card + '<section class="vs-rule-tree">' + "".join(cards) + "</section>"
 
 

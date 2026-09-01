@@ -136,6 +136,146 @@ def normalize_business_draft_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """Repair harmless JSON-shape noise while keeping semantic fields strict."""
 
     normalized = deepcopy(payload)
+
+    # ``both`` is valid for the overall task, but not for an executable
+    # branch: image and video have distinct media operators and must never be
+    # coupled in one rule graph.  Models quite reasonably use ``both`` as a
+    # shorthand when the rule itself is media independent.  Expand that
+    # shorthand deterministically instead of rejecting an otherwise complete
+    # business plan.  References are rewritten per clone so each media path
+    # remains self-contained.
+    branches = normalized.get("branches")
+    if isinstance(branches, list):
+        replacements: dict[str, list[str]] = {}
+        expanded_branches: list[dict[str, Any]] = []
+        used_keys = {
+            str(item.get("key"))
+            for item in branches
+            if isinstance(item, dict) and item.get("key")
+        }
+
+        def clone_key(base: str, media_type: str) -> str:
+            candidate = f"{base}_{media_type}"
+            suffix = 2
+            while candidate in used_keys:
+                candidate = f"{base}_{media_type}_{suffix}"
+                suffix += 1
+            used_keys.add(candidate)
+            return candidate
+
+        def rewrite_local_condition_refs(value: Any, old_branch: str, new_branch: str) -> Any:
+            if isinstance(value, str) and value.startswith("condition:"):
+                tail = value.split(":", 1)[1]
+                source_branch, dot, condition_key = tail.partition(".")
+                if dot and source_branch == old_branch:
+                    return f"condition:{new_branch}.{condition_key}"
+                return value
+            if isinstance(value, list):
+                return [
+                    rewrite_local_condition_refs(item, old_branch, new_branch)
+                    for item in value
+                ]
+            if isinstance(value, dict):
+                return {
+                    key: rewrite_local_condition_refs(item, old_branch, new_branch)
+                    for key, item in value.items()
+                }
+            return value
+
+        for branch in branches:
+            if not isinstance(branch, dict) or branch.get("media_type") != "both":
+                expanded_branches.append(branch)
+                continue
+            key = str(branch.get("key") or "branch")
+            clone_keys: list[str] = []
+            for media_type in ("image", "video"):
+                clone = deepcopy(branch)
+                new_key = clone_key(key, media_type)
+                clone["key"] = new_key
+                clone["media_type"] = media_type
+                clone["name"] = f"{clone.get('name') or key}（{'图片' if media_type == 'image' else '视频'}）"
+                clone["conditions"] = rewrite_local_condition_refs(
+                    clone.get("conditions", []), key, new_key
+                )
+                clone_keys.append(new_key)
+                expanded_branches.append(clone)
+            replacements[key] = clone_keys
+        normalized["branches"] = expanded_branches
+
+        if replacements:
+            def rewrite_reference(value: Any, media_type: str | None = None) -> Any:
+                if isinstance(value, str):
+                    if value.startswith("branch:"):
+                        old = value.split(":", 1)[1]
+                        if old in replacements:
+                            if media_type is None:
+                                return [f"branch:{key}" for key in replacements[old]]
+                            index = 0 if media_type == "image" else 1
+                            return f"branch:{replacements[old][index]}"
+                    if value.startswith("condition:"):
+                        tail = value.split(":", 1)[1]
+                        old, dot, condition_key = tail.partition(".")
+                        if dot and old in replacements:
+                            if media_type is None:
+                                return [
+                                    f"condition:{key}.{condition_key}"
+                                    for key in replacements[old]
+                                ]
+                            index = 0 if media_type == "image" else 1
+                            return f"condition:{replacements[old][index]}.{condition_key}"
+                    return value
+                if isinstance(value, list):
+                    rewritten: list[Any] = []
+                    for item in value:
+                        candidate = rewrite_reference(item, media_type)
+                        rewritten.extend(candidate if isinstance(candidate, list) else [candidate])
+                    return rewritten
+                if isinstance(value, dict):
+                    return {
+                        key: rewrite_reference(item, media_type)
+                        for key, item in value.items()
+                    }
+                return value
+
+            final = normalized.get("final_decision")
+            if isinstance(final, dict):
+                final["source_refs"] = rewrite_reference(final.get("source_refs", []))
+
+            # An entity/count result rooted at a shorthand branch has one
+            # independent result for each media type.  Decision results rooted
+            # at final:primary are already media-neutral and remain singular.
+            results = normalized.get("results")
+            if isinstance(results, list):
+                expanded_results: list[Any] = []
+                result_keys = {
+                    str(item.get("key"))
+                    for item in results
+                    if isinstance(item, dict) and item.get("key")
+                }
+                for result in results:
+                    if not isinstance(result, dict):
+                        expanded_results.append(result)
+                        continue
+                    source_ref = result.get("source_ref")
+                    refs = rewrite_reference(source_ref)
+                    if not isinstance(refs, list):
+                        expanded_results.append(result)
+                        continue
+                    for index, (media_type, ref) in enumerate(zip(("image", "video"), refs)):
+                        clone = deepcopy(result)
+                        base = str(clone.get("key") or "result")
+                        candidate = f"{base}_{media_type}"
+                        suffix = 2
+                        while candidate in result_keys:
+                            candidate = f"{base}_{media_type}_{suffix}"
+                            suffix += 1
+                        result_keys.add(candidate)
+                        clone["key"] = candidate
+                        clone["name"] = f"{clone.get('name') or base}（{'图片' if index == 0 else '视频'}）"
+                        clone["source_ref"] = ref
+                        expanded_results.append(clone)
+                normalized["results"] = expanded_results
+
     final_decision = normalized.get("final_decision")
     if isinstance(final_decision, dict):
         # The final decision is a singleton in this schema, so an LLM-generated
@@ -163,8 +303,17 @@ def normalize_business_draft_payload(payload: dict[str, Any]) -> dict[str, Any]:
         for item in items:
             if not isinstance(item, dict):
                 continue
+            operator = item.get("operator", "ATOM")
+            if operator != "ATOM" and isinstance(item.get("children"), list):
+                # The prompt uses one recursive object shape, so models often
+                # repeat placeholder atomic fields on a logic group.  Children
+                # are the complete semantics of a group; these copied fields
+                # are non-executable shape noise and must not make an otherwise
+                # valid AND/OR tree fail before deterministic normalization.
+                item.pop("capability_id", None)
+                item.pop("parameters", None)
             if item.get("children") is None and (
-                item.get("operator", "ATOM") == "ATOM"
+                operator == "ATOM"
                 or item.get("capability_id")
             ):
                 item.pop("children", None)
@@ -565,7 +714,538 @@ def _repair_same_subject_attributes(
                 conditions.append(same_subject)
                 same_subject_conditions.append(same_subject)
 
+            # A colour condition already grounds a colour-specific evidence
+            # box and matches it back to its declared source target.  An LLM
+            # sometimes adds a one-item same-subject condition after it;
+            # unlike a multi-attribute join, that repeats the very same
+            # association and provides no additional constraint.
+            by_key = {item.key: item for item in conditions}
+            for item in list(same_subject_conditions):
+                references = item.parameters.get("attributes") or []
+                references = references if isinstance(references, list) else [references]
+                if len(references) != 1 or not isinstance(references[0], str):
+                    continue
+                attribute_key = references[0].split(".")[-1].split(":")[-1]
+                attribute = by_key.get(attribute_key)
+                if (
+                    attribute is not None
+                    and attribute.capability_id == "attribute.color"
+                    and attribute.parameters.get("source")
+                    == item.parameters.get("subject")
+                ):
+                    conditions.remove(item)
+
         repair_scope(branch.conditions, branch.logic)
+
+
+def _condition_reference_keys(condition: DraftCondition) -> set[str]:
+    references: set[str] = set()
+    for value in condition.parameters.values():
+        values = value if isinstance(value, list) else [value]
+        for item in values:
+            if isinstance(item, str) and item.startswith("condition:"):
+                references.add(item.split(":", 1)[1].split(".")[-1])
+    return references
+
+
+def _repair_independent_business_branches(
+    draft: NaturalLanguageBusinessDraft,
+    capabilities: BusinessCapabilityRegistry,
+) -> None:
+    """Split independent single-subject business chains placed in one branch.
+
+    Conjunctive/disjunctive wrappers emitted by the LLM may be nested, so the
+    repair follows condition references rather than relying on a flat JSON
+    shape.  A component is split only when every one of its conditions traces
+    to exactly one detector and every detector has an entity-refining
+    condition.  Cross-target relations and event-pattern branches are left
+    intact because splitting those would change their semantics.
+    """
+
+    def produces_business_outcome(condition: DraftCondition) -> bool:
+        if condition.capability_id == "target.detect":
+            return False
+        try:
+            definition = capabilities.require(condition.capability_id or "")
+        except KeyError:
+            return False
+        # Any typed business result beyond the base detector can terminate an
+        # independent lineage: filtered entities, counts, states, tracks,
+        # events or scalar decisions. Multi-subject relations are still safe
+        # because their reference roots are checked separately and prevent a
+        # split when they span more than one detector.
+        return definition.orchestration_slot == "condition"
+
+    used_keys = {branch.key for branch in draft.branches}
+    replacements: dict[str, list[DraftBranch]] = {}
+    condition_branch: dict[tuple[str, str], str] = {}
+    pattern_branches = {
+        key for pattern in draft.patterns for key in pattern.branch_keys
+    }
+    replacement_logic: dict[str, str] = {}
+    for branch in draft.branches:
+        if (
+            branch.logic not in {"AND", "OR"}
+            or branch.time.mode != "immediate"
+            or branch.key in pattern_branches
+        ):
+            continue
+
+        def atoms(condition: DraftCondition) -> list[DraftCondition]:
+            if condition.operator == "ATOM":
+                return [condition]
+            return [atom for child in condition.children for atom in atoms(child)]
+
+        # Same-operator wrappers add no semantic boundary.  Flatten only those
+        # wrappers; a nested OR under AND (or vice versa) remains one unit and
+        # must still trace to a single target before it can be moved.
+        def top_units(condition: DraftCondition) -> list[DraftCondition]:
+            if condition.operator == branch.logic:
+                return [
+                    unit
+                    for child in condition.children
+                    for unit in top_units(child)
+                ]
+            return [condition]
+
+        units = [
+            unit
+            for condition in branch.conditions
+            for unit in top_units(condition)
+        ]
+        all_atoms = [atom for unit in units for atom in atoms(unit)]
+        by_key = {condition.key: condition for condition in all_atoms}
+
+        # A single detector may legitimately feed several independent named
+        # regions (for example, “区域 1 的着装条件” and “区域 2 的人数阈值”).
+        # The detector-root split below cannot see that boundary because both
+        # chains share the same raw ObjectSet.  Region references are the
+        # business boundary here; duplicate only the shared prerequisites and
+        # keep each region's measurable outcome in its own branch.
+        region_resource_keys = {
+            resource.key
+            for resource in draft.resources
+            if resource.resource_type == "region"
+        }
+
+        def resource_region_refs(value: Any) -> set[str]:
+            refs: set[str] = set()
+            if isinstance(value, str):
+                if value.startswith("resource:"):
+                    key = value.split(":", 1)[1]
+                    if key in region_resource_keys:
+                        refs.add(key)
+                elif value in region_resource_keys:
+                    # Accept the LLM's harmless shorthand; the resolver will
+                    # canonicalize it when the cloned branch is installed.
+                    refs.add(value)
+            elif isinstance(value, list):
+                for item in value:
+                    refs.update(resource_region_refs(item))
+            elif isinstance(value, dict):
+                for item in value.values():
+                    refs.update(resource_region_refs(item))
+            return refs
+
+        direct_region_refs = {
+            condition.key: resource_region_refs(condition.parameters)
+            for condition in all_atoms
+        }
+        region_refs_cache: dict[str, set[str]] = {}
+
+        def condition_region_refs(
+            key: str, visiting: set[str] | None = None
+        ) -> set[str]:
+            if key in region_refs_cache:
+                return set(region_refs_cache[key])
+            visiting = set() if visiting is None else visiting
+            if key in visiting:
+                return set()
+            visiting.add(key)
+            refs = set(direct_region_refs.get(key, set()))
+            condition = by_key.get(key)
+            if condition is not None:
+                for reference in _condition_reference_keys(condition):
+                    refs.update(condition_region_refs(reference, visiting))
+            visiting.discard(key)
+            region_refs_cache[key] = refs
+            return set(refs)
+
+        def unit_region_refs(unit: DraftCondition) -> set[str]:
+            return {
+                region
+                for atom in atoms(unit)
+                for region in condition_region_refs(atom.key)
+            }
+
+        def rewrite_local_condition_refs(
+            value: Any, old_branch: str, new_branch: str, local_keys: set[str]
+        ) -> Any:
+            if isinstance(value, str) and value.startswith("condition:"):
+                tail = value.split(":", 1)[1]
+                if "." in tail:
+                    source_branch, source_key = tail.split(".", 1)
+                    if source_branch == old_branch and source_key in local_keys:
+                        return f"condition:{new_branch}.{source_key}"
+                elif tail in local_keys:
+                    return f"condition:{new_branch}.{tail}"
+                return value
+            if isinstance(value, list):
+                return [
+                    rewrite_local_condition_refs(item, old_branch, new_branch, local_keys)
+                    for item in value
+                ]
+            if isinstance(value, dict):
+                return {
+                    key: rewrite_local_condition_refs(item, old_branch, new_branch, local_keys)
+                    for key, item in value.items()
+                }
+            return value
+
+        def clone_region_branch(
+            region_key: str,
+            selected_units: list[DraftCondition],
+        ) -> DraftBranch | None:
+            selected_keys = {
+                atom.key for unit in selected_units for atom in atoms(unit)
+            }
+            # Include every local prerequisite transitively.  This normally
+            # duplicates only the shared base detector; cross-region inputs
+            # are rejected rather than silently re-bound.
+            changed = True
+            while changed:
+                changed = False
+                for unit in units:
+                    unit_keys = {atom.key for atom in atoms(unit)}
+                    if not (unit_keys & selected_keys):
+                        continue
+                    for atom in atoms(unit):
+                        for reference in _condition_reference_keys(atom):
+                            if reference in by_key and reference not in selected_keys:
+                                refs = condition_region_refs(reference)
+                                if refs and refs != {region_key}:
+                                    return None
+                                selected_keys.add(reference)
+                                changed = True
+            chosen = [
+                unit for unit in units
+                if {atom.key for atom in atoms(unit)} & selected_keys
+            ]
+            if not chosen:
+                return None
+            local_atoms = [atom for unit in chosen for atom in atoms(unit)]
+            if any(
+                condition_region_refs(atom.key) != {region_key}
+                and condition_region_refs(atom.key)
+                for atom in local_atoms
+            ):
+                return None
+            if not any(
+                produces_business_outcome(atom)
+                for atom in local_atoms
+            ):
+                return None
+            key_base = f"{branch.key}_{region_key}"
+            new_key = key_base
+            suffix = 2
+            while new_key in used_keys:
+                new_key = f"{key_base}_{suffix}"
+                suffix += 1
+            used_keys.add(new_key)
+            copied_units = [unit.model_copy(deep=True) for unit in chosen]
+            local_keys = {
+                atom.key for unit in copied_units for atom in atoms(unit)
+            }
+            for unit in copied_units:
+                for atom in atoms(unit):
+                    atom.parameters = rewrite_local_condition_refs(
+                        atom.parameters, branch.key, new_key, local_keys
+                    )
+            region_name = next(
+                (
+                    resource.name for resource in draft.resources
+                    if resource.key == region_key
+                ),
+                region_key,
+            )
+            refinement = next(
+                atom for unit in reversed(chosen)
+                for atom in reversed(atoms(unit))
+                if produces_business_outcome(atom)
+            )
+            business_label = str(
+                next(
+                    (
+                        atom.parameters.get("business_label")
+                        for atom in local_atoms
+                        if atom.capability_id == "target.detect"
+                        and atom.parameters.get("business_label")
+                    ),
+                    "",
+                ).strip()
+            )
+            return branch.model_copy(
+                update={
+                    "key": new_key,
+                    "name": f"{region_name}：{business_label or refinement.name}",
+                    "logic": "AND",
+                    "conditions": copied_units,
+                },
+                deep=True,
+            )
+
+        region_units: dict[str, list[DraftCondition]] = {}
+        region_split_possible = bool(region_resource_keys)
+        for unit in units:
+            refs = unit_region_refs(unit)
+            if len(refs) > 1:
+                region_split_possible = False
+                break
+            if refs:
+                region_units.setdefault(next(iter(refs)), []).append(unit)
+        unscoped_outcome_units = [
+            unit for unit in units
+            if not unit_region_refs(unit)
+            and any(produces_business_outcome(atom) for atom in atoms(unit))
+        ]
+        if (
+            region_split_possible
+            and len(region_units) >= 2
+            and not unscoped_outcome_units
+        ):
+            region_branches = [
+                clone_region_branch(region_key, region_units[region_key])
+                for region_key in region_units
+            ]
+            if all(item is not None for item in region_branches):
+                replacements[branch.key] = [item for item in region_branches if item is not None]
+                replacement_logic[branch.key] = branch.logic
+                for item in replacements[branch.key]:
+                    for condition in _walk_draft_conditions(item.conditions):
+                        condition_branch[(branch.key, condition.key)] = item.key
+                continue
+        detector_keys = {
+            condition.key
+            for condition in all_atoms
+            if condition.capability_id == "target.detect"
+        }
+        if len(detector_keys) < 2:
+            continue
+
+        roots_cache: dict[str, set[str]] = {}
+
+        def detector_roots(key: str, visiting: set[str] | None = None) -> set[str]:
+            if key in roots_cache:
+                return roots_cache[key]
+            if key in detector_keys:
+                roots_cache[key] = {key}
+                return roots_cache[key]
+            visiting = set() if visiting is None else visiting
+            if key in visiting:
+                return set()
+            visiting.add(key)
+            roots = set()
+            condition = by_key.get(key)
+            if condition is not None:
+                for reference in _condition_reference_keys(condition):
+                    roots.update(detector_roots(reference, visiting))
+            visiting.discard(key)
+            roots_cache[key] = roots
+            return roots
+
+        groups: dict[str, list[DraftCondition]] = {
+            key: [] for key in detector_keys
+        }
+        valid = True
+        for unit in units:
+            roots = {
+                root
+                for condition in atoms(unit)
+                for root in detector_roots(condition.key)
+            }
+            if len(roots) != 1:
+                valid = False
+                break
+            groups[next(iter(roots))].append(unit)
+        if not valid or any(
+            not any(
+                produces_business_outcome(condition)
+                for item in group
+                for condition in atoms(item)
+            )
+            for group in groups.values()
+        ):
+            continue
+
+        split_branches = []
+        ordered_detectors = [
+            condition
+            for condition in all_atoms
+            if condition.key in detector_keys
+        ]
+        for detector in ordered_detectors:
+            if detector.key not in groups:
+                continue
+            key_base = f"{branch.key}_{detector.key}"
+            new_key = key_base
+            suffix = 2
+            while new_key in used_keys:
+                new_key = f"{key_base}_{suffix}"
+                suffix += 1
+            used_keys.add(new_key)
+            group = groups[detector.key]
+            refinement = next(
+                condition
+                for item in reversed(group)
+                for condition in reversed(atoms(item))
+                if produces_business_outcome(condition)
+            )
+            business_label = str(
+                detector.parameters.get("business_label") or ""
+            ).strip()
+            split_branches.append(
+                branch.model_copy(
+                    update={
+                        "key": new_key,
+                        "name": business_label or refinement.name,
+                        # Conditions inside one target lineage are dependency
+                        # refinements and therefore conjunctive.  The old
+                        # branch AND/OR is moved to the final branch decision.
+                        "logic": "AND",
+                        "conditions": [item.model_copy(deep=True) for item in group],
+                    },
+                    deep=True,
+                )
+            )
+            for item in group:
+                for condition in atoms(item):
+                    condition_branch[(branch.key, condition.key)] = new_key
+        replacements[branch.key] = split_branches
+        replacement_logic[branch.key] = branch.logic
+
+    if not replacements:
+        return
+    draft.branches = [
+        replacement
+        for branch in draft.branches
+        for replacement in replacements.get(branch.key, [branch])
+    ]
+
+    def replace_branch_refs(references: list[str]) -> list[str]:
+        result = []
+        for reference in references:
+            if reference.startswith("branch:"):
+                branch_key = reference.split(":", 1)[1]
+                if branch_key in replacements:
+                    result.extend(
+                        f"branch:{item.key}" for item in replacements[branch_key]
+                    )
+                    continue
+            result.append(reference)
+        return list(dict.fromkeys(result))
+
+    original_final_refs = list(draft.final_decision.source_refs)
+    draft.final_decision.source_refs = replace_branch_refs(original_final_refs)
+    if len(original_final_refs) == 1 and original_final_refs[0].startswith("branch:"):
+        old_key = original_final_refs[0].split(":", 1)[1]
+        if old_key in replacement_logic:
+            draft.final_decision.combination = replacement_logic[old_key]
+    for result in draft.results:
+        if result.source_ref.startswith("branch:"):
+            old_key = result.source_ref.split(":", 1)[1]
+            if old_key in replacements:
+                # Per-branch entity outputs are synthesized below; a single
+                # old-branch result cannot represent several independent sets.
+                result.source_ref = "final:primary"
+        elif result.source_ref.startswith("condition:"):
+            value = result.source_ref.split(":", 1)[1]
+            if "." in value:
+                old_branch, condition_key = value.split(".", 1)
+                new_branch = condition_branch.get((old_branch, condition_key))
+                if new_branch:
+                    result.source_ref = f"condition:{new_branch}.{condition_key}"
+
+
+def _repair_independent_entity_results(
+    draft: NaturalLanguageBusinessDraft,
+    capabilities: BusinessCapabilityRegistry,
+) -> None:
+    """Ensure each independent refined target has an entity-box output."""
+
+    refined_branches = []
+    for branch in draft.branches:
+        conditions = list(_walk_draft_conditions(branch.conditions))
+        has_detector = any(
+            item.capability_id == "target.detect" for item in conditions
+        )
+        has_refinement = False
+        for item in conditions:
+            if item.capability_id == "target.detect":
+                continue
+            try:
+                output_type = capabilities.require(
+                    item.capability_id or ""
+                ).output_value_type
+            except KeyError:
+                continue
+            if output_type in {"entity_set", "scoped_set"}:
+                has_refinement = True
+                break
+        if has_detector and has_refinement:
+            refined_branches.append(branch)
+    if len(refined_branches) < 2:
+        return
+
+    refined_keys = {branch.key for branch in refined_branches}
+
+    def result_branch(result: DraftResult) -> str | None:
+        if result.source_ref.startswith("branch:"):
+            return result.source_ref.split(":", 1)[1]
+        if result.source_ref.startswith("condition:"):
+            value = result.source_ref.split(":", 1)[1]
+            return value.split(".", 1)[0] if "." in value else None
+        return None
+
+    # A final AND/OR decision is boolean evidence and cannot itself supply
+    # entity boxes.  Replace only ambiguous entity projections; decision,
+    # event and measurement results remain untouched.
+    draft.results = [
+        result
+        for result in draft.results
+        if not (
+            result.result_kind == "entities"
+            and result.source_ref == "final:primary"
+            and len(draft.final_decision.source_refs) > 1
+        )
+    ]
+    covered = {
+        branch_key
+        for result in draft.results
+        if result.result_kind == "entities"
+        and (branch_key := result_branch(result)) in refined_keys
+    }
+    used_result_keys = {result.key for result in draft.results}
+    for branch in refined_branches:
+        if branch.key in covered:
+            continue
+        key_base = f"{branch.key}_entities"
+        key = key_base
+        suffix = 2
+        while key in used_result_keys:
+            key = f"{key_base}_{suffix}"
+            suffix += 1
+        used_result_keys.add(key)
+        draft.results.append(
+            DraftResult(
+                key=key,
+                name=branch.name,
+                source_ref=f"branch:{branch.key}",
+                result_kind="entities",
+                evidence_policy="required",
+                save_policy="always",
+                show_in_overview=True,
+            )
+        )
 
 
 def _repair_inline_state_evidence(
@@ -795,6 +1475,10 @@ def _repair_non_actionable_geometry(
     """Drop vague geometry placeholders that contain no executable rule."""
 
     valid_dimensions = {"size", "position", "aspect_ratio"}
+    valid_values = {
+        "small", "medium", "large", "left", "center", "right",
+        "top", "middle", "bottom", "horizontal", "vertical",
+    }
     for branch in draft.branches:
         def repair(items: list[DraftCondition]) -> None:
             retained: list[DraftCondition] = []
@@ -809,10 +1493,17 @@ def _repair_non_actionable_geometry(
                         and alias in valid_dimensions
                     ):
                         parameters["dimension"] = alias
+                    dimension = parameters.get("dimension")
+                    value = parameters.get("value")
                     actionable = (
-                        parameters.get("dimension") in valid_dimensions
-                        and parameters.get("operator") not in (None, "")
-                        and parameters.get("threshold") is not None
+                        dimension in valid_dimensions
+                        and (
+                            value in valid_values
+                            or (
+                                parameters.get("operator") not in (None, "")
+                                and parameters.get("threshold") is not None
+                            )
+                        )
                     )
                     if not actionable and alias not in valid_dimensions:
                         continue
@@ -862,7 +1553,72 @@ def _repair_missing_equipment_evidence(
     visible equipment phrase and does not encode PPE-specific categories.
     """
 
+    def unwrap_double_negative(items: list[DraftCondition]) -> list[DraftCondition]:
+        """A missing-relation atom already denotes absence; NOT would invert it."""
+
+        repaired: list[DraftCondition] = []
+        for item in items:
+            if item.operator != "ATOM":
+                item.children = unwrap_double_negative(item.children)
+            if (
+                item.operator == "NOT"
+                and len(item.children) == 1
+                and item.children[0].operator == "ATOM"
+                and item.children[0].capability_id == "subject.missing_equipment"
+            ):
+                repaired.append(item.children[0])
+            else:
+                repaired.append(item)
+        return repaired
+
+    def descriptor_from_positive_phrase(phrase: str, subject_phrase: str) -> str:
+        """Extract the associated object from a positive subject relation.
+
+        This is deliberately relation-word based rather than PPE-specific, so
+        it works for wearing, carrying, containing, loading, attachment and
+        connection statements alike.  It is only used when a planner has
+        incorrectly pointed both subject and associated-object at one box.
+        """
+
+        value = phrase.strip()
+        if subject_phrase:
+            value = re.sub(re.escape(subject_phrase), "", value, count=1, flags=re.I)
+        value = re.sub(
+            r"^\s*(?:is\s+)?(?:wearing|with|carrying|containing|loaded\s+with|"
+            r"attached\s+to|connected\s+to)\s+",
+            "",
+            value,
+            flags=re.I,
+        )
+        value = re.sub(
+            r"\s+(?:is\s+)?(?:worn|carried|contained|loaded|attached|connected)\s*$",
+            "",
+            value,
+            flags=re.I,
+        )
+        return value.strip(" ,.;:，。；：")
+
+    def condition_primary_phrase(item: DraftCondition | None) -> str:
+        if item is None:
+            return ""
+        targets = item.parameters.get("targets") or []
+        targets = targets if isinstance(targets, list) else [targets]
+        for target in targets:
+            if isinstance(target, dict):
+                phrases = target.get("phrases") or []
+                phrases = phrases if isinstance(phrases, list) else [phrases]
+                if phrases and str(phrases[0]).strip():
+                    return str(phrases[0]).strip()
+                if str(target.get("label") or "").strip():
+                    return str(target["label"]).strip()
+            elif str(target).strip():
+                return str(target).strip()
+        phrases = item.parameters.get("phrases") or []
+        phrases = phrases if isinstance(phrases, list) else [phrases]
+        return str(phrases[0]).strip() if phrases else ""
+
     for branch in draft.branches:
+        branch.conditions = unwrap_double_negative(branch.conditions)
         existing_keys = {
             item.key for item in _walk_draft_conditions(branch.conditions)
         }
@@ -881,6 +1637,36 @@ def _repair_missing_equipment_evidence(
                 condition.parameters["equipment"] = equipment
             if not isinstance(equipment, str) or not equipment.strip():
                 continue
+            subject_reference = condition.parameters.get("subject")
+            if (
+                equipment.startswith("condition:")
+                and isinstance(subject_reference, str)
+                and equipment == subject_reference
+            ):
+                # The LLM reused the subject detector for the associated
+                # object.  Recover a separate object detector from its own
+                # affirmative semantic relation, never by guessing a domain
+                # category.  A stale same-subject semantic evidence reference
+                # is equally unusable and is rebuilt below.
+                subject = next(
+                    (
+                        item for item in atoms
+                        if _condition_reference(branch.key, item) == subject_reference
+                    ),
+                    None,
+                )
+                descriptor = descriptor_from_positive_phrase(
+                    str(condition.parameters.get("positive_semantic_phrase") or ""),
+                    condition_primary_phrase(subject),
+                )
+                if not descriptor:
+                    raise BusinessDraftError(
+                        f"条件“{condition.name}”把主体同时作为关联物，且缺少可见正向关系描述。"
+                    )
+                equipment = descriptor
+                condition.parameters["equipment"] = descriptor
+                if condition.parameters.get("semantic_evidence") == subject_reference:
+                    condition.parameters.pop("semantic_evidence", None)
             if equipment.startswith("condition:"):
                 continue
             candidates = [
@@ -935,6 +1721,159 @@ def _repair_missing_equipment_evidence(
             )
         branch.conditions.extend(additions)
 
+        # Prefer a model-visible positive predicate whenever a simple fact can
+        # be represented by one full-subject box.  This is relation-agnostic:
+        # wearing, carrying, containing, loading, attaching and connecting are
+        # all accepted when the planner supplies an affirmative phrase.  The
+        # negative business meaning remains on ``subject.missing_equipment``;
+        # rule-based association is only a fallback or explicit verifier.
+        atoms = list(_walk_draft_conditions(branch.conditions))
+        by_key = {item.key: item for item in atoms}
+
+        def referenced_condition(value: Any) -> DraftCondition | None:
+            values = value if isinstance(value, list) else [value]
+            if len(values) != 1 or not isinstance(values[0], str):
+                return None
+            reference = values[0]
+            if not reference.startswith("condition:"):
+                return None
+            return by_key.get(reference.split(":", 1)[1].split(".")[-1])
+
+        def primary_phrase(item: DraftCondition | None) -> str:
+            if item is None:
+                return ""
+            targets = item.parameters.get("targets") or []
+            targets = targets if isinstance(targets, list) else [targets]
+            for target in targets:
+                if isinstance(target, dict):
+                    phrases = target.get("phrases") or []
+                    phrases = phrases if isinstance(phrases, list) else [phrases]
+                    if phrases and str(phrases[0]).strip():
+                        return str(phrases[0]).strip()
+                    if str(target.get("label") or "").strip():
+                        return str(target["label"]).strip()
+                elif str(target).strip():
+                    return str(target).strip()
+            phrases = item.parameters.get("phrases") or []
+            phrases = phrases if isinstance(phrases, list) else [phrases]
+            return str(phrases[0]).strip() if phrases else ""
+
+        wearable_markers = (
+            "helmet", "hard hat", "headwear", "hat", "cap",
+            "glove", "mitt", "shoe", "boot", "footwear",
+            "vest", "harness", "mask", "goggle", "glasses",
+            "earplug", "earmuff", "collar", "clothing", "uniform",
+            "安全帽", "头盔", "帽子", "手套", "鞋", "靴",
+            "背心", "反光衣", "安全带", "口罩", "护目镜", "耳塞",
+        )
+        semantic_additions: list[DraftCondition] = []
+        for condition in atoms:
+            if (
+                condition.operator != "ATOM"
+                or condition.negated
+                or condition.capability_id != "subject.missing_equipment"
+                or condition.parameters.get("semantic_evidence")
+            ):
+                continue
+            # A visible positive fact alone is not sufficient when the natural
+            # language constrains *where* the associated object belongs on the
+            # subject.  Keep this generic: it applies to any declared
+            # subject-relative location, not to a particular PPE class.  The
+            # planner may still explicitly select another evidence policy.
+            if (
+                "verification_mode" not in condition.parameters
+                and str(condition.parameters.get("wear_location") or "auto")
+                .strip()
+                .lower()
+                in {"head", "upper_body", "lower_body", "hands", "feet"}
+            ):
+                condition.parameters["verification_mode"] = "模型语义且关系复核"
+            subject_condition = referenced_condition(
+                condition.parameters.get("subject")
+            )
+            equipment_condition = referenced_condition(
+                condition.parameters.get("equipment")
+            )
+            subject_phrase = primary_phrase(subject_condition)
+            equipment_phrase = primary_phrase(equipment_condition)
+            normalized_equipment = re.sub(
+                r"[_-]+", " ", equipment_phrase
+            ).strip().lower()
+            if not subject_phrase or not normalized_equipment:
+                continue
+
+            if subject_phrase.lower() in normalized_equipment:
+                condition.parameters["semantic_evidence"] = _condition_reference(
+                    branch.key, equipment_condition
+                )
+                continue
+
+            # Reuse any explicit full-subject semantic detector the planner
+            # already created, regardless of the relation verb or object type.
+            existing_semantic = next(
+                (
+                    item
+                    for item in atoms
+                    if item is not subject_condition
+                    and item is not equipment_condition
+                    and item.capability_id == "target.detect"
+                    and subject_phrase.lower() in primary_phrase(item).lower()
+                    and normalized_equipment in primary_phrase(item).lower()
+                ),
+                None,
+            )
+            if existing_semantic is not None:
+                condition.parameters["semantic_evidence"] = _condition_reference(
+                    branch.key, existing_semantic
+                )
+                continue
+
+            semantic_phrase = str(
+                condition.parameters.get("positive_semantic_phrase") or ""
+            ).strip()
+            if semantic_phrase and re.search(
+                r"\b(?:not|without|no)\b", semantic_phrase, flags=re.IGNORECASE
+            ):
+                raise BusinessDraftError(
+                    f"条件“{condition.name}”的正向可见语义不能包含 not/without/no。"
+                )
+            if not semantic_phrase:
+                # Only this synthesis is carrier-specific: "wearing" is safe
+                # for known wearables.  Other relations require an explicit
+                # positive phrase so the system never guesses with/connected/
+                # attached semantics from an object name alone.
+                if not any(
+                    marker in normalized_equipment for marker in wearable_markers
+                ):
+                    continue
+                semantic_phrase = (
+                    f"{subject_phrase} wearing {normalized_equipment}"
+                )
+            base_key = f"{condition.key}_semantic_evidence"
+            key = base_key
+            suffix = 2
+            while key in existing_keys:
+                key = f"{base_key}_{suffix}"
+                suffix += 1
+            existing_keys.add(key)
+            evidence = DraftCondition(
+                key=key,
+                name=f"模型识别正向语义：{semantic_phrase}",
+                capability_id="target.detect",
+                parameters={
+                    "targets": [{
+                        "label": semantic_phrase,
+                        "phrases": [semantic_phrase],
+                    }],
+                    "business_label": semantic_phrase,
+                },
+            )
+            semantic_additions.append(evidence)
+            condition.parameters["semantic_evidence"] = _condition_reference(
+                branch.key, evidence
+            )
+        branch.conditions.extend(semantic_additions)
+
 
 def _repair_entity_result_sources(
     draft: NaturalLanguageBusinessDraft,
@@ -943,6 +1882,34 @@ def _repair_entity_result_sources(
     """Point entity results at the most reduced entity evidence in a branch."""
 
     branches = {item.key: item for item in draft.branches}
+
+    def condition_key_from_ref(reference: str) -> tuple[str, str] | None:
+        if not reference.startswith("condition:"):
+            return None
+        value = reference.split(":", 1)[1]
+        if "." not in value:
+            return None
+        branch_key, condition_key = value.split(".", 1)
+        return branch_key, condition_key
+
+    def depends_on(
+        condition: DraftCondition,
+        ancestor_key: str,
+        by_key: dict[str, DraftCondition],
+        visiting: set[str] | None = None,
+    ) -> bool:
+        visiting = set() if visiting is None else visiting
+        if condition.key in visiting:
+            return False
+        visiting.add(condition.key)
+        for reference in _condition_reference_keys(condition):
+            if reference == ancestor_key:
+                return True
+            upstream = by_key.get(reference)
+            if upstream is not None and depends_on(upstream, ancestor_key, by_key, visiting):
+                return True
+        return False
+
     for result in draft.results:
         if result.result_kind != "entities":
             continue
@@ -952,11 +1919,21 @@ def _repair_entity_result_sources(
             if len(final_sources) != 1:
                 continue
             source_ref = final_sources[0]
-        if not source_ref.startswith("branch:"):
+        branch_key: str | None = None
+        source_condition_key: str | None = None
+        if source_ref.startswith("branch:"):
+            branch_key = source_ref.split(":", 1)[1]
+        else:
+            parsed = condition_key_from_ref(source_ref)
+            if parsed is not None:
+                branch_key, source_condition_key = parsed
+        if branch_key is None:
             continue
-        branch = branches.get(source_ref.split(":", 1)[1])
+        branch = branches.get(branch_key)
         if branch is None:
             continue
+        by_key = {item.key: item for item in _walk_draft_conditions(branch.conditions)}
+        source_condition = by_key.get(source_condition_key or "")
         candidates: list[tuple[tuple[int, int, int], DraftCondition]] = []
         for index, condition in enumerate(_walk_draft_conditions(branch.conditions)):
             if condition.operator != "ATOM" or condition.negated:
@@ -968,6 +1945,17 @@ def _repair_entity_result_sources(
             except KeyError:
                 continue
             if output_type not in {"entity_set", "scoped_set"}:
+                continue
+            if (
+                source_condition is not None
+                and source_condition.capability_id != "target.detect"
+            ):
+                continue
+            if (
+                source_condition is not None
+                and condition.key != source_condition.key
+                and not depends_on(condition, source_condition.key, by_key)
+            ):
                 continue
             capability = condition.capability_id or ""
             semantic_priority = (
@@ -991,8 +1979,88 @@ def _repair_entity_result_sources(
                 ((semantic_priority, dependency_count, index), condition)
             )
         if candidates:
-            selected = max(candidates, key=lambda item: item[0])[1]
+            # Prefer a terminal node in the dependency graph.  A terminal
+            # entity node is the last available refinement of the referenced
+            # source (colour, geometry, class, equipment, spatial membership,
+            # or any future entity-set capability), so a projection cannot
+            # accidentally regress to the raw detector.  If several terminal
+            # nodes are independent siblings, retain the capability priority
+            # and declaration order as deterministic tie-breakers.
+            candidate_keys = {condition.key for _, condition in candidates}
+            terminal_candidates = [
+                item
+                for item in candidates
+                if not any(
+                    other.key != item[1].key
+                    and other.key in candidate_keys
+                    and depends_on(other, item[1].key, by_key)
+                    for _, other in candidates
+                )
+            ]
+            selection_pool = terminal_candidates or candidates
+            selected = max(selection_pool, key=lambda item: item[0])[1]
             result.source_ref = _condition_reference(branch.key, selected)
+
+
+def _validate_business_orchestration_invariants(
+    draft: NaturalLanguageBusinessDraft,
+    capabilities: BusinessCapabilityRegistry,
+) -> None:
+    """Reject output typing that remains invalid after deterministic repair."""
+
+    branches = {branch.key: branch for branch in draft.branches}
+    final_branch_keys = [
+        reference.split(":", 1)[1]
+        for reference in draft.final_decision.source_refs
+        if reference.startswith("branch:")
+    ]
+
+    def has_entity_refinement(branch: DraftBranch) -> bool:
+        for condition in _walk_draft_conditions(branch.conditions):
+            if condition.capability_id == "target.detect":
+                continue
+            try:
+                output_type = capabilities.require(
+                    condition.capability_id or ""
+                ).output_value_type
+            except KeyError:
+                continue
+            if output_type in {"entity_set", "scoped_set"}:
+                return True
+        return False
+
+    refined_keys = {
+        key
+        for key in final_branch_keys
+        if key in branches and has_entity_refinement(branches[key])
+    }
+    if len(refined_keys) < 2:
+        return
+    if any(
+        result.result_kind == "entities"
+        and result.source_ref == "final:primary"
+        for result in draft.results
+    ):
+        raise BusinessDraftError(
+            "多分支最终判定是布尔来源，不能作为实体框结果来源。"
+        )
+
+    covered = set()
+    for result in draft.results:
+        if result.result_kind != "entities":
+            continue
+        if result.source_ref.startswith("branch:"):
+            covered.add(result.source_ref.split(":", 1)[1])
+        elif result.source_ref.startswith("condition:"):
+            value = result.source_ref.split(":", 1)[1]
+            if "." in value:
+                covered.add(value.split(".", 1)[0])
+    missing = refined_keys - covered
+    if missing:
+        raise BusinessDraftError(
+            "独立实体分支缺少可绘制的 entities 结果："
+            + "、".join(sorted(missing))
+        )
 
 
 def _descriptor_tokens(value: Any) -> set[str]:
@@ -1127,6 +2195,13 @@ def _bind_evidence_parameters(
             current_condition=condition,
             condition_ids=condition_ids,
         )
+        if parameters.get("semantic_evidence"):
+            parameters["semantic_evidence"] = _bind_plain_evidence_reference(
+                parameters.get("semantic_evidence"),
+                branch=branch,
+                current_condition=condition,
+                condition_ids=condition_ids,
+            )
     return parameters
 
 
@@ -1211,12 +2286,15 @@ def apply_business_rule_draft(
     _lift_misplaced_target_scopes(draft)
     _repair_required_tracks(draft)
     _repair_redundant_temporal_atoms(draft)
-    _repair_inline_state_evidence(draft)
     _repair_non_actionable_geometry(draft)
     _repair_degenerate_patterns(draft)
+    _repair_independent_business_branches(draft, capabilities)
+    _repair_inline_state_evidence(draft)
     _repair_same_subject_attributes(draft)
     _repair_missing_equipment_evidence(draft)
+    _repair_independent_entity_results(draft, capabilities)
     _repair_entity_result_sources(draft, capabilities)
+    _validate_business_orchestration_invariants(draft, capabilities)
     requested = set(requested_accept)
     branch_keys = {item.key for item in draft.branches}
     if len(branch_keys) != len(draft.branches):
@@ -1319,6 +2397,11 @@ def apply_business_rule_draft(
         if reference == "full_frame":
             return reference
         if ":" not in reference:
+            # LLMs occasionally omit the ``resource:`` prefix when the
+            # resource key is already unambiguous in this draft.  Canonicalize
+            # that harmless shorthand before capability validation.
+            if reference in resource_ids:
+                return resource_ids[reference]
             return reference
         prefix, key = reference.split(":", 1)
         if prefix == "branch":
@@ -1391,6 +2474,11 @@ def apply_business_rule_draft(
                 raise BusinessDraftError(
                     f"LLM 使用了未注册业务能力：{condition.capability_id}"
                 ) from exc
+            if definition.orchestration_slot != "condition":
+                raise BusinessDraftError(
+                    f"业务能力“{condition.capability_id}”属于"
+                    f"{definition.orchestration_slot} 编排槽位，不能作为普通条件。"
+                )
             if branch.media_type not in definition.media_requirements:
                 raise BusinessDraftError(
                     f"“{condition.name}”仅适用于{'/'.join(definition.media_requirements)}，"
@@ -1487,8 +2575,21 @@ def apply_business_rule_draft(
             None,
         )
         if same_subject is not None:
+            same_subject_source = str(
+                same_subject.parameters.get("subject") or ""
+            ).split(".")[-1]
             for expression in atoms:
                 if expression.capability_id != "spatial.membership":
+                    continue
+                # Only move a membership filter after the same-subject join
+                # when it originally filtered that join's own source.  With
+                # multiple named regions, a membership condition can be the
+                # source of the clothing join; rebinding it to the join would
+                # create a cycle and lose the region boundary.
+                original_source = str(
+                    expression.parameters.get("source") or ""
+                ).split(".")[-1]
+                if original_source != same_subject_source:
                     continue
                 expression.parameters["source"] = (
                     f"condition:{same_subject.expression_id}"

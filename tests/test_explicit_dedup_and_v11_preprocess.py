@@ -102,6 +102,61 @@ def test_iou_and_ios_are_distinct_explicit_metrics():
     assert [item.id for item in iou.items] == ["large", "small"]
 
 
+def test_instance_metric_keeps_distinct_occluded_subjects_that_ios_would_merge():
+    from operators.perception import objects_deduplicate
+
+    # Two people in depth can have a large intersection over the smaller box
+    # while their ordinary IoU and centres still identify distinct instances.
+    objects = ObjectSet([
+        _object("foreground", "person", (0.076, 0.371, 0.358, 0.934)),
+        _object("background", "person", (0.250, 0.332, 0.461, 0.783)),
+    ])
+
+    ios = objects_deduplicate(
+        {"objects": objects},
+        {"metric": "ios", "threshold": 0.45, "keep": "first"},
+        None,
+        "ios",
+    )
+    instance = objects_deduplicate(
+        {"objects": objects},
+        {"metric": "instance", "threshold": 0.45, "keep": "first"},
+        None,
+        "instance",
+    )
+
+    assert [item.id for item in ios.items] == ["foreground"]
+    assert [item.id for item in instance.items] == ["foreground", "background"]
+
+
+def test_instance_metric_merges_same_subject_across_full_and_tile_views():
+    from operators.perception import objects_deduplicate
+
+    objects = ObjectSet([
+        _object(
+            "coarse_full", "person", (0.10, 0.10, 0.60, 0.90),
+            localization_score=1.0,
+        ),
+        _object(
+            "precise_tile", "person", (0.18, 0.18, 0.52, 0.84),
+            localization_score=2.5,
+        ),
+    ])
+
+    result = objects_deduplicate(
+        {"objects": objects},
+        {
+            "metric": "instance",
+            "threshold": 0.45,
+            "keep": "best_localization",
+        },
+        None,
+        "instance",
+    )
+
+    assert [item.id for item in result.items] == ["precise_tile"]
+
+
 def test_best_localization_dedup_prefers_precise_tile_box_over_coarse_full_frame():
     from operators.perception import objects_deduplicate
 
@@ -198,9 +253,9 @@ def test_v2_compiler_emits_raw_rex_then_explicit_dedup_and_visible_resize():
         assert "deduplicate_metric" not in raw.params
         assert dedup.inputs == {"objects": "$candidates_raw"}
         assert dedup.params == {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first",
+            "metric": "instance",
+            "threshold": 0.45,
+            "keep": "best_localization",
         }
 
     sample = next(

@@ -112,7 +112,12 @@ def compile_result_visualization(
     # output.draw accepts the EntitySet family.  Filter/join operators return
     # EntitySet while raw grounding returns ObjectSet; excluding the former
     # made visualization silently fall back to every raw detection.
-    object_nodes = candidates("ObjectSet", "EntitySet")
+    canonical_objects = _node_id(compiled_outputs.get("objects", ""))
+    object_nodes = (
+        [canonical_objects]
+        if node_types.get(canonical_objects) in {"ObjectSet", "EntitySet"}
+        else candidates("ObjectSet", "EntitySet")
+    )
     if not object_nodes:
         track_nodes = candidates("TrackSet")
         for track_node in track_nodes:

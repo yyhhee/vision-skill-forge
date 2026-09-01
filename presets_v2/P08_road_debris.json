@@ -1,9 +1,9 @@
 {
   "schema_version": "2.0",
   "skill_id": "road_debris",
-  "version": 1,
+  "version": 2,
   "display_name": "道路抛洒物",
-  "original_instruction": "检测道路上的抛洒物、掉落货物或障碍物。",
+  "original_instruction": "检测 02 标注道路区域内的抛洒物、掉落货物或障碍物。",
   "compile_status": "compiled",
   "input": {
     "requested_accept": [
@@ -21,7 +21,7 @@
   },
   "semantic_ir": {
     "schema_version": "1.0",
-    "mode": "entity_query",
+    "mode": "direct_grounding",
     "target": {
       "concept": "road_debris",
       "source_span": "抛洒物、掉落货物或障碍物",
@@ -34,21 +34,19 @@
     },
     "constraints": [
       {
-        "atom_id": "atom_1",
-        "kind": "spatial_relation",
+        "atom_id": "road_area",
+        "kind": "region_requirement",
         "value": {
-          "relation": "inside_roi",
-          "region": {
-            "source": "grounding",
-            "phrases": [
-              "road surface",
-              "roadway"
-            ],
-            "mode": "all"
-          }
+          "source": "manual",
+          "cardinality": "one",
+          "semantic_role": "road_area",
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ]
         },
-        "source": "检测道路上的抛洒物",
-        "source_span": "道路上的",
+        "source": "02 标注道路区域",
+        "source_span": "02 标注道路区域",
         "polarity": "required",
         "carrier": null,
         "carrier_span": null,
@@ -58,7 +56,7 @@
     ],
     "logic": "all",
     "unresolved": [],
-    "semantic_hash": "7af43c5a9ea23b9f2b4fd4ea3073f0c3679f5439e06f08d7a84fb4accdaf304d"
+    "semantic_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "variants": {
     "image": {
@@ -81,45 +79,12 @@
             "frames": "$media"
           },
           "params": {
-            "mode": "long_side",
-            "long_side": 1280
+            "mode": "identity"
           },
           "enabled": true
         },
         {
-          "id": "roads_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "targets": [
-              {
-                "label": "道路",
-                "phrases": [
-                  "road surface",
-                  "roadway"
-                ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "roads",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$roads_raw"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
-          },
-          "enabled": true
-        },
-        {
-          "id": "debris_raw",
+          "id": "business_shared_grounding",
           "op": "rex.ground@1.1",
           "inputs": {
             "frames": "$resized"
@@ -139,84 +104,160 @@
           "enabled": true
         },
         {
-          "id": "debris",
-          "op": "objects.deduplicate@1.0",
+          "id": "business_ground_select_condition_condition_debris_in_road_area_image_detect_debris",
+          "op": "objects.filter_by_label@1.0",
           "inputs": {
-            "objects": "$debris_raw"
+            "objects": "$business_shared_grounding"
           },
           "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
+            "labels": [
+              "道路抛洒物"
+            ],
+            "mode": "include"
           },
           "enabled": true
         },
         {
-          "id": "road_regions",
-          "op": "region.from_objects@1.0",
+          "id": "branch_debris_in_road_area_image_condition_debris_in_road_area_image_detect_debris_label",
+          "op": "objects.relabel@1.0",
           "inputs": {
-            "objects": "$roads"
+            "objects": "$business_ground_select_condition_condition_debris_in_road_area_image_detect_debris"
           },
           "params": {
-            "mode": "all"
+            "label": "道路抛洒物"
           },
           "enabled": true
         },
         {
-          "id": "inside_road",
+          "id": "resource_resource_road_area_regions",
+          "op": "region.manual_set@1.0",
+          "inputs": {},
+          "params": {
+            "regions": []
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_inside",
           "op": "spatial.inside@1.0",
           "inputs": {
-            "objects": "$debris",
-            "region": "$road_regions"
+            "objects": "$branch_debris_in_road_area_image_condition_debris_in_road_area_image_detect_debris_label",
+            "region": "$resource_resource_road_area_regions"
           },
           "params": {
             "mode": "center",
-            "overlap_threshold": 0.5
+            "overlap_threshold": 0.3
           },
           "enabled": true
         },
         {
-          "id": "violations",
+          "id": "branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_apply",
           "op": "filter.apply@1.0",
           "inputs": {
-            "objects": "$debris",
-            "condition": "$inside_road"
+            "objects": "$branch_debris_in_road_area_image_condition_debris_in_road_area_image_detect_debris_label",
+            "condition": "$branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_inside"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "branch_debris_in_road_area_image_group_debris_in_road_area_image_branch_debris_in_road_area_image_condition_debris_in_road_area_image_detect_debris_label_exists",
+          "op": "reduce.exists@1.0",
+          "inputs": {
+            "sets": "$branch_debris_in_road_area_image_condition_debris_in_road_area_image_detect_debris_label"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "branch_debris_in_road_area_image_group_debris_in_road_area_image_branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_apply_exists",
+          "op": "reduce.exists@1.0",
+          "inputs": {
+            "sets": "$branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_apply"
+          },
+          "params": {},
+          "enabled": true
+        },
+        {
+          "id": "branch_debris_in_road_area_image_group_debris_in_road_area_image_and",
+          "op": "logic.all@1.0",
+          "inputs": {
+            "conditions": [
+              "$branch_debris_in_road_area_image_group_debris_in_road_area_image_branch_debris_in_road_area_image_condition_debris_in_road_area_image_detect_debris_label_exists",
+              "$branch_debris_in_road_area_image_group_debris_in_road_area_image_branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_apply_exists"
+            ]
           },
           "params": {
-            "output_label": "道路抛洒物"
+            "combine_scope": "frame_any"
           },
           "enabled": true
         },
         {
-          "id": "draw",
+          "id": "business_branch_evidence_branch_debris_in_road_area_image_label",
+          "op": "objects.relabel@1.0",
+          "inputs": {
+            "objects": "$branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_apply"
+          },
+          "params": {
+            "label": "道路区域内抛洒物（图片）"
+          },
+          "enabled": true
+        },
+        {
+          "id": "result_draw",
           "op": "output.draw@1.0",
           "inputs": {
             "frames": "$resized",
-            "objects": "$violations",
-            "regions": "$road_regions"
+            "objects": "$business_branch_evidence_branch_debris_in_road_area_image_label",
+            "regions": "$resource_resource_road_area_regions"
           },
-          "params": {
-            "show_labels": true,
-            "show_track_id": true
-          },
+          "params": {},
           "enabled": true
         }
       ],
       "outputs": {
-        "media": "$draw",
-        "objects": "$violations",
-        "regions": "$road_regions"
+        "regions": "$resource_resource_road_area_regions",
+        "result_result_debris_entities_image": "$branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_apply",
+        "branch_branch_debris_in_road_area_image": "$branch_debris_in_road_area_image_group_debris_in_road_area_image_and",
+        "objects": "$business_branch_evidence_branch_debris_in_road_area_image_label",
+        "final_primary": "$branch_debris_in_road_area_image_group_debris_in_road_area_image_and",
+        "media": "$result_draw"
       },
       "atom_bindings": {
-        "atom_1": [
-          "debris_raw",
-          "debris",
-          "road_regions",
-          "inside_road",
-          "violations"
+        "road_area": [
+          "business_shared_grounding",
+          "business_ground_select_condition_condition_debris_in_road_area_image_detect_debris",
+          "branch_debris_in_road_area_image_condition_debris_in_road_area_image_detect_debris_label",
+          "resource_resource_road_area_regions",
+          "branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_inside",
+          "branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_apply",
+          "branch_debris_in_road_area_image_group_debris_in_road_area_image_branch_debris_in_road_area_image_condition_debris_in_road_area_image_detect_debris_label_exists",
+          "branch_debris_in_road_area_image_group_debris_in_road_area_image_branch_debris_in_road_area_image_condition_debris_in_road_area_image_in_road_area_apply_exists",
+          "branch_debris_in_road_area_image_group_debris_in_road_area_image_and",
+          "business_branch_evidence_branch_debris_in_road_area_image_label"
         ]
       },
-      "configuration_slots": [],
+      "configuration_slots": [
+        {
+          "slot_id": "slot_resource_road_area",
+          "kind": "region_set",
+          "label": "02 标注道路区域",
+          "required": true,
+          "binding": {
+            "node_id": "resource_resource_road_area_regions",
+            "parameter": "regions"
+          },
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "minimum_items": 1,
+          "source_atom_ids": [],
+          "help_text": "在 02 标注中绘制实际区域；区域数量可按媒体动态增加。",
+          "active_when_op": null,
+          "key_source_slot_id": null
+        }
+      ],
       "issue": null
     },
     "video": {
@@ -240,7 +281,10 @@
           },
           "params": {
             "mode": "fps",
-            "fps": 1.0
+            "fps": 1.0,
+            "start_seconds": 0.0,
+            "end_seconds": null,
+            "max_frames": null
           },
           "enabled": true
         },
@@ -251,45 +295,12 @@
             "frames": "$frames"
           },
           "params": {
-            "mode": "long_side",
-            "long_side": 1280
+            "mode": "identity"
           },
           "enabled": true
         },
         {
-          "id": "roads_raw",
-          "op": "rex.ground@1.1",
-          "inputs": {
-            "frames": "$resized"
-          },
-          "params": {
-            "targets": [
-              {
-                "label": "道路",
-                "phrases": [
-                  "road surface",
-                  "roadway"
-                ]
-              }
-            ]
-          },
-          "enabled": true
-        },
-        {
-          "id": "roads",
-          "op": "objects.deduplicate@1.0",
-          "inputs": {
-            "objects": "$roads_raw"
-          },
-          "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
-          },
-          "enabled": true
-        },
-        {
-          "id": "debris_raw",
+          "id": "business_shared_grounding",
           "op": "rex.ground@1.1",
           "inputs": {
             "frames": "$resized"
@@ -309,122 +320,160 @@
           "enabled": true
         },
         {
-          "id": "debris",
-          "op": "objects.deduplicate@1.0",
+          "id": "business_ground_select_condition_condition_debris_in_road_area_video_detect_debris",
+          "op": "objects.filter_by_label@1.0",
           "inputs": {
-            "objects": "$debris_raw"
+            "objects": "$business_shared_grounding"
           },
           "params": {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "first"
+            "labels": [
+              "道路抛洒物"
+            ],
+            "mode": "include"
           },
           "enabled": true
         },
         {
-          "id": "road_regions",
-          "op": "region.from_objects@1.0",
+          "id": "branch_debris_in_road_area_video_condition_debris_in_road_area_video_detect_debris_label",
+          "op": "objects.relabel@1.0",
           "inputs": {
-            "objects": "$roads"
+            "objects": "$business_ground_select_condition_condition_debris_in_road_area_video_detect_debris"
           },
           "params": {
-            "mode": "all"
+            "label": "道路抛洒物"
           },
           "enabled": true
         },
         {
-          "id": "inside_road",
+          "id": "resource_resource_road_area_regions",
+          "op": "region.manual_set@1.0",
+          "inputs": {},
+          "params": {
+            "regions": []
+          },
+          "enabled": true
+        },
+        {
+          "id": "branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_inside",
           "op": "spatial.inside@1.0",
           "inputs": {
-            "objects": "$debris",
-            "region": "$road_regions"
+            "objects": "$branch_debris_in_road_area_video_condition_debris_in_road_area_video_detect_debris_label",
+            "region": "$resource_resource_road_area_regions"
           },
           "params": {
             "mode": "center",
-            "overlap_threshold": 0.5
+            "overlap_threshold": 0.3
           },
           "enabled": true
         },
         {
-          "id": "violations",
+          "id": "branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_apply",
           "op": "filter.apply@1.0",
           "inputs": {
-            "objects": "$debris",
-            "condition": "$inside_road"
+            "objects": "$branch_debris_in_road_area_video_condition_debris_in_road_area_video_detect_debris_label",
+            "condition": "$branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_inside"
           },
-          "params": {
-            "output_label": "道路抛洒物"
-          },
+          "params": {},
           "enabled": true
         },
         {
-          "id": "result_tracks",
-          "op": "track.iou@1.0",
+          "id": "branch_debris_in_road_area_video_group_debris_in_road_area_video_branch_debris_in_road_area_video_condition_debris_in_road_area_video_detect_debris_label_exists",
+          "op": "reduce.exists@1.0",
           "inputs": {
-            "objects": "$violations"
+            "sets": "$branch_debris_in_road_area_video_condition_debris_in_road_area_video_detect_debris_label"
           },
-          "params": {
-            "iou_threshold": 0.2,
-            "max_missing_frames": 1,
-            "same_label_only": true
-          },
+          "params": {},
           "enabled": true
         },
         {
-          "id": "confirmed_tracks",
-          "op": "track.confirm@1.0",
+          "id": "branch_debris_in_road_area_video_group_debris_in_road_area_video_branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_apply_exists",
+          "op": "reduce.exists@1.0",
           "inputs": {
-            "tracks": "$result_tracks"
+            "sets": "$branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_apply"
           },
-          "params": {
-            "min_hits": 2,
-            "min_span_seconds": 0.5
-          },
+          "params": {},
           "enabled": true
         },
         {
-          "id": "confirmed_objects",
-          "op": "objects.from_tracks@1.0",
+          "id": "branch_debris_in_road_area_video_group_debris_in_road_area_video_and",
+          "op": "logic.all@1.0",
           "inputs": {
-            "tracks": "$confirmed_tracks"
+            "conditions": [
+              "$branch_debris_in_road_area_video_group_debris_in_road_area_video_branch_debris_in_road_area_video_condition_debris_in_road_area_video_detect_debris_label_exists",
+              "$branch_debris_in_road_area_video_group_debris_in_road_area_video_branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_apply_exists"
+            ]
           },
           "params": {
-            "selection": "all"
+            "combine_scope": "frame_any"
           },
           "enabled": true
         },
         {
-          "id": "draw",
+          "id": "business_branch_evidence_branch_debris_in_road_area_video_label",
+          "op": "objects.relabel@1.0",
+          "inputs": {
+            "objects": "$branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_apply"
+          },
+          "params": {
+            "label": "道路区域内抛洒物（视频）"
+          },
+          "enabled": true
+        },
+        {
+          "id": "result_draw",
           "op": "output.draw@1.0",
           "inputs": {
             "frames": "$resized",
-            "objects": "$confirmed_tracks",
-            "regions": "$road_regions"
+            "objects": "$business_branch_evidence_branch_debris_in_road_area_video_label",
+            "regions": "$resource_resource_road_area_regions"
           },
-          "params": {
-            "show_labels": true,
-            "show_track_id": true,
-            "show_trajectory": true
-          },
+          "params": {},
           "enabled": true
         }
       ],
       "outputs": {
-        "media": "$draw",
-        "objects": "$confirmed_objects",
-        "regions": "$road_regions",
-        "tracks": "$confirmed_tracks"
+        "regions": "$resource_resource_road_area_regions",
+        "result_result_debris_entities_video": "$branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_apply",
+        "branch_branch_debris_in_road_area_video": "$branch_debris_in_road_area_video_group_debris_in_road_area_video_and",
+        "objects": "$business_branch_evidence_branch_debris_in_road_area_video_label",
+        "final_primary": "$branch_debris_in_road_area_video_group_debris_in_road_area_video_and",
+        "media": "$result_draw"
       },
       "atom_bindings": {
-        "atom_1": [
-          "debris_raw",
-          "debris",
-          "road_regions",
-          "inside_road",
-          "violations"
+        "road_area": [
+          "business_shared_grounding",
+          "business_ground_select_condition_condition_debris_in_road_area_video_detect_debris",
+          "branch_debris_in_road_area_video_condition_debris_in_road_area_video_detect_debris_label",
+          "resource_resource_road_area_regions",
+          "branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_inside",
+          "branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_apply",
+          "branch_debris_in_road_area_video_group_debris_in_road_area_video_branch_debris_in_road_area_video_condition_debris_in_road_area_video_detect_debris_label_exists",
+          "branch_debris_in_road_area_video_group_debris_in_road_area_video_branch_debris_in_road_area_video_condition_debris_in_road_area_video_in_road_area_apply_exists",
+          "branch_debris_in_road_area_video_group_debris_in_road_area_video_and",
+          "business_branch_evidence_branch_debris_in_road_area_video_label"
         ]
       },
-      "configuration_slots": [],
+      "configuration_slots": [
+        {
+          "slot_id": "slot_resource_road_area",
+          "kind": "region_set",
+          "label": "02 标注道路区域",
+          "required": true,
+          "binding": {
+            "node_id": "resource_resource_road_area_regions",
+            "parameter": "regions"
+          },
+          "allowed_shapes": [
+            "rectangle",
+            "polygon"
+          ],
+          "minimum_items": 1,
+          "source_atom_ids": [],
+          "help_text": "在 02 标注中绘制实际区域；区域数量可按媒体动态增加。",
+          "active_when_op": null,
+          "key_source_slot_id": null
+        }
+      ],
       "issue": null
     }
   },

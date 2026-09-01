@@ -140,8 +140,18 @@ def test_pose_evidence_preserves_full_frame_context_instead_of_tiling():
     pose_grounding = next(
         node for node in variant.nodes if node.id == "constraint_1_objects"
     )
+    assert pose_grounding.op == "objects.filter_by_label@1.0"
+    shared_grounding = next(
+        node
+        for node in variant.nodes
+        if node.id == pose_grounding.inputs["objects"].removeprefix("$")
+    )
 
-    assert pose_grounding.inputs["frames"] == "$resized"
+    assert shared_grounding.op == "rex.ground@1.1"
+    assert shared_grounding.inputs["frames"] == "$resized"
+    assert len([
+        node for node in variant.nodes if node.op == "rex.ground@1.1"
+    ]) == 1
     assert not any(node.id == "evidence_frames" for node in variant.nodes)
 
 

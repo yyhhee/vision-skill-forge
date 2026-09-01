@@ -99,7 +99,7 @@ def _value_matches(value: Any, spec: ParameterSpec) -> bool:
     def string_list(item):
         return (
             isinstance(item, list)
-            and len(item) >= 2
+            and len(item) >= 1
             and all(isinstance(value, str) and bool(value) for value in item)
         )
 

@@ -7,7 +7,7 @@
       "free_text": "检测画面中的烟雾或明火。",
       "structured_text": "业务事件：烟火检测；条件分支：出现烟雾或明火；最终判定：检测到目标；业务输出：烟火框、标注画面。",
       "media": ["image", "video"],
-      "editor_capabilities": ["target.detect", "attribute.color", "logic.group"]
+      "editor_capabilities": ["target.detect"]
     },
     {
       "preset_id": "P02",
@@ -60,8 +60,8 @@
     {
       "preset_id": "P08",
       "package": "P08_road_debris.json",
-      "free_text": "检测道路上的抛洒物、掉落货物或障碍物。",
-      "structured_text": "条件分支：抛洒物、掉落货物或障碍物位于道路区域；最终判定：检测到道路抛洒物；业务输出：目标框和标注画面。",
+      "free_text": "检测 02 标注道路区域内的抛洒物、掉落货物或障碍物。",
+      "structured_text": "条件分支：检测抛洒物、掉落货物或障碍物，并筛选位于 02 标注道路区域内的目标；最终判定：检测到道路抛洒物；业务输出：目标框和标注画面。",
       "media": ["image", "video"],
       "editor_capabilities": ["target.detect", "spatial.membership"]
     },
@@ -71,7 +71,7 @@
       "free_text": "检测施工人员中没有佩戴安全帽的人。",
       "structured_text": "业务事件：未戴安全帽；条件分支：施工人员 NOT 关联安全帽；最终判定：存在未戴安全帽人员；业务输出：违规人员框。",
       "media": ["image", "video"],
-      "editor_capabilities": ["target.detect", "spatial.association", "logic.group"]
+      "editor_capabilities": ["target.detect", "subject.missing_equipment"]
     },
     {
       "preset_id": "P10",
@@ -79,7 +79,7 @@
       "free_text": "检测高处作业人员中没有连接安全绳或安全带的人。",
       "structured_text": "业务事件：未系安全绳；条件分支：高处作业人员 NOT 关联安全绳证据；最终判定：存在违规人员；业务输出：违规人员框。",
       "media": ["image", "video"],
-      "editor_capabilities": ["target.detect", "spatial.association", "logic.group"]
+      "editor_capabilities": ["target.detect", "subject.missing_equipment"]
     },
     {
       "preset_id": "P11",
@@ -100,8 +100,8 @@
     {
       "preset_id": "P13",
       "package": "P13_bridge_damage.json",
-      "free_text": "检测桥梁表面的裂纹、锈蚀、渗水、混凝土剥落和露筋，并排除规则施工缝。",
-      "structured_text": "条件分支：检测桥梁病害 AND 排除规则施工缝；最终判定：检测到桥梁病害；业务输出：病害类别和目标框。",
+      "free_text": "识别桥梁病害露筋、裂纹、锈蚀、渗水、混凝土剥落。",
+      "structured_text": "条件分支：检测桥梁病害；最终判定：检测到桥梁病害；业务输出：病害类别和目标框。",
       "media": ["image", "video"],
       "editor_capabilities": ["target.detect"]
     }

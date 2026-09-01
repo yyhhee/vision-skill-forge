@@ -1,0 +1,2993 @@
+{
+  "schema_version": "3.2",
+  "version": 6,
+  "skill_template": {
+    "skill_id": "no_helmet",
+    "display_name": "施工未戴安全帽",
+    "original_instruction": "识别未带安全帽的人。",
+    "source_type": "preset",
+    "semantic_ir": {
+      "schema_version": "1.0",
+      "mode": "entity_query",
+      "target": {
+        "concept": "person",
+        "source_span": "人",
+        "phrases": [
+          "person"
+        ],
+        "classes": []
+      },
+      "constraints": [
+        {
+          "atom_id": "atom_1",
+          "kind": "wearable",
+          "value": "safety_helmet",
+          "source": "识别未带安全帽的人",
+          "source_span": "未带安全帽",
+          "polarity": "absent",
+          "carrier": null,
+          "carrier_span": null,
+          "phrases": [
+            "safety helmet"
+          ],
+          "temporal": false
+        }
+      ],
+      "logic": "all",
+      "unresolved": [],
+      "semantic_hash": "43005aaafb5e27264b47de5fb6966b29ae5ae62caad5f304b2ad31df9903fb3e"
+    },
+    "result_specs": [
+      {
+        "result_id": "result_image_entities",
+        "display_name": "未佩戴安全帽人员",
+        "semantic_type": "entity_set",
+        "value_shape": "list",
+        "source_ref": "condition:condition_image_missing_relation_missing",
+        "media_types": [
+          "image"
+        ],
+        "projection": {
+          "kind": "entities",
+          "parameters": {}
+        },
+        "unit": null,
+        "grouping": [],
+        "condition_snapshot_policy": "on_result",
+        "label_policy": {
+          "business_label": null,
+          "preserve_model_label": true,
+          "fallback_to_model_label": true
+        },
+        "save_policy": "always",
+        "evidence_policy": "required",
+        "empty_policy": "empty",
+        "result_type": null,
+        "required_outputs": [
+          "result_result_image_entities"
+        ]
+      },
+      {
+        "result_id": "result_video_entities",
+        "display_name": "未佩戴安全帽人员",
+        "semantic_type": "entity_set",
+        "value_shape": "list",
+        "source_ref": "condition:condition_video_missing_relation_missing",
+        "media_types": [
+          "video"
+        ],
+        "projection": {
+          "kind": "entities",
+          "parameters": {}
+        },
+        "unit": null,
+        "grouping": [],
+        "condition_snapshot_policy": "on_result",
+        "label_policy": {
+          "business_label": null,
+          "preserve_model_label": true,
+          "fallback_to_model_label": true
+        },
+        "save_policy": "always",
+        "evidence_policy": "required",
+        "empty_policy": "empty",
+        "result_type": null,
+        "required_outputs": [
+          "result_result_video_entities"
+        ]
+      }
+    ],
+    "rule_graph": {
+      "nodes": [],
+      "edges": []
+    },
+    "rule_graphs": {
+      "image": {
+        "nodes": [
+          {
+            "node_id": "business_shared_grounding",
+            "kind": "target",
+            "display_name": "一次模型检测",
+            "operator": "rex.ground@1.1",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_subject",
+              "condition:condition_image_missing_relation_missing_semantic_evidence",
+              "condition:condition_image_missing_relation_equipment"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "targets": [
+                {
+                  "label": "人员",
+                  "phrases": [
+                    "person"
+                  ]
+                },
+                {
+                  "label": "person wearing safety helmet",
+                  "phrases": [
+                    "person wearing safety helmet"
+                  ]
+                },
+                {
+                  "label": "安全帽",
+                  "phrases": [
+                    "safety helmet"
+                  ]
+                }
+              ]
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_shared_grounding_deduplicated",
+            "kind": "target",
+            "display_name": "统一实例去重",
+            "operator": "objects.deduplicate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "node:system:shared_grounding_dedup"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "kind": "target",
+            "display_name": "检测人员",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_subject"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "人员"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "kind": "target",
+            "display_name": "检测人员框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_subject"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "人员"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "kind": "target",
+            "display_name": "模型识别正向语义：person wearing safety helmet",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "person wearing safety helmet"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "kind": "target",
+            "display_name": "模型识别正向语义：person wearing safety helmet框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "person wearing safety helmet"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "kind": "condition",
+            "display_name": "人员未佩戴安全帽模型语义归属",
+            "operator": "spatial.associate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_image_missing_relation_equipment",
+            "kind": "target",
+            "display_name": "检测安全帽",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_equipment"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "安全帽"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_equipment_label",
+            "kind": "target",
+            "display_name": "检测安全帽框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_equipment"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "安全帽"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+            "kind": "condition",
+            "display_name": "人员未佩戴安全帽关系复核",
+            "operator": "spatial.associate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "relation": "center_in_subject_region",
+              "subject_region": [
+                0,
+                0,
+                1,
+                0.35
+              ]
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+            "kind": "condition",
+            "display_name": "人员未佩戴安全帽双证据同时满足",
+            "operator": "logic.all@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "combine_scope": "by_key"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "kind": "condition",
+            "display_name": "人员未佩戴安全帽",
+            "operator": "logic.not@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "kind": "target",
+            "display_name": "人员未佩戴安全帽",
+            "operator": "filter.apply@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing"
+            ],
+            "output_name": "result_result_image_entities",
+            "output_names": [],
+            "params": {
+              "output_label": null
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "kind": "condition",
+            "display_name": "未佩戴安全帽人员条件组存在",
+            "operator": "reduce.exists@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_image_missing_relation"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "kind": "condition",
+            "display_name": "未佩戴安全帽人员条件组存在",
+            "operator": "reduce.exists@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_image_missing_relation"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_group_image_missing_relation_and",
+            "kind": "condition",
+            "display_name": "未佩戴安全帽人员条件组",
+            "operator": "logic.all@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_image_missing_relation"
+            ],
+            "output_name": "branch_branch_image_missing_relation",
+            "output_names": [],
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_branch_evidence_branch_image_missing_relation_0_label",
+            "kind": "target",
+            "display_name": "未佩戴安全帽人员结果标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "node:system:branch_entity_label:branch_image_missing_relation"
+            ],
+            "output_name": "objects",
+            "output_names": [],
+            "params": {
+              "label": "未佩戴安全帽人员"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          }
+        ],
+        "edges": [
+          {
+            "source": "business_shared_grounding",
+            "target": "business_shared_grounding_deduplicated",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "port": "objects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "port": "subjects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_image_missing_relation_equipment",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_image_missing_relation_equipment",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_equipment_label",
+            "port": "objects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+            "port": "subjects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_equipment_label",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+            "port": "objects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "port": "condition"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "port": "objects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "port": "condition"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "target": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "port": "sets"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "target": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "port": "sets"
+          },
+          {
+            "source": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "target": "branch_image_missing_relation_group_image_missing_relation_and",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "target": "branch_image_missing_relation_group_image_missing_relation_and",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "target": "business_branch_evidence_branch_image_missing_relation_0_label",
+            "port": "objects"
+          }
+        ]
+      },
+      "video": {
+        "nodes": [
+          {
+            "node_id": "business_shared_grounding",
+            "kind": "target",
+            "display_name": "一次模型检测",
+            "operator": "rex.ground@1.1",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_subject",
+              "condition:condition_video_missing_relation_missing_semantic_evidence",
+              "condition:condition_video_missing_relation_equipment"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "targets": [
+                {
+                  "label": "人员",
+                  "phrases": [
+                    "person"
+                  ]
+                },
+                {
+                  "label": "person wearing safety helmet",
+                  "phrases": [
+                    "person wearing safety helmet"
+                  ]
+                },
+                {
+                  "label": "安全帽",
+                  "phrases": [
+                    "safety helmet"
+                  ]
+                }
+              ]
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_shared_grounding_deduplicated",
+            "kind": "target",
+            "display_name": "统一实例去重",
+            "operator": "objects.deduplicate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "node:system:shared_grounding_dedup"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "kind": "target",
+            "display_name": "检测人员",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_subject"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "人员"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "kind": "target",
+            "display_name": "检测人员框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_subject"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "人员"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "kind": "target",
+            "display_name": "模型识别正向语义：person wearing safety helmet",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "person wearing safety helmet"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "kind": "target",
+            "display_name": "模型识别正向语义：person wearing safety helmet框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "person wearing safety helmet"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "kind": "condition",
+            "display_name": "人员未佩戴安全帽模型语义归属",
+            "operator": "spatial.associate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_video_missing_relation_equipment",
+            "kind": "target",
+            "display_name": "检测安全帽",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_equipment"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "安全帽"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_equipment_label",
+            "kind": "target",
+            "display_name": "检测安全帽框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_equipment"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "安全帽"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+            "kind": "condition",
+            "display_name": "人员未佩戴安全帽关系复核",
+            "operator": "spatial.associate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "relation": "center_in_subject_region",
+              "subject_region": [
+                0,
+                0,
+                1,
+                0.35
+              ]
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+            "kind": "condition",
+            "display_name": "人员未佩戴安全帽双证据同时满足",
+            "operator": "logic.all@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "combine_scope": "by_key"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "kind": "condition",
+            "display_name": "人员未佩戴安全帽",
+            "operator": "logic.not@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "kind": "target",
+            "display_name": "人员未佩戴安全帽",
+            "operator": "filter.apply@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing"
+            ],
+            "output_name": "result_result_video_entities",
+            "output_names": [],
+            "params": {
+              "output_label": null
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "kind": "condition",
+            "display_name": "未佩戴安全帽人员条件组存在",
+            "operator": "reduce.exists@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_video_missing_relation"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "kind": "condition",
+            "display_name": "未佩戴安全帽人员条件组存在",
+            "operator": "reduce.exists@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_video_missing_relation"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_group_video_missing_relation_and",
+            "kind": "condition",
+            "display_name": "未佩戴安全帽人员条件组",
+            "operator": "logic.all@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_video_missing_relation"
+            ],
+            "output_name": "branch_branch_video_missing_relation",
+            "output_names": [],
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_branch_evidence_branch_video_missing_relation_0_label",
+            "kind": "target",
+            "display_name": "未佩戴安全帽人员结果标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "node:system:branch_entity_label:branch_video_missing_relation"
+            ],
+            "output_name": "objects",
+            "output_names": [],
+            "params": {
+              "label": "未佩戴安全帽人员"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          }
+        ],
+        "edges": [
+          {
+            "source": "business_shared_grounding",
+            "target": "business_shared_grounding_deduplicated",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "port": "objects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "port": "subjects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_video_missing_relation_equipment",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_video_missing_relation_equipment",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_equipment_label",
+            "port": "objects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+            "port": "subjects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_equipment_label",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+            "port": "objects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "port": "condition"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "port": "objects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "port": "condition"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "target": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "port": "sets"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "target": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "port": "sets"
+          },
+          {
+            "source": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "target": "branch_video_missing_relation_group_video_missing_relation_and",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "target": "branch_video_missing_relation_group_video_missing_relation_and",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "target": "business_branch_evidence_branch_video_missing_relation_0_label",
+            "port": "objects"
+          }
+        ]
+      }
+    },
+    "business_branches": [
+      {
+        "branch_id": "branch_image_missing_relation",
+        "display_name": "未佩戴安全帽人员",
+        "media_type": "image",
+        "node_ids": [
+          "branch_image_missing_relation_condition_image_missing_relation_equipment_label",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+          "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+          "branch_image_missing_relation_group_image_missing_relation_and",
+          "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+          "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+          "business_ground_select_condition_condition_image_missing_relation_equipment",
+          "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+          "business_ground_select_condition_condition_image_missing_relation_subject",
+          "business_shared_grounding",
+          "business_shared_grounding_deduplicated"
+        ],
+        "root_node_id": "branch_image_missing_relation_group_image_missing_relation_and",
+        "condition_root": {
+          "expression_id": "group_image_missing_relation",
+          "operator": "AND",
+          "display_name": "未佩戴安全帽人员条件组",
+          "capability_id": null,
+          "source_ref": null,
+          "parameters": {},
+          "parameter_sources": {},
+          "children": [
+            {
+              "expression_id": "condition_image_missing_relation_subject",
+              "operator": "ATOM",
+              "display_name": "检测人员",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  "人员"
+                ],
+                "phrases": [
+                  "person"
+                ],
+                "business_label": "人员"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    "人员"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "phrases": {
+                  "state": "inferred",
+                  "value": [
+                    "person"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "人员",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_image_missing_relation_equipment",
+              "operator": "ATOM",
+              "display_name": "检测安全帽",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  "安全帽"
+                ],
+                "phrases": [
+                  "safety helmet"
+                ],
+                "business_label": "安全帽"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    "安全帽"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "phrases": {
+                  "state": "inferred",
+                  "value": [
+                    "safety helmet"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "安全帽",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_image_missing_relation_missing",
+              "operator": "ATOM",
+              "display_name": "人员未佩戴安全帽",
+              "capability_id": "subject.missing_equipment",
+              "source_ref": null,
+              "parameters": {
+                "verification_mode": "模型语义且关系复核",
+                "wear_location": "head",
+                "association": 30.0,
+                "subject": "condition:condition_image_missing_relation_subject",
+                "equipment": "condition:condition_image_missing_relation_equipment",
+                "positive_semantic_phrase": "person wearing safety helmet",
+                "semantic_evidence": "condition:condition_image_missing_relation_missing_semantic_evidence"
+              },
+              "parameter_sources": {
+                "verification_mode": {
+                  "state": "inferred",
+                  "value": "模型语义且关系复核",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "wear_location": {
+                  "state": "inferred",
+                  "value": "head",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "association": {
+                  "state": "inferred",
+                  "value": 30.0,
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "subject": {
+                  "state": "inferred",
+                  "value": "condition:condition_image_missing_relation_subject",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "equipment": {
+                  "state": "inferred",
+                  "value": "condition:condition_image_missing_relation_equipment",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "positive_semantic_phrase": {
+                  "state": "inferred",
+                  "value": "person wearing safety helmet",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "semantic_evidence": {
+                  "state": "inferred",
+                  "value": "condition:condition_image_missing_relation_missing_semantic_evidence",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_image_missing_relation_missing_semantic_evidence",
+              "operator": "ATOM",
+              "display_name": "模型识别正向语义：person wearing safety helmet",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  {
+                    "label": "person wearing safety helmet",
+                    "phrases": [
+                      "person wearing safety helmet"
+                    ]
+                  }
+                ],
+                "business_label": "person wearing safety helmet"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    {
+                      "label": "person wearing safety helmet",
+                      "phrases": [
+                        "person wearing safety helmet"
+                      ]
+                    }
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "person wearing safety helmet",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            }
+          ],
+          "required_count": null,
+          "enabled": true
+        },
+        "temporal_qualifiers": [],
+        "validity_policy": {
+          "mode": "current_frame",
+          "hold_seconds": {
+            "state": "not_applicable",
+            "value": null,
+            "source": "system",
+            "source_span": null,
+            "recommended_value": null,
+            "alternatives": [],
+            "reason": null,
+            "required_before": "never"
+          },
+          "reset_source_ref": null
+        },
+        "result_ids": [],
+        "evidence_policy": "optional",
+        "save_result": true,
+        "participates_in_final_decision": true,
+        "enabled": true,
+        "description": null
+      },
+      {
+        "branch_id": "branch_video_missing_relation",
+        "display_name": "未佩戴安全帽人员",
+        "media_type": "video",
+        "node_ids": [
+          "branch_video_missing_relation_condition_video_missing_relation_equipment_label",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+          "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+          "branch_video_missing_relation_group_video_missing_relation_and",
+          "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+          "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+          "business_ground_select_condition_condition_video_missing_relation_equipment",
+          "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+          "business_ground_select_condition_condition_video_missing_relation_subject",
+          "business_shared_grounding",
+          "business_shared_grounding_deduplicated"
+        ],
+        "root_node_id": "branch_video_missing_relation_group_video_missing_relation_and",
+        "condition_root": {
+          "expression_id": "group_video_missing_relation",
+          "operator": "AND",
+          "display_name": "未佩戴安全帽人员条件组",
+          "capability_id": null,
+          "source_ref": null,
+          "parameters": {},
+          "parameter_sources": {},
+          "children": [
+            {
+              "expression_id": "condition_video_missing_relation_subject",
+              "operator": "ATOM",
+              "display_name": "检测人员",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  "人员"
+                ],
+                "phrases": [
+                  "person"
+                ],
+                "business_label": "人员"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    "人员"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "phrases": {
+                  "state": "inferred",
+                  "value": [
+                    "person"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "人员",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_video_missing_relation_equipment",
+              "operator": "ATOM",
+              "display_name": "检测安全帽",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  "安全帽"
+                ],
+                "phrases": [
+                  "safety helmet"
+                ],
+                "business_label": "安全帽"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    "安全帽"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "phrases": {
+                  "state": "inferred",
+                  "value": [
+                    "safety helmet"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "安全帽",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_video_missing_relation_missing",
+              "operator": "ATOM",
+              "display_name": "人员未佩戴安全帽",
+              "capability_id": "subject.missing_equipment",
+              "source_ref": null,
+              "parameters": {
+                "verification_mode": "模型语义且关系复核",
+                "wear_location": "head",
+                "association": 30.0,
+                "subject": "condition:condition_video_missing_relation_subject",
+                "equipment": "condition:condition_video_missing_relation_equipment",
+                "positive_semantic_phrase": "person wearing safety helmet",
+                "semantic_evidence": "condition:condition_video_missing_relation_missing_semantic_evidence"
+              },
+              "parameter_sources": {
+                "verification_mode": {
+                  "state": "inferred",
+                  "value": "模型语义且关系复核",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "wear_location": {
+                  "state": "inferred",
+                  "value": "head",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "association": {
+                  "state": "inferred",
+                  "value": 30.0,
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "subject": {
+                  "state": "inferred",
+                  "value": "condition:condition_video_missing_relation_subject",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "equipment": {
+                  "state": "inferred",
+                  "value": "condition:condition_video_missing_relation_equipment",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "positive_semantic_phrase": {
+                  "state": "inferred",
+                  "value": "person wearing safety helmet",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "semantic_evidence": {
+                  "state": "inferred",
+                  "value": "condition:condition_video_missing_relation_missing_semantic_evidence",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_video_missing_relation_missing_semantic_evidence",
+              "operator": "ATOM",
+              "display_name": "模型识别正向语义：person wearing safety helmet",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  {
+                    "label": "person wearing safety helmet",
+                    "phrases": [
+                      "person wearing safety helmet"
+                    ]
+                  }
+                ],
+                "business_label": "person wearing safety helmet"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    {
+                      "label": "person wearing safety helmet",
+                      "phrases": [
+                        "person wearing safety helmet"
+                      ]
+                    }
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "person wearing safety helmet",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            }
+          ],
+          "required_count": null,
+          "enabled": true
+        },
+        "temporal_qualifiers": [],
+        "validity_policy": {
+          "mode": "current_frame",
+          "hold_seconds": {
+            "state": "not_applicable",
+            "value": null,
+            "source": "system",
+            "source_span": null,
+            "recommended_value": null,
+            "alternatives": [],
+            "reason": null,
+            "required_before": "never"
+          },
+          "reset_source_ref": null
+        },
+        "result_ids": [],
+        "evidence_policy": "optional",
+        "save_result": true,
+        "participates_in_final_decision": true,
+        "enabled": true,
+        "description": null
+      }
+    ],
+    "event_patterns": [],
+    "final_decision": {
+      "decision_id": "primary",
+      "display_name": "未佩戴安全帽人员",
+      "decision_type": "detection_summary",
+      "source_ref": "branch:branch_image_missing_relation",
+      "source_refs": [
+        "branch:branch_image_missing_relation",
+        "branch:branch_video_missing_relation"
+      ],
+      "media_source_refs": {
+        "image": [
+          "branch:branch_image_missing_relation"
+        ],
+        "video": [
+          "branch:branch_video_missing_relation"
+        ]
+      },
+      "combination": "OR",
+      "required_count": null,
+      "success_condition": {},
+      "show_reason": true,
+      "show_failed_or_pending_branches": true,
+      "overview_order": 0
+    },
+    "resource_requirements": [],
+    "pending_decisions": [],
+    "recipe_refs": [],
+    "trigger_policy": {
+      "mode": "none",
+      "trigger_moment": "first_satisfied",
+      "repeat_policy": "first_only",
+      "cooldown_seconds": 0.0,
+      "cooldown_scope": "global",
+      "severity": "medium",
+      "outputs": [
+        "event_record",
+        "annotated_media"
+      ],
+      "notification_channels": [],
+      "evidence_capture": "key_frame",
+      "pre_roll_seconds": 0.0,
+      "post_roll_seconds": 0.0,
+      "maximum_clip_seconds": null,
+      "deduplication_scope": "event_instance",
+      "emit_recovery": false
+    },
+    "presentation_specs": [
+      {
+        "result_id": "result_image_entities",
+        "preferred_renderer": "generic.summary",
+        "show_in_overview": true,
+        "display_order": 0,
+        "overview_span": "normal",
+        "value_format": "auto",
+        "precision": null,
+        "sort_by": null,
+        "visualization_options": {},
+        "interaction_policy": {
+          "drilldown": true,
+          "highlight_evidence": true,
+          "default_focus": "summary"
+        }
+      },
+      {
+        "result_id": "result_video_entities",
+        "preferred_renderer": "generic.summary",
+        "show_in_overview": true,
+        "display_order": 1,
+        "overview_span": "normal",
+        "value_format": "auto",
+        "precision": null,
+        "sort_by": null,
+        "visualization_options": {},
+        "interaction_policy": {
+          "drilldown": true,
+          "highlight_evidence": true,
+          "default_focus": "summary"
+        }
+      }
+    ]
+  },
+  "scene_profiles": [],
+  "active_scene_profile_id": null,
+  "user_overrides": [],
+  "atomic_plan": {
+    "schema_version": "1.0",
+    "source": "rule_graph",
+    "variants": {
+      "image": {
+        "media_type": "image",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.image@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {}
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$media"
+            },
+            "params": {
+              "mode": "identity"
+            }
+          },
+          {
+            "id": "business_shared_grounding",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "人员",
+                  "phrases": [
+                    "person"
+                  ]
+                },
+                {
+                  "label": "person wearing safety helmet",
+                  "phrases": [
+                    "person wearing safety helmet"
+                  ]
+                },
+                {
+                  "label": "安全帽",
+                  "phrases": [
+                    "safety helmet"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "business_shared_grounding_deduplicated",
+            "op": "objects.deduplicate@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding"
+            },
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "人员"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_subject"
+            },
+            "params": {
+              "label": "人员"
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "person wearing safety helmet"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence"
+            },
+            "params": {
+              "label": "person wearing safety helmet"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label"
+            },
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_equipment",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "安全帽"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_equipment_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_equipment"
+            },
+            "params": {
+              "label": "安全帽"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_equipment_label"
+            },
+            "params": {
+              "relation": "center_in_subject_region",
+              "subject_region": [
+                0,
+                0,
+                1,
+                0.35
+              ]
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+                "$branch_image_missing_relation_condition_image_missing_relation_missing_relation_present"
+              ]
+            },
+            "params": {
+              "combine_scope": "by_key"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "op": "logic.not@1.0",
+            "inputs": {
+              "condition": "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "op": "filter.apply@1.0",
+            "inputs": {
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "condition": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing"
+            },
+            "params": {
+              "output_label": null
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_image_missing_relation_condition_image_missing_relation_subject_label"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_and",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+                "$branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            }
+          },
+          {
+            "id": "business_branch_evidence_branch_image_missing_relation_0_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects"
+            },
+            "params": {
+              "label": "未佩戴安全帽人员"
+            }
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$business_branch_evidence_branch_image_missing_relation_0_label"
+            },
+            "params": {}
+          }
+        ],
+        "outputs": {
+          "result_result_image_entities": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+          "branch_branch_image_missing_relation": "$branch_image_missing_relation_group_image_missing_relation_and",
+          "objects": "$business_branch_evidence_branch_image_missing_relation_0_label",
+          "final_primary": "$branch_image_missing_relation_group_image_missing_relation_and",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "business_shared_grounding",
+            "business_shared_grounding_deduplicated",
+            "business_ground_select_condition_condition_image_missing_relation_subject",
+            "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "business_ground_select_condition_condition_image_missing_relation_equipment",
+            "branch_image_missing_relation_condition_image_missing_relation_equipment_label",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "branch_image_missing_relation_group_image_missing_relation_and",
+            "business_branch_evidence_branch_image_missing_relation_0_label"
+          ]
+        },
+        "configuration_slots": []
+      },
+      "video": {
+        "media_type": "video",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.video@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {}
+          },
+          {
+            "id": "frames",
+            "op": "video.sample@1.1",
+            "inputs": {
+              "video": "$media"
+            },
+            "params": {
+              "mode": "fps",
+              "fps": 1.0,
+              "start_seconds": 0.0,
+              "end_seconds": null,
+              "max_frames": null
+            }
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$frames"
+            },
+            "params": {
+              "mode": "identity"
+            }
+          },
+          {
+            "id": "business_shared_grounding",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "人员",
+                  "phrases": [
+                    "person"
+                  ]
+                },
+                {
+                  "label": "person wearing safety helmet",
+                  "phrases": [
+                    "person wearing safety helmet"
+                  ]
+                },
+                {
+                  "label": "安全帽",
+                  "phrases": [
+                    "safety helmet"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "business_shared_grounding_deduplicated",
+            "op": "objects.deduplicate@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding"
+            },
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "人员"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_subject"
+            },
+            "params": {
+              "label": "人员"
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "person wearing safety helmet"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence"
+            },
+            "params": {
+              "label": "person wearing safety helmet"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label"
+            },
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_equipment",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "安全帽"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_equipment_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_equipment"
+            },
+            "params": {
+              "label": "安全帽"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_equipment_label"
+            },
+            "params": {
+              "relation": "center_in_subject_region",
+              "subject_region": [
+                0,
+                0,
+                1,
+                0.35
+              ]
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+                "$branch_video_missing_relation_condition_video_missing_relation_missing_relation_present"
+              ]
+            },
+            "params": {
+              "combine_scope": "by_key"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "op": "logic.not@1.0",
+            "inputs": {
+              "condition": "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "op": "filter.apply@1.0",
+            "inputs": {
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "condition": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing"
+            },
+            "params": {
+              "output_label": null
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_video_missing_relation_condition_video_missing_relation_subject_label"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_and",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+                "$branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            }
+          },
+          {
+            "id": "business_branch_evidence_branch_video_missing_relation_0_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects"
+            },
+            "params": {
+              "label": "未佩戴安全帽人员"
+            }
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$business_branch_evidence_branch_video_missing_relation_0_label"
+            },
+            "params": {}
+          }
+        ],
+        "outputs": {
+          "result_result_video_entities": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+          "branch_branch_video_missing_relation": "$branch_video_missing_relation_group_video_missing_relation_and",
+          "objects": "$business_branch_evidence_branch_video_missing_relation_0_label",
+          "final_primary": "$branch_video_missing_relation_group_video_missing_relation_and",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "business_shared_grounding",
+            "business_shared_grounding_deduplicated",
+            "business_ground_select_condition_condition_video_missing_relation_subject",
+            "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "business_ground_select_condition_condition_video_missing_relation_equipment",
+            "branch_video_missing_relation_condition_video_missing_relation_equipment_label",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "branch_video_missing_relation_group_video_missing_relation_and",
+            "business_branch_evidence_branch_video_missing_relation_0_label"
+          ]
+        },
+        "configuration_slots": []
+      }
+    }
+  },
+  "effective_skill_package": {
+    "schema_version": "2.0",
+    "skill_id": "no_helmet",
+    "version": 6,
+    "display_name": "施工未戴安全帽",
+    "original_instruction": "识别未带安全帽的人。",
+    "compile_status": "compiled",
+    "input": {
+      "requested_accept": [
+        "image",
+        "video"
+      ],
+      "accept": [
+        "image",
+        "video"
+      ],
+      "video_guidance": {
+        "recommended_max_duration_seconds": 30.0,
+        "enforcement": "warn_only"
+      }
+    },
+    "semantic_ir": {
+      "schema_version": "1.0",
+      "mode": "entity_query",
+      "target": {
+        "concept": "person",
+        "source_span": "人",
+        "phrases": [
+          "person"
+        ],
+        "classes": []
+      },
+      "constraints": [
+        {
+          "atom_id": "atom_1",
+          "kind": "wearable",
+          "value": "safety_helmet",
+          "source": "识别未带安全帽的人",
+          "source_span": "未带安全帽",
+          "polarity": "absent",
+          "carrier": null,
+          "carrier_span": null,
+          "phrases": [
+            "safety helmet"
+          ],
+          "temporal": false
+        }
+      ],
+      "logic": "all",
+      "unresolved": [],
+      "semantic_hash": "43005aaafb5e27264b47de5fb6966b29ae5ae62caad5f304b2ad31df9903fb3e"
+    },
+    "variants": {
+      "image": {
+        "media_type": "image",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.image@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$media"
+            },
+            "params": {
+              "mode": "identity"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_shared_grounding",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "人员",
+                  "phrases": [
+                    "person"
+                  ]
+                },
+                {
+                  "label": "person wearing safety helmet",
+                  "phrases": [
+                    "person wearing safety helmet"
+                  ]
+                },
+                {
+                  "label": "安全帽",
+                  "phrases": [
+                    "safety helmet"
+                  ]
+                }
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_shared_grounding_deduplicated",
+            "op": "objects.deduplicate@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding"
+            },
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "人员"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_subject"
+            },
+            "params": {
+              "label": "人员"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "person wearing safety helmet"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence"
+            },
+            "params": {
+              "label": "person wearing safety helmet"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label"
+            },
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_equipment",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "安全帽"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_equipment_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_equipment"
+            },
+            "params": {
+              "label": "安全帽"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_equipment_label"
+            },
+            "params": {
+              "relation": "center_in_subject_region",
+              "subject_region": [
+                0,
+                0,
+                1,
+                0.35
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+                "$branch_image_missing_relation_condition_image_missing_relation_missing_relation_present"
+              ]
+            },
+            "params": {
+              "combine_scope": "by_key"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "op": "logic.not@1.0",
+            "inputs": {
+              "condition": "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "op": "filter.apply@1.0",
+            "inputs": {
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "condition": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing"
+            },
+            "params": {
+              "output_label": null
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_image_missing_relation_condition_image_missing_relation_subject_label"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_and",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+                "$branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_branch_evidence_branch_image_missing_relation_0_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects"
+            },
+            "params": {
+              "label": "未佩戴安全帽人员"
+            },
+            "enabled": true
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$business_branch_evidence_branch_image_missing_relation_0_label"
+            },
+            "params": {},
+            "enabled": true
+          }
+        ],
+        "outputs": {
+          "result_result_image_entities": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+          "branch_branch_image_missing_relation": "$branch_image_missing_relation_group_image_missing_relation_and",
+          "objects": "$business_branch_evidence_branch_image_missing_relation_0_label",
+          "final_primary": "$branch_image_missing_relation_group_image_missing_relation_and",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "business_shared_grounding",
+            "business_shared_grounding_deduplicated",
+            "business_ground_select_condition_condition_image_missing_relation_subject",
+            "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "business_ground_select_condition_condition_image_missing_relation_equipment",
+            "branch_image_missing_relation_condition_image_missing_relation_equipment_label",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_relation_present",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_and_relation",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "branch_image_missing_relation_group_image_missing_relation_and",
+            "business_branch_evidence_branch_image_missing_relation_0_label"
+          ]
+        },
+        "configuration_slots": [],
+        "issue": null
+      },
+      "video": {
+        "media_type": "video",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.video@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "frames",
+            "op": "video.sample@1.1",
+            "inputs": {
+              "video": "$media"
+            },
+            "params": {
+              "mode": "fps",
+              "fps": 1.0,
+              "start_seconds": 0.0,
+              "end_seconds": null,
+              "max_frames": null
+            },
+            "enabled": true
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$frames"
+            },
+            "params": {
+              "mode": "identity"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_shared_grounding",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "人员",
+                  "phrases": [
+                    "person"
+                  ]
+                },
+                {
+                  "label": "person wearing safety helmet",
+                  "phrases": [
+                    "person wearing safety helmet"
+                  ]
+                },
+                {
+                  "label": "安全帽",
+                  "phrases": [
+                    "safety helmet"
+                  ]
+                }
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_shared_grounding_deduplicated",
+            "op": "objects.deduplicate@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding"
+            },
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "人员"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_subject"
+            },
+            "params": {
+              "label": "人员"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "person wearing safety helmet"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence"
+            },
+            "params": {
+              "label": "person wearing safety helmet"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label"
+            },
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_equipment",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "安全帽"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_equipment_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_equipment"
+            },
+            "params": {
+              "label": "安全帽"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_equipment_label"
+            },
+            "params": {
+              "relation": "center_in_subject_region",
+              "subject_region": [
+                0,
+                0,
+                1,
+                0.35
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+                "$branch_video_missing_relation_condition_video_missing_relation_missing_relation_present"
+              ]
+            },
+            "params": {
+              "combine_scope": "by_key"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "op": "logic.not@1.0",
+            "inputs": {
+              "condition": "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "op": "filter.apply@1.0",
+            "inputs": {
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "condition": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing"
+            },
+            "params": {
+              "output_label": null
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_video_missing_relation_condition_video_missing_relation_subject_label"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_and",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+                "$branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_branch_evidence_branch_video_missing_relation_0_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects"
+            },
+            "params": {
+              "label": "未佩戴安全帽人员"
+            },
+            "enabled": true
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$business_branch_evidence_branch_video_missing_relation_0_label"
+            },
+            "params": {},
+            "enabled": true
+          }
+        ],
+        "outputs": {
+          "result_result_video_entities": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+          "branch_branch_video_missing_relation": "$branch_video_missing_relation_group_video_missing_relation_and",
+          "objects": "$business_branch_evidence_branch_video_missing_relation_0_label",
+          "final_primary": "$branch_video_missing_relation_group_video_missing_relation_and",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "business_shared_grounding",
+            "business_shared_grounding_deduplicated",
+            "business_ground_select_condition_condition_video_missing_relation_subject",
+            "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "business_ground_select_condition_condition_video_missing_relation_equipment",
+            "branch_video_missing_relation_condition_video_missing_relation_equipment_label",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_relation_present",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_and_relation",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "branch_video_missing_relation_group_video_missing_relation_and",
+            "business_branch_evidence_branch_video_missing_relation_0_label"
+          ]
+        },
+        "configuration_slots": [],
+        "issue": null
+      }
+    },
+    "compatibility_issues": []
+  },
+  "validation_report": {
+    "valid": true,
+    "errors": [],
+    "warnings": [],
+    "pending": [],
+    "resource_blockers": [],
+    "can_run": true
+  },
+  "compatibility": {
+    "editability": "full",
+    "issues": []
+  },
+  "readiness": {
+    "draft_valid": true,
+    "review_complete": true,
+    "compile_valid": true,
+    "runtime_ready": true,
+    "publish_ready": true,
+    "reasons": []
+  },
+  "hashes": {
+    "semantic_hash": "a751c217dae30b032fc4d6b8162812fc7b84ca4cd8f60b8bcdafa376761bb66e",
+    "compile_hash": "e7bd2c761c680fdb083ca1dac6b961499b77d26d65b2208bbfaa356274556401",
+    "package_hash": "f41af60941f74c55d9db59554c54718eee3db12928b3e7faffd63ed6cb9f5c28",
+    "presentation_hash": "acfb02cb7777800d2ec5f8fb23fb7cb8399485efb7e391f9a7feb8634285b1b8"
+  },
+  "compiled_artifact_ref": null
+}

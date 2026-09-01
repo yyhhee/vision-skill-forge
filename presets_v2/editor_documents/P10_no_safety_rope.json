@@ -1,0 +1,2487 @@
+{
+  "schema_version": "3.2",
+  "version": 5,
+  "skill_template": {
+    "skill_id": "no_safety_rope",
+    "display_name": "高处作业未系安全绳",
+    "original_instruction": "检测高处作业人员中没有连接安全绳或安全带的人。",
+    "source_type": "preset",
+    "semantic_ir": {
+      "schema_version": "1.0",
+      "mode": "entity_query",
+      "target": {
+        "concept": "worker_at_height",
+        "source_span": "高处作业人员",
+        "phrases": [
+          "worker at height",
+          "person working at height"
+        ],
+        "classes": []
+      },
+      "constraints": [
+        {
+          "atom_id": "atom_1",
+          "kind": "wearable",
+          "value": "connected_fall_arrest_lanyard",
+          "source": "检测高处作业人员中没有连接安全绳或安全带的人",
+          "source_span": "没有连接安全绳或安全带",
+          "polarity": "absent",
+          "carrier": null,
+          "carrier_span": null,
+          "phrases": [
+            "lanyard hook",
+            "safety hook",
+            "safety carabiner"
+          ],
+          "temporal": false
+        }
+      ],
+      "logic": "all",
+      "unresolved": [],
+      "semantic_hash": "2f3e47393d692073ba1c3df4a5ef3724b02f1bc81f2e49a3775d46b9159716b2"
+    },
+    "result_specs": [
+      {
+        "result_id": "result_image_entities",
+        "display_name": "未系安全绳人员",
+        "semantic_type": "entity_set",
+        "value_shape": "list",
+        "source_ref": "condition:condition_image_missing_relation_missing",
+        "media_types": [
+          "image"
+        ],
+        "projection": {
+          "kind": "entities",
+          "parameters": {}
+        },
+        "unit": null,
+        "grouping": [],
+        "condition_snapshot_policy": "on_result",
+        "label_policy": {
+          "business_label": null,
+          "preserve_model_label": true,
+          "fallback_to_model_label": true
+        },
+        "save_policy": "always",
+        "evidence_policy": "required",
+        "empty_policy": "empty",
+        "result_type": null,
+        "required_outputs": [
+          "result_result_image_entities"
+        ]
+      },
+      {
+        "result_id": "result_video_entities",
+        "display_name": "未系安全绳人员",
+        "semantic_type": "entity_set",
+        "value_shape": "list",
+        "source_ref": "condition:condition_video_missing_relation_missing",
+        "media_types": [
+          "video"
+        ],
+        "projection": {
+          "kind": "entities",
+          "parameters": {}
+        },
+        "unit": null,
+        "grouping": [],
+        "condition_snapshot_policy": "on_result",
+        "label_policy": {
+          "business_label": null,
+          "preserve_model_label": true,
+          "fallback_to_model_label": true
+        },
+        "save_policy": "always",
+        "evidence_policy": "required",
+        "empty_policy": "empty",
+        "result_type": null,
+        "required_outputs": [
+          "result_result_video_entities"
+        ]
+      }
+    ],
+    "rule_graph": {
+      "nodes": [],
+      "edges": []
+    },
+    "rule_graphs": {
+      "image": {
+        "nodes": [
+          {
+            "node_id": "business_shared_grounding",
+            "kind": "target",
+            "display_name": "一次模型检测",
+            "operator": "rex.ground@1.1",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_subject",
+              "condition:condition_image_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "targets": [
+                {
+                  "label": "高处作业人员",
+                  "phrases": [
+                    "worker at height"
+                  ]
+                },
+                {
+                  "label": "worker at height with safety rope or safety belt connected",
+                  "phrases": [
+                    "worker at height with safety rope or safety belt connected"
+                  ]
+                }
+              ]
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_shared_grounding_deduplicated",
+            "kind": "target",
+            "display_name": "统一实例去重",
+            "operator": "objects.deduplicate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "node:system:shared_grounding_dedup"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "kind": "target",
+            "display_name": "检测高处作业人员",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_subject"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "高处作业人员"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "kind": "target",
+            "display_name": "检测高处作业人员框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_subject"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "高处作业人员"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "kind": "target",
+            "display_name": "模型识别正向语义：worker at height with safety rope or safety belt connected",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "worker at height with safety rope or safety belt connected"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "kind": "target",
+            "display_name": "模型识别正向语义：worker at height with safety rope or safety belt connected框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "worker at height with safety rope or safety belt connected"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "kind": "condition",
+            "display_name": "高处作业人员缺少安全绳或安全带模型语义归属",
+            "operator": "spatial.associate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "kind": "condition",
+            "display_name": "高处作业人员缺少安全绳或安全带",
+            "operator": "logic.not@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "kind": "target",
+            "display_name": "高处作业人员缺少安全绳或安全带",
+            "operator": "filter.apply@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_image_missing_relation_missing"
+            ],
+            "output_name": "result_result_image_entities",
+            "output_names": [],
+            "params": {
+              "output_label": null
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "kind": "condition",
+            "display_name": "未系安全绳人员条件组存在",
+            "operator": "reduce.exists@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_image_missing_relation"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "kind": "condition",
+            "display_name": "未系安全绳人员条件组存在",
+            "operator": "reduce.exists@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_image_missing_relation"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_image_missing_relation_group_image_missing_relation_and",
+            "kind": "condition",
+            "display_name": "未系安全绳人员条件组",
+            "operator": "logic.all@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_image_missing_relation"
+            ],
+            "output_name": "branch_branch_image_missing_relation",
+            "output_names": [],
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_branch_evidence_branch_image_missing_relation_0_label",
+            "kind": "target",
+            "display_name": "未系安全绳人员结果标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "node:system:branch_entity_label:branch_image_missing_relation"
+            ],
+            "output_name": "objects",
+            "output_names": [],
+            "params": {
+              "label": "未系安全绳人员"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          }
+        ],
+        "edges": [
+          {
+            "source": "business_shared_grounding",
+            "target": "business_shared_grounding_deduplicated",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "port": "objects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "port": "subjects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "port": "objects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "port": "condition"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "port": "objects"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "target": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "port": "condition"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "target": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "port": "sets"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "target": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "port": "sets"
+          },
+          {
+            "source": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "target": "branch_image_missing_relation_group_image_missing_relation_and",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "target": "branch_image_missing_relation_group_image_missing_relation_and",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "target": "business_branch_evidence_branch_image_missing_relation_0_label",
+            "port": "objects"
+          }
+        ]
+      },
+      "video": {
+        "nodes": [
+          {
+            "node_id": "business_shared_grounding",
+            "kind": "target",
+            "display_name": "一次模型检测",
+            "operator": "rex.ground@1.1",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_subject",
+              "condition:condition_video_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "targets": [
+                {
+                  "label": "高处作业人员",
+                  "phrases": [
+                    "worker at height"
+                  ]
+                },
+                {
+                  "label": "worker at height with safety rope or safety belt connected",
+                  "phrases": [
+                    "worker at height with safety rope or safety belt connected"
+                  ]
+                }
+              ]
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_shared_grounding_deduplicated",
+            "kind": "target",
+            "display_name": "统一实例去重",
+            "operator": "objects.deduplicate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "node:system:shared_grounding_dedup"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "kind": "target",
+            "display_name": "检测高处作业人员",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_subject"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "高处作业人员"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "kind": "target",
+            "display_name": "检测高处作业人员框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_subject"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "高处作业人员"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "kind": "target",
+            "display_name": "模型识别正向语义：worker at height with safety rope or safety belt connected",
+            "operator": "objects.filter_by_label@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "labels": [
+                "worker at height with safety rope or safety belt connected"
+              ],
+              "mode": "include"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "kind": "target",
+            "display_name": "模型识别正向语义：worker at height with safety rope or safety belt connected框标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing_semantic_evidence"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "label": "worker at height with safety rope or safety belt connected"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "kind": "condition",
+            "display_name": "高处作业人员缺少安全绳或安全带模型语义归属",
+            "operator": "spatial.associate@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "kind": "condition",
+            "display_name": "高处作业人员缺少安全绳或安全带",
+            "operator": "logic.not@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "kind": "target",
+            "display_name": "高处作业人员缺少安全绳或安全带",
+            "operator": "filter.apply@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:condition_video_missing_relation_missing"
+            ],
+            "output_name": "result_result_video_entities",
+            "output_names": [],
+            "params": {
+              "output_label": null
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "kind": "condition",
+            "display_name": "未系安全绳人员条件组存在",
+            "operator": "reduce.exists@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_video_missing_relation"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "kind": "condition",
+            "display_name": "未系安全绳人员条件组存在",
+            "operator": "reduce.exists@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_video_missing_relation"
+            ],
+            "output_name": null,
+            "output_names": [],
+            "params": {},
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "branch_video_missing_relation_group_video_missing_relation_and",
+            "kind": "condition",
+            "display_name": "未系安全绳人员条件组",
+            "operator": "logic.all@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "condition:group_video_missing_relation"
+            ],
+            "output_name": "branch_branch_video_missing_relation",
+            "output_names": [],
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          },
+          {
+            "node_id": "business_branch_evidence_branch_video_missing_relation_0_label",
+            "kind": "target",
+            "display_name": "未系安全绳人员结果标签",
+            "operator": "objects.relabel@1.0",
+            "input_bindings": {},
+            "semantic_atom_ids": [],
+            "business_source_refs": [
+              "node:system:branch_entity_label:branch_video_missing_relation"
+            ],
+            "output_name": "objects",
+            "output_names": [],
+            "params": {
+              "label": "未系安全绳人员"
+            },
+            "parameter_sources": {},
+            "configuration_slots": [],
+            "enabled": true
+          }
+        ],
+        "edges": [
+          {
+            "source": "business_shared_grounding",
+            "target": "business_shared_grounding_deduplicated",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "port": "objects"
+          },
+          {
+            "source": "business_shared_grounding_deduplicated",
+            "target": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "port": "objects"
+          },
+          {
+            "source": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "port": "objects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "port": "subjects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "port": "objects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "port": "condition"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "port": "objects"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "target": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "port": "condition"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "target": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "port": "sets"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "target": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "port": "sets"
+          },
+          {
+            "source": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "target": "branch_video_missing_relation_group_video_missing_relation_and",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "target": "branch_video_missing_relation_group_video_missing_relation_and",
+            "port": "conditions"
+          },
+          {
+            "source": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "target": "business_branch_evidence_branch_video_missing_relation_0_label",
+            "port": "objects"
+          }
+        ]
+      }
+    },
+    "business_branches": [
+      {
+        "branch_id": "branch_image_missing_relation",
+        "display_name": "未系安全绳人员",
+        "media_type": "image",
+        "node_ids": [
+          "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+          "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+          "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+          "branch_image_missing_relation_group_image_missing_relation_and",
+          "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+          "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+          "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+          "business_ground_select_condition_condition_image_missing_relation_subject",
+          "business_shared_grounding",
+          "business_shared_grounding_deduplicated"
+        ],
+        "root_node_id": "branch_image_missing_relation_group_image_missing_relation_and",
+        "condition_root": {
+          "expression_id": "group_image_missing_relation",
+          "operator": "AND",
+          "display_name": "未系安全绳人员条件组",
+          "capability_id": null,
+          "source_ref": null,
+          "parameters": {},
+          "parameter_sources": {},
+          "children": [
+            {
+              "expression_id": "condition_image_missing_relation_subject",
+              "operator": "ATOM",
+              "display_name": "检测高处作业人员",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  "高处作业人员"
+                ],
+                "phrases": [
+                  "worker at height"
+                ],
+                "business_label": "高处作业人员"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    "高处作业人员"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "phrases": {
+                  "state": "inferred",
+                  "value": [
+                    "worker at height"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "高处作业人员",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_image_missing_relation_equipment",
+              "operator": "ATOM",
+              "display_name": "检测安全绳或安全带",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  "安全绳或安全带"
+                ],
+                "phrases": [
+                  "safety rope or safety belt"
+                ],
+                "business_label": "安全绳或安全带"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    "安全绳或安全带"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "phrases": {
+                  "state": "inferred",
+                  "value": [
+                    "safety rope or safety belt"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "安全绳或安全带",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_image_missing_relation_missing",
+              "operator": "ATOM",
+              "display_name": "高处作业人员缺少安全绳或安全带",
+              "capability_id": "subject.missing_equipment",
+              "source_ref": null,
+              "parameters": {
+                "verification_mode": "仅模型语义",
+                "wear_location": "whole",
+                "association": 30.0,
+                "subject": "condition:condition_image_missing_relation_subject",
+                "equipment": "condition:condition_image_missing_relation_equipment",
+                "positive_semantic_phrase": "worker at height with safety rope or safety belt connected",
+                "semantic_evidence": "condition:condition_image_missing_relation_missing_semantic_evidence"
+              },
+              "parameter_sources": {
+                "verification_mode": {
+                  "state": "inferred",
+                  "value": "仅模型语义",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "wear_location": {
+                  "state": "inferred",
+                  "value": "whole",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "association": {
+                  "state": "inferred",
+                  "value": 30.0,
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "subject": {
+                  "state": "inferred",
+                  "value": "condition:condition_image_missing_relation_subject",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "equipment": {
+                  "state": "inferred",
+                  "value": "condition:condition_image_missing_relation_equipment",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "positive_semantic_phrase": {
+                  "state": "inferred",
+                  "value": "worker at height with safety rope or safety belt connected",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "semantic_evidence": {
+                  "state": "inferred",
+                  "value": "condition:condition_image_missing_relation_missing_semantic_evidence",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_image_missing_relation_missing_semantic_evidence",
+              "operator": "ATOM",
+              "display_name": "模型识别正向语义：worker at height with safety rope or safety belt connected",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  {
+                    "label": "worker at height with safety rope or safety belt connected",
+                    "phrases": [
+                      "worker at height with safety rope or safety belt connected"
+                    ]
+                  }
+                ],
+                "business_label": "worker at height with safety rope or safety belt connected"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    {
+                      "label": "worker at height with safety rope or safety belt connected",
+                      "phrases": [
+                        "worker at height with safety rope or safety belt connected"
+                      ]
+                    }
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "worker at height with safety rope or safety belt connected",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            }
+          ],
+          "required_count": null,
+          "enabled": true
+        },
+        "temporal_qualifiers": [],
+        "validity_policy": {
+          "mode": "current_frame",
+          "hold_seconds": {
+            "state": "not_applicable",
+            "value": null,
+            "source": "system",
+            "source_span": null,
+            "recommended_value": null,
+            "alternatives": [],
+            "reason": null,
+            "required_before": "never"
+          },
+          "reset_source_ref": null
+        },
+        "result_ids": [],
+        "evidence_policy": "optional",
+        "save_result": true,
+        "participates_in_final_decision": true,
+        "enabled": true,
+        "description": null
+      },
+      {
+        "branch_id": "branch_video_missing_relation",
+        "display_name": "未系安全绳人员",
+        "media_type": "video",
+        "node_ids": [
+          "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+          "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+          "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+          "branch_video_missing_relation_group_video_missing_relation_and",
+          "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+          "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+          "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+          "business_ground_select_condition_condition_video_missing_relation_subject",
+          "business_shared_grounding",
+          "business_shared_grounding_deduplicated"
+        ],
+        "root_node_id": "branch_video_missing_relation_group_video_missing_relation_and",
+        "condition_root": {
+          "expression_id": "group_video_missing_relation",
+          "operator": "AND",
+          "display_name": "未系安全绳人员条件组",
+          "capability_id": null,
+          "source_ref": null,
+          "parameters": {},
+          "parameter_sources": {},
+          "children": [
+            {
+              "expression_id": "condition_video_missing_relation_subject",
+              "operator": "ATOM",
+              "display_name": "检测高处作业人员",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  "高处作业人员"
+                ],
+                "phrases": [
+                  "worker at height"
+                ],
+                "business_label": "高处作业人员"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    "高处作业人员"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "phrases": {
+                  "state": "inferred",
+                  "value": [
+                    "worker at height"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "高处作业人员",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_video_missing_relation_equipment",
+              "operator": "ATOM",
+              "display_name": "检测安全绳或安全带",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  "安全绳或安全带"
+                ],
+                "phrases": [
+                  "safety rope or safety belt"
+                ],
+                "business_label": "安全绳或安全带"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    "安全绳或安全带"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "phrases": {
+                  "state": "inferred",
+                  "value": [
+                    "safety rope or safety belt"
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "安全绳或安全带",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_video_missing_relation_missing",
+              "operator": "ATOM",
+              "display_name": "高处作业人员缺少安全绳或安全带",
+              "capability_id": "subject.missing_equipment",
+              "source_ref": null,
+              "parameters": {
+                "verification_mode": "仅模型语义",
+                "wear_location": "whole",
+                "association": 30.0,
+                "subject": "condition:condition_video_missing_relation_subject",
+                "equipment": "condition:condition_video_missing_relation_equipment",
+                "positive_semantic_phrase": "worker at height with safety rope or safety belt connected",
+                "semantic_evidence": "condition:condition_video_missing_relation_missing_semantic_evidence"
+              },
+              "parameter_sources": {
+                "verification_mode": {
+                  "state": "inferred",
+                  "value": "仅模型语义",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "wear_location": {
+                  "state": "inferred",
+                  "value": "whole",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "association": {
+                  "state": "inferred",
+                  "value": 30.0,
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "subject": {
+                  "state": "inferred",
+                  "value": "condition:condition_video_missing_relation_subject",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "equipment": {
+                  "state": "inferred",
+                  "value": "condition:condition_video_missing_relation_equipment",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "positive_semantic_phrase": {
+                  "state": "inferred",
+                  "value": "worker at height with safety rope or safety belt connected",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "semantic_evidence": {
+                  "state": "inferred",
+                  "value": "condition:condition_video_missing_relation_missing_semantic_evidence",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            },
+            {
+              "expression_id": "condition_video_missing_relation_missing_semantic_evidence",
+              "operator": "ATOM",
+              "display_name": "模型识别正向语义：worker at height with safety rope or safety belt connected",
+              "capability_id": "target.detect",
+              "source_ref": null,
+              "parameters": {
+                "targets": [
+                  {
+                    "label": "worker at height with safety rope or safety belt connected",
+                    "phrases": [
+                      "worker at height with safety rope or safety belt connected"
+                    ]
+                  }
+                ],
+                "business_label": "worker at height with safety rope or safety belt connected"
+              },
+              "parameter_sources": {
+                "targets": {
+                  "state": "inferred",
+                  "value": [
+                    {
+                      "label": "worker at height with safety rope or safety belt connected",
+                      "phrases": [
+                        "worker at height with safety rope or safety belt connected"
+                      ]
+                    }
+                  ],
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                },
+                "business_label": {
+                  "state": "inferred",
+                  "value": "worker at height with safety rope or safety belt connected",
+                  "source": "llm_business_draft",
+                  "source_span": null,
+                  "recommended_value": null,
+                  "alternatives": [],
+                  "reason": null,
+                  "required_before": "never"
+                }
+              },
+              "children": [],
+              "required_count": null,
+              "enabled": true
+            }
+          ],
+          "required_count": null,
+          "enabled": true
+        },
+        "temporal_qualifiers": [],
+        "validity_policy": {
+          "mode": "current_frame",
+          "hold_seconds": {
+            "state": "not_applicable",
+            "value": null,
+            "source": "system",
+            "source_span": null,
+            "recommended_value": null,
+            "alternatives": [],
+            "reason": null,
+            "required_before": "never"
+          },
+          "reset_source_ref": null
+        },
+        "result_ids": [],
+        "evidence_policy": "optional",
+        "save_result": true,
+        "participates_in_final_decision": true,
+        "enabled": true,
+        "description": null
+      }
+    ],
+    "event_patterns": [],
+    "final_decision": {
+      "decision_id": "primary",
+      "display_name": "未系安全绳人员",
+      "decision_type": "detection_summary",
+      "source_ref": "branch:branch_image_missing_relation",
+      "source_refs": [
+        "branch:branch_image_missing_relation",
+        "branch:branch_video_missing_relation"
+      ],
+      "media_source_refs": {
+        "image": [
+          "branch:branch_image_missing_relation"
+        ],
+        "video": [
+          "branch:branch_video_missing_relation"
+        ]
+      },
+      "combination": "OR",
+      "required_count": null,
+      "success_condition": {},
+      "show_reason": true,
+      "show_failed_or_pending_branches": true,
+      "overview_order": 0
+    },
+    "resource_requirements": [],
+    "pending_decisions": [],
+    "recipe_refs": [],
+    "trigger_policy": {
+      "mode": "none",
+      "trigger_moment": "first_satisfied",
+      "repeat_policy": "first_only",
+      "cooldown_seconds": 0.0,
+      "cooldown_scope": "global",
+      "severity": "medium",
+      "outputs": [
+        "event_record",
+        "annotated_media"
+      ],
+      "notification_channels": [],
+      "evidence_capture": "key_frame",
+      "pre_roll_seconds": 0.0,
+      "post_roll_seconds": 0.0,
+      "maximum_clip_seconds": null,
+      "deduplication_scope": "event_instance",
+      "emit_recovery": false
+    },
+    "presentation_specs": [
+      {
+        "result_id": "result_image_entities",
+        "preferred_renderer": "generic.summary",
+        "show_in_overview": true,
+        "display_order": 0,
+        "overview_span": "normal",
+        "value_format": "auto",
+        "precision": null,
+        "sort_by": null,
+        "visualization_options": {},
+        "interaction_policy": {
+          "drilldown": true,
+          "highlight_evidence": true,
+          "default_focus": "summary"
+        }
+      },
+      {
+        "result_id": "result_video_entities",
+        "preferred_renderer": "generic.summary",
+        "show_in_overview": true,
+        "display_order": 1,
+        "overview_span": "normal",
+        "value_format": "auto",
+        "precision": null,
+        "sort_by": null,
+        "visualization_options": {},
+        "interaction_policy": {
+          "drilldown": true,
+          "highlight_evidence": true,
+          "default_focus": "summary"
+        }
+      }
+    ]
+  },
+  "scene_profiles": [],
+  "active_scene_profile_id": null,
+  "user_overrides": [],
+  "atomic_plan": {
+    "schema_version": "1.0",
+    "source": "rule_graph",
+    "variants": {
+      "image": {
+        "media_type": "image",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.image@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {}
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$media"
+            },
+            "params": {
+              "mode": "identity"
+            }
+          },
+          {
+            "id": "business_shared_grounding",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "高处作业人员",
+                  "phrases": [
+                    "worker at height"
+                  ]
+                },
+                {
+                  "label": "worker at height with safety rope or safety belt connected",
+                  "phrases": [
+                    "worker at height with safety rope or safety belt connected"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "business_shared_grounding_deduplicated",
+            "op": "objects.deduplicate@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding"
+            },
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "高处作业人员"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_subject"
+            },
+            "params": {
+              "label": "高处作业人员"
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "worker at height with safety rope or safety belt connected"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence"
+            },
+            "params": {
+              "label": "worker at height with safety rope or safety belt connected"
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label"
+            },
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "op": "logic.not@1.0",
+            "inputs": {
+              "condition": "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "op": "filter.apply@1.0",
+            "inputs": {
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "condition": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing"
+            },
+            "params": {
+              "output_label": null
+            }
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_image_missing_relation_condition_image_missing_relation_subject_label"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_and",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+                "$branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            }
+          },
+          {
+            "id": "business_branch_evidence_branch_image_missing_relation_0_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects"
+            },
+            "params": {
+              "label": "未系安全绳人员"
+            }
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$business_branch_evidence_branch_image_missing_relation_0_label"
+            },
+            "params": {}
+          }
+        ],
+        "outputs": {
+          "result_result_image_entities": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+          "branch_branch_image_missing_relation": "$branch_image_missing_relation_group_image_missing_relation_and",
+          "objects": "$business_branch_evidence_branch_image_missing_relation_0_label",
+          "final_primary": "$branch_image_missing_relation_group_image_missing_relation_and",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "business_shared_grounding",
+            "business_shared_grounding_deduplicated",
+            "business_ground_select_condition_condition_image_missing_relation_subject",
+            "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "branch_image_missing_relation_group_image_missing_relation_and",
+            "business_branch_evidence_branch_image_missing_relation_0_label"
+          ]
+        },
+        "configuration_slots": []
+      },
+      "video": {
+        "media_type": "video",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.video@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {}
+          },
+          {
+            "id": "frames",
+            "op": "video.sample@1.1",
+            "inputs": {
+              "video": "$media"
+            },
+            "params": {
+              "mode": "fps",
+              "fps": 1.0,
+              "start_seconds": 0.0,
+              "end_seconds": null,
+              "max_frames": null
+            }
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$frames"
+            },
+            "params": {
+              "mode": "identity"
+            }
+          },
+          {
+            "id": "business_shared_grounding",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "高处作业人员",
+                  "phrases": [
+                    "worker at height"
+                  ]
+                },
+                {
+                  "label": "worker at height with safety rope or safety belt connected",
+                  "phrases": [
+                    "worker at height with safety rope or safety belt connected"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "business_shared_grounding_deduplicated",
+            "op": "objects.deduplicate@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding"
+            },
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "高处作业人员"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_subject"
+            },
+            "params": {
+              "label": "高处作业人员"
+            }
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "worker at height with safety rope or safety belt connected"
+              ],
+              "mode": "include"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence"
+            },
+            "params": {
+              "label": "worker at height with safety rope or safety belt connected"
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label"
+            },
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "op": "logic.not@1.0",
+            "inputs": {
+              "condition": "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "op": "filter.apply@1.0",
+            "inputs": {
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "condition": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing"
+            },
+            "params": {
+              "output_label": null
+            }
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_video_missing_relation_condition_video_missing_relation_subject_label"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects"
+            },
+            "params": {}
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_and",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+                "$branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            }
+          },
+          {
+            "id": "business_branch_evidence_branch_video_missing_relation_0_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects"
+            },
+            "params": {
+              "label": "未系安全绳人员"
+            }
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$business_branch_evidence_branch_video_missing_relation_0_label"
+            },
+            "params": {}
+          }
+        ],
+        "outputs": {
+          "result_result_video_entities": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+          "branch_branch_video_missing_relation": "$branch_video_missing_relation_group_video_missing_relation_and",
+          "objects": "$business_branch_evidence_branch_video_missing_relation_0_label",
+          "final_primary": "$branch_video_missing_relation_group_video_missing_relation_and",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "business_shared_grounding",
+            "business_shared_grounding_deduplicated",
+            "business_ground_select_condition_condition_video_missing_relation_subject",
+            "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "branch_video_missing_relation_group_video_missing_relation_and",
+            "business_branch_evidence_branch_video_missing_relation_0_label"
+          ]
+        },
+        "configuration_slots": []
+      }
+    }
+  },
+  "effective_skill_package": {
+    "schema_version": "2.0",
+    "skill_id": "no_safety_rope",
+    "version": 5,
+    "display_name": "高处作业未系安全绳",
+    "original_instruction": "检测高处作业人员中没有连接安全绳或安全带的人。",
+    "compile_status": "compiled",
+    "input": {
+      "requested_accept": [
+        "image",
+        "video"
+      ],
+      "accept": [
+        "image",
+        "video"
+      ],
+      "video_guidance": {
+        "recommended_max_duration_seconds": 30.0,
+        "enforcement": "warn_only"
+      }
+    },
+    "semantic_ir": {
+      "schema_version": "1.0",
+      "mode": "entity_query",
+      "target": {
+        "concept": "worker_at_height",
+        "source_span": "高处作业人员",
+        "phrases": [
+          "worker at height",
+          "person working at height"
+        ],
+        "classes": []
+      },
+      "constraints": [
+        {
+          "atom_id": "atom_1",
+          "kind": "wearable",
+          "value": "connected_fall_arrest_lanyard",
+          "source": "检测高处作业人员中没有连接安全绳或安全带的人",
+          "source_span": "没有连接安全绳或安全带",
+          "polarity": "absent",
+          "carrier": null,
+          "carrier_span": null,
+          "phrases": [
+            "lanyard hook",
+            "safety hook",
+            "safety carabiner"
+          ],
+          "temporal": false
+        }
+      ],
+      "logic": "all",
+      "unresolved": [],
+      "semantic_hash": "2f3e47393d692073ba1c3df4a5ef3724b02f1bc81f2e49a3775d46b9159716b2"
+    },
+    "variants": {
+      "image": {
+        "media_type": "image",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.image@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$media"
+            },
+            "params": {
+              "mode": "identity"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_shared_grounding",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "高处作业人员",
+                  "phrases": [
+                    "worker at height"
+                  ]
+                },
+                {
+                  "label": "worker at height with safety rope or safety belt connected",
+                  "phrases": [
+                    "worker at height with safety rope or safety belt connected"
+                  ]
+                }
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_shared_grounding_deduplicated",
+            "op": "objects.deduplicate@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding"
+            },
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_subject",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "高处作业人员"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_subject"
+            },
+            "params": {
+              "label": "高处作业人员"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "worker at height with safety rope or safety belt connected"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence"
+            },
+            "params": {
+              "label": "worker at height with safety rope or safety belt connected"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label"
+            },
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "op": "logic.not@1.0",
+            "inputs": {
+              "condition": "$branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "op": "filter.apply@1.0",
+            "inputs": {
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_subject_label",
+              "condition": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing"
+            },
+            "params": {
+              "output_label": null
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_image_missing_relation_condition_image_missing_relation_subject_label"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_image_missing_relation_group_image_missing_relation_and",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+                "$branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_branch_evidence_branch_image_missing_relation_0_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects"
+            },
+            "params": {
+              "label": "未系安全绳人员"
+            },
+            "enabled": true
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$business_branch_evidence_branch_image_missing_relation_0_label"
+            },
+            "params": {},
+            "enabled": true
+          }
+        ],
+        "outputs": {
+          "result_result_image_entities": "$branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+          "branch_branch_image_missing_relation": "$branch_image_missing_relation_group_image_missing_relation_and",
+          "objects": "$business_branch_evidence_branch_image_missing_relation_0_label",
+          "final_primary": "$branch_image_missing_relation_group_image_missing_relation_and",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "business_shared_grounding",
+            "business_shared_grounding_deduplicated",
+            "business_ground_select_condition_condition_image_missing_relation_subject",
+            "branch_image_missing_relation_condition_image_missing_relation_subject_label",
+            "business_ground_select_condition_condition_image_missing_relation_missing_semantic_evidence",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_evidence_label",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_semantic_present",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_missing",
+            "branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects",
+            "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_subject_label_exists",
+            "branch_image_missing_relation_group_image_missing_relation_branch_image_missing_relation_condition_image_missing_relation_missing_missing_subjects_exists",
+            "branch_image_missing_relation_group_image_missing_relation_and",
+            "business_branch_evidence_branch_image_missing_relation_0_label"
+          ]
+        },
+        "configuration_slots": [],
+        "issue": null
+      },
+      "video": {
+        "media_type": "video",
+        "status": "executable",
+        "nodes": [
+          {
+            "id": "media",
+            "op": "media.video@1.0",
+            "inputs": {
+              "media": "$input"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "frames",
+            "op": "video.sample@1.1",
+            "inputs": {
+              "video": "$media"
+            },
+            "params": {
+              "mode": "fps",
+              "fps": 1.0,
+              "start_seconds": 0.0,
+              "end_seconds": null,
+              "max_frames": null
+            },
+            "enabled": true
+          },
+          {
+            "id": "resized",
+            "op": "image.resize@1.1",
+            "inputs": {
+              "frames": "$frames"
+            },
+            "params": {
+              "mode": "identity"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_shared_grounding",
+            "op": "rex.ground@1.1",
+            "inputs": {
+              "frames": "$resized"
+            },
+            "params": {
+              "targets": [
+                {
+                  "label": "高处作业人员",
+                  "phrases": [
+                    "worker at height"
+                  ]
+                },
+                {
+                  "label": "worker at height with safety rope or safety belt connected",
+                  "phrases": [
+                    "worker at height with safety rope or safety belt connected"
+                  ]
+                }
+              ]
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_shared_grounding_deduplicated",
+            "op": "objects.deduplicate@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding"
+            },
+            "params": {
+              "metric": "instance",
+              "threshold": 0.45,
+              "keep": "best_localization"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_subject",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "高处作业人员"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_subject"
+            },
+            "params": {
+              "label": "高处作业人员"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "op": "objects.filter_by_label@1.0",
+            "inputs": {
+              "objects": "$business_shared_grounding_deduplicated"
+            },
+            "params": {
+              "labels": [
+                "worker at height with safety rope or safety belt connected"
+              ],
+              "mode": "include"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence"
+            },
+            "params": {
+              "label": "worker at height with safety rope or safety belt connected"
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "op": "spatial.associate@1.0",
+            "inputs": {
+              "subjects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label"
+            },
+            "params": {
+              "relation": "mutual_match",
+              "threshold": 0.5
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "op": "logic.not@1.0",
+            "inputs": {
+              "condition": "$branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "op": "filter.apply@1.0",
+            "inputs": {
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_subject_label",
+              "condition": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing"
+            },
+            "params": {
+              "output_label": null
+            },
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_video_missing_relation_condition_video_missing_relation_subject_label"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "op": "reduce.exists@1.0",
+            "inputs": {
+              "sets": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects"
+            },
+            "params": {},
+            "enabled": true
+          },
+          {
+            "id": "branch_video_missing_relation_group_video_missing_relation_and",
+            "op": "logic.all@1.0",
+            "inputs": {
+              "conditions": [
+                "$branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+                "$branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists"
+              ]
+            },
+            "params": {
+              "combine_scope": "frame_any"
+            },
+            "enabled": true
+          },
+          {
+            "id": "business_branch_evidence_branch_video_missing_relation_0_label",
+            "op": "objects.relabel@1.0",
+            "inputs": {
+              "objects": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects"
+            },
+            "params": {
+              "label": "未系安全绳人员"
+            },
+            "enabled": true
+          },
+          {
+            "id": "result_draw",
+            "op": "output.draw@1.0",
+            "inputs": {
+              "frames": "$resized",
+              "objects": "$business_branch_evidence_branch_video_missing_relation_0_label"
+            },
+            "params": {},
+            "enabled": true
+          }
+        ],
+        "outputs": {
+          "result_result_video_entities": "$branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+          "branch_branch_video_missing_relation": "$branch_video_missing_relation_group_video_missing_relation_and",
+          "objects": "$business_branch_evidence_branch_video_missing_relation_0_label",
+          "final_primary": "$branch_video_missing_relation_group_video_missing_relation_and",
+          "media": "$result_draw"
+        },
+        "atom_bindings": {
+          "atom_1": [
+            "business_shared_grounding",
+            "business_shared_grounding_deduplicated",
+            "business_ground_select_condition_condition_video_missing_relation_subject",
+            "branch_video_missing_relation_condition_video_missing_relation_subject_label",
+            "business_ground_select_condition_condition_video_missing_relation_missing_semantic_evidence",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_evidence_label",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_semantic_present",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_missing",
+            "branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects",
+            "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_subject_label_exists",
+            "branch_video_missing_relation_group_video_missing_relation_branch_video_missing_relation_condition_video_missing_relation_missing_missing_subjects_exists",
+            "branch_video_missing_relation_group_video_missing_relation_and",
+            "business_branch_evidence_branch_video_missing_relation_0_label"
+          ]
+        },
+        "configuration_slots": [],
+        "issue": null
+      }
+    },
+    "compatibility_issues": []
+  },
+  "validation_report": {
+    "valid": true,
+    "errors": [],
+    "warnings": [],
+    "pending": [],
+    "resource_blockers": [],
+    "can_run": true
+  },
+  "compatibility": {
+    "editability": "full",
+    "issues": []
+  },
+  "readiness": {
+    "draft_valid": true,
+    "review_complete": true,
+    "compile_valid": true,
+    "runtime_ready": true,
+    "publish_ready": true,
+    "reasons": []
+  },
+  "hashes": {
+    "semantic_hash": "c495afa4174571c6a7f8925c91b67d926c91fb041c944dabec24b1b512c7b651",
+    "compile_hash": "d07766d2931b5450dc055530e619fac8c9618ad1256e2051d78a9da0a742f4b6",
+    "package_hash": "aef50d85b2a31bcc0f2602d157fcca6f38999a36ce3fe2ec962b30b6a4d5ef6c",
+    "presentation_hash": "acfb02cb7777800d2ec5f8fb23fb7cb8399485efb7e391f9a7feb8634285b1b8"
+  },
+  "compiled_artifact_ref": null
+}

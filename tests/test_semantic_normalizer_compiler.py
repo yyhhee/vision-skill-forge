@@ -16,6 +16,20 @@ PARAPHRASES = [
 ]
 
 
+def _grounding_source(variant, node_id):
+    nodes = {node.id: node for node in variant.nodes}
+    node = nodes[node_id]
+    if node.op == "rex.ground@1.1":
+        return node, node.params["targets"]
+    assert node.op == "objects.filter_by_label@1.0"
+    source = nodes[node.inputs["objects"].removeprefix("$")]
+    labels = set(node.params["labels"])
+    return source, [
+        target for target in source.params["targets"]
+        if target["label"] in labels
+    ]
+
+
 def test_clothing_paraphrases_normalize_to_identical_semantic_ir():
     normalizer = SemanticNormalizer()
 
@@ -74,8 +88,10 @@ def test_workflow_compiler_grounds_color_carriers_globally_then_assigns_best_own
         assert all(node.params["subject_region"] == [0.0, 0.0, 1.0, 1.0] for node in color_nodes)
         assert "constraint_1_crops" not in nodes
         assert "constraint_2_crops" not in nodes
-        assert nodes["constraint_1_carriers_raw"].inputs["frames"] == "$resized"
-        assert nodes["constraint_2_carriers_raw"].inputs["frames"] == "$resized"
+        carrier_1, _ = _grounding_source(variant, "constraint_1_carriers_raw")
+        carrier_2, _ = _grounding_source(variant, "constraint_2_carriers_raw")
+        assert carrier_1.id == carrier_2.id
+        assert carrier_1.inputs["frames"] == "$resized"
         assert nodes["constraint_1_matches"].params == {
             "relation": "best_owner", "threshold": 0.1,
         }
@@ -327,12 +343,10 @@ def test_open_english_part_carrier_is_compiled_without_task_specific_catalog_ent
     )
 
     assert ir.constraints[0].carrier == "reflective vest"
-    carrier_ground = next(
-        node
-        for node in package.variants["image"].nodes
-        if node.id == "constraint_1_carriers_raw"
+    _carrier_ground, targets = _grounding_source(
+        package.variants["image"], "constraint_1_carriers_raw"
     )
-    assert carrier_ground.params["targets"][0]["phrases"] == ["reflective vest"]
+    assert targets[0]["phrases"] == ["reflective vest"]
 
 
 def test_compound_color_phrase_recovers_specific_open_carrier_from_visible_phrase():
@@ -433,7 +447,10 @@ def test_base_entity_named_as_color_carrier_falls_back_to_target_box_and_reports
     color = next(item for item in ir.constraints if item.kind == "color")
     assert color.carrier is None
     nodes = {node.id: node for node in package.variants["image"].nodes}
-    assert nodes["constraint_1_color_entity"].params["targets"][0]["phrases"] == [
+    _grounding, targets = _grounding_source(
+        package.variants["image"], "constraint_1_color_entity"
+    )
+    assert targets[0]["phrases"] == [
         "white car"
     ]
     assert nodes["constraint_1_color_entity_matches"].params == {
@@ -486,11 +503,10 @@ def test_color_leaked_into_target_concept_is_removed_before_dual_color_evidence(
     )
 
     assert ir.target.concept == "car"
-    entity = next(
-        node for node in package.variants["image"].nodes
-        if node.id == "constraint_1_color_entity"
+    _entity, targets = _grounding_source(
+        package.variants["image"], "constraint_1_color_entity"
     )
-    assert entity.params["targets"][0]["phrases"] == ["white car"]
+    assert targets[0]["phrases"] == ["white car"]
 
 
 def test_omitted_collection_exclusion_is_rejected_as_incomplete_semantics():
@@ -548,7 +564,8 @@ def test_generic_entity_exclusion_uses_global_positive_evidence_and_negated_mutu
     assert exclusion.kind == "entity_exclusion"
     nodes = {node.id: node for node in variant.nodes}
     assert "constraint_1_crops" not in nodes
-    assert nodes["constraint_1_objects"].inputs["frames"] == "$resized"
+    grounding, _targets = _grounding_source(variant, "constraint_1_objects")
+    assert grounding.inputs["frames"] == "$resized"
     assert nodes["constraint_1_matches"].params == {
         "relation": "mutual_match", "threshold": 0.5,
     }

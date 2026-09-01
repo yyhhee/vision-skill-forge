@@ -6,6 +6,7 @@ from pydantic import Field, model_validator
 
 from .registry import OperatorRegistry
 from .schema import StrictModel
+from .visual_catalog import COLOR_NAMES
 
 
 BusinessCategory = Literal[
@@ -32,6 +33,14 @@ BusinessValueType = Literal[
     "event_set",
     "result",
     "any",
+]
+
+BusinessOrchestrationSlot = Literal[
+    "condition",
+    "branch_time",
+    "pattern",
+    "condition_operator",
+    "result",
 ]
 
 
@@ -106,6 +115,7 @@ class BusinessCapabilityDefinition(StrictModel):
     search_terms: list[str] = Field(default_factory=list)
     accepted_source_types: list[BusinessValueType] = Field(default_factory=list)
     output_value_type: BusinessValueType | None = None
+    orchestration_slot: BusinessOrchestrationSlot = "condition"
 
     @model_validator(mode="after")
     def fill_machine_readable_contract(self):
@@ -274,14 +284,29 @@ def build_business_capability_registry(
             parameters=[
                 source,
                 _p("part", "判断区域", "select", "选择整体、上半区域或下半区域；可用于服装、物体部件等场景。", default="whole", choices=["whole", "upper_clothing", "lower_clothing"]),
-                _p("color", "颜色", "select", "选择用户要判断的颜色。", required=True),
+                _p(
+                    "color",
+                    "颜色",
+                    "select",
+                    "选择用户要判断的颜色。",
+                    choices=list(COLOR_NAMES),
+                    required=True,
+                ),
+                _p(
+                    "verification_logic",
+                    "证据组合方式",
+                    "select",
+                    "选择颜色占比与模型属性语义证据需要同时满足、任一满足，或只使用其中一种。",
+                    default="AND",
+                    choices=["AND", "OR", "FRACTION_ONLY", "SEMANTIC_ONLY"],
+                ),
                 # A tiny default fraction treats bright background pixels as
                 # clothing (for example, a white chair inside a person's
                 # detector box).  Keep the tuning exposed, but use the same
                 # conservative 20% baseline as the deterministic semantic
                 # compiler; users can still lower it explicitly when a
                 # partial-colour task really needs that behaviour.
-                _p("minimum_fraction", "颜色至少占该部位", "percentage", "占比越高判定越严格。", default=20, unit="%", minimum=0, maximum=100, level="tuning", maps_to=["visual.color_fraction@1.0.min_fraction"], value_transform="percent_to_ratio"),
+                _p("minimum_fraction", "颜色至少占该部位", "percentage", "占比越高判定越严格；默认 10% 适合局部可见或被遮挡的目标。", default=10, unit="%", minimum=0, maximum=100, level="tuning", maps_to=["visual.color_fraction@1.0.min_fraction"], value_transform="percent_to_ratio"),
             ],
             compiler_recipe="visible_color",
             atoms=["visual.color_fraction@1.0", "filter.apply@1.0"],
@@ -295,7 +320,22 @@ def build_business_capability_registry(
             description="按目标在画面中的大小、位置和形状比例筛选。",
             input_contract="ObjectSet",
             output_contract="ObjectSet",
-            parameters=[source, _p("dimension", "判断维度", "select", "选择尺寸、位置或宽高比。", choices=["size", "position", "aspect_ratio"], required=True), comparison, threshold],
+            parameters=[
+                source,
+                _p("dimension", "判断维度", "select", "选择尺寸、位置或宽高比。", choices=["size", "position", "aspect_ratio"], required=True),
+                _p(
+                    "value",
+                    "期望特征",
+                    "select",
+                    "尺寸选择小/中/大；位置选择左/中/右/上/中部/下；宽高比选择水平或垂直。",
+                    choices=[
+                        "small", "medium", "large", "left", "center", "right",
+                        "top", "middle", "bottom", "horizontal", "vertical",
+                    ],
+                ),
+                comparison,
+                threshold,
+            ],
             compiler_recipe="geometry_filter",
             atoms=["visual.geometry@1.0", "filter.apply@1.0"],
             evidence_contract=["box", "measurement"],
@@ -320,16 +360,20 @@ def build_business_capability_registry(
             capability_id="subject.missing_equipment",
             display_name="主体缺少关联物",
             category="目标与属性",
-            description="按同一主体判断其应关联的对象、部件或可见证据是否缺失。",
+            description="按同一主体判断其应关联的对象、部件或可见证据是否缺失；可穿戴物仅在对应身体部位出现时才算已佩戴。",
             input_contract="ObjectSet subject + ObjectSet associated_object",
             output_contract="ObjectSet",
             parameters=[
                 _p("subject", "主体目标", "source_select", "选择需要检查关联关系的主体。", required=True),
                 _p("equipment", "应有关联物", "source_select", "选择主体应关联的对象、部件或可见证据。", required=True),
+                _p("positive_semantic_phrase", "正向可见语义", "text", "可选：用肯定式英文描述模型可直接识别的完整事实，例如连接、包含、装载、附着或佩戴；不得填写 not/without/no。", required=False),
+                _p("semantic_evidence", "模型正向语义证据", "source_select", "可选：选择模型直接识别到的完整正向语义主体，例如“已佩戴某装备的人”。", required=False),
+                _p("verification_mode", "证据采用方式", "select", "简单可见语义默认优先采用模型直接识别；也可明确要求关系复核或双证据组合。", default="模型语义优先", choices=["模型语义优先", "仅模型语义", "仅关系复核", "模型语义且关系复核", "模型语义或关系复核"]),
+                _p("wear_location", "关联位置", "select", "自动按关联物语义选择头部、躯干、手部或足部；未知关联物按通用同主体关系判断。", default="auto", choices=["auto", "head", "upper_body", "lower_body", "hands", "feet", "whole"]),
                 _p("association", "关联成立要求", "percentage", "关联物框与主体框达到该比例才算属于该主体。", default=30, unit="%", level="tuning", value_transform="percent_to_ratio"),
             ],
             compiler_recipe="equipment_absence",
-            atoms=["pairs.build@1.0", "pairs.measure@1.0", "pairs.filter@1.0", "set.anti_join@1.0"],
+            atoms=["spatial.associate@1.0", "logic.not@1.0", "filter.apply@1.0", "pairs.build@1.0", "pairs.measure@1.0", "pairs.filter@1.0", "set.anti_join@1.0"],
             evidence_contract=["box", "relation"],
             search_terms=["缺少关联物", "缺少部件", "未佩戴", "未戴安全帽", "未系安全绳"],
         ),
@@ -540,6 +584,7 @@ def build_business_capability_registry(
             compiler_recipe="temporal_persist",
             atoms=["temporal.persist@1.0"],
             evidence_contract=["event", "measurement"],
+            orchestration_slot="branch_time",
         ),
         BusinessCapabilityDefinition(
             capability_id="temporal.join",
@@ -559,6 +604,7 @@ def build_business_capability_registry(
             compiler_recipe="multi_branch_join",
             atoms=["temporal.join@1.0", "event.attach_evidence@1.0"],
             evidence_contract=["event"],
+            orchestration_slot="pattern",
         ),
         BusinessCapabilityDefinition(
             capability_id="temporal.sequence",
@@ -576,6 +622,7 @@ def build_business_capability_registry(
             compiler_recipe="ordered_process",
             atoms=["temporal.sequence@2.0", "event.attach_evidence@1.0"],
             evidence_contract=["event"],
+            orchestration_slot="pattern",
         ),
         BusinessCapabilityDefinition(
             capability_id="temporal.absence",
@@ -589,6 +636,7 @@ def build_business_capability_registry(
             compiler_recipe="negative_or_repeated_event",
             atoms=["temporal.absence@1.0"],
             evidence_contract=["event"],
+            orchestration_slot="pattern",
         ),
         BusinessCapabilityDefinition(
             capability_id="temporal.repeat",
@@ -602,6 +650,7 @@ def build_business_capability_registry(
             compiler_recipe="negative_or_repeated_event",
             atoms=["temporal.repeat@1.0"],
             evidence_contract=["event"],
+            orchestration_slot="pattern",
         ),
         BusinessCapabilityDefinition(
             capability_id="logic.group",
@@ -614,6 +663,7 @@ def build_business_capability_registry(
             compiler_recipe="logic_group",
             atoms=["logic.all@1.0", "logic.any@1.0", "logic.not@1.0", "reduce.quantify@1.0"],
             evidence_contract=["condition"],
+            orchestration_slot="condition_operator",
         ),
         BusinessCapabilityDefinition(
             capability_id="output.business_result",
@@ -626,6 +676,7 @@ def build_business_capability_registry(
             compiler_recipe="result_projection",
             atoms=["result.project@1.0", "evidence.collect@1.0"],
             evidence_contract=["box", "track", "event", "measurement", "region", "vector"],
+            orchestration_slot="result",
         ),
     ]
     return BusinessCapabilityRegistry(definitions, operator_registry)
@@ -635,6 +686,7 @@ __all__ = [
     "BusinessCapabilityDefinition",
     "BusinessCapabilityRegistry",
     "BusinessParameterDefinition",
+    "BusinessOrchestrationSlot",
     "BusinessValueType",
     "build_business_capability_registry",
 ]

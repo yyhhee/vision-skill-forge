@@ -15,6 +15,8 @@ class ResultCardView(StrictModel):
     title: str
     status: str
     renderer_id: str
+    semantic_type: str = ""
+    media_type: Literal["image", "video"] = "image"
     value: Any = None
     unit: str | None = None
     reason: str | None = None
@@ -68,6 +70,8 @@ def build_run_result_view(
                 title=output.display_name,
                 status=output.status,
                 renderer_id=renderer.renderer_id,
+                semantic_type=output.semantic_type,
+                media_type=result.media_type,
                 value=output.value,
                 unit=output.unit,
                 reason=output.reason,

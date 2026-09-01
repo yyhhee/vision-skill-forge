@@ -26,6 +26,22 @@ def _compile(constraints, instruction="检测目标", target=None, media=None):
     )
 
 
+def _grounding_source(variant, node_id):
+    """Resolve a condition selector back to its shared Rex request and targets."""
+
+    nodes = {node.id: node for node in variant.nodes}
+    node = nodes[node_id]
+    if node.op == "rex.ground@1.1":
+        return node, node.params["targets"]
+    assert node.op == "objects.filter_by_label@1.0"
+    source = nodes[node.inputs["objects"].removeprefix("$")]
+    labels = set(node.params["labels"])
+    return source, [
+        target for target in source.params["targets"]
+        if target["label"] in labels
+    ]
+
+
 @pytest.mark.parametrize(
     ("kind", "value", "expected_op"),
     [
@@ -80,12 +96,15 @@ def test_open_visual_atoms_compile_as_affirmative_evidence_then_association(
 
     variant = package.select_variant("image")
     evidence = next(node for node in variant.nodes if node.id == "constraint_1_objects")
+    evidence_grounding, evidence_targets = _grounding_source(
+        variant, "constraint_1_objects"
+    )
     association = next(
         node for node in variant.nodes if node.id == "constraint_1_matches"
     )
     if kind == "pose":
         assert not any(node.id == "evidence_frames" for node in variant.nodes)
-        assert evidence.inputs["frames"] == "$resized"
+        assert evidence_grounding.inputs["frames"] == "$resized"
     else:
         evidence_frames = next(
             node for node in variant.nodes if node.id == "evidence_frames"
@@ -99,14 +118,14 @@ def test_open_visual_atoms_compile_as_affirmative_evidence_then_association(
             "overlap_y": 0.2,
             "include_full_frame": True,
         }
-    assert evidence.op == "rex.ground@1.1"
-    assert evidence.inputs["frames"] == (
+    assert evidence_grounding.op == "rex.ground@1.1"
+    assert evidence_grounding.inputs["frames"] == (
         "$resized" if kind == "pose" else "$evidence_frames"
     )
     expected_phrases = (
         ["object wearing reflective vest"] if kind == "wearable" else phrases
     )
-    assert evidence.params["targets"][0]["phrases"] == expected_phrases
+    assert evidence_targets[0]["phrases"] == expected_phrases
     assert association.inputs["subjects"] == "$candidates"
     assert association.inputs["objects"] == "$constraint_1_objects_dedup"
     assert association.params == {"relation": "mutual_match", "threshold": 0.5}
@@ -152,7 +171,8 @@ def test_absent_visual_evidence_uses_full_frame_then_deterministic_not():
     variant = package.select_variant("image")
     nodes = {node.id: node for node in variant.nodes}
     assert "evidence_frames" not in nodes
-    assert nodes["constraint_1_objects"].inputs["frames"] == "$resized"
+    grounding, _targets = _grounding_source(variant, "constraint_1_objects")
+    assert grounding.inputs["frames"] == "$resized"
     assert nodes["constraint_1_matches"].params == {
         "relation": "mutual_match",
         "threshold": 0.5,
@@ -176,14 +196,25 @@ def test_wearable_atom_fuses_part_ownership_and_whole_subject_evidence():
         target={"concept": "person", "source_span": "人", "phrases": ["person"]},
     )
 
-    nodes = {node.id: node for node in package.select_variant("image").nodes}
-    assert nodes["constraint_1_wearable_parts"].params["targets"][0]["phrases"] == [
+    variant = package.select_variant("image")
+    nodes = {node.id: node for node in variant.nodes}
+    grounding, part_targets = _grounding_source(
+        variant, "constraint_1_wearable_parts"
+    )
+    subject_grounding, subject_targets = _grounding_source(
+        variant, "constraint_1_objects"
+    )
+    assert grounding.id == subject_grounding.id
+    assert len([node for node in variant.nodes if node.op == "rex.ground@1.1"]) == 1
+    assert part_targets[0]["phrases"] == [
         "safety helmet"
     ]
     assert nodes["constraint_1_wearable_part_matches"].params == {
-        "relation": "best_owner", "threshold": 0.1,
+        "relation": "center_in_subject_region",
+        "threshold": 0.1,
+        "subject_region": [0.0, 0.0, 1.0, 0.35],
     }
-    assert nodes["constraint_1_objects"].params["targets"][0]["phrases"] == [
+    assert subject_targets[0]["phrases"] == [
         "person wearing safety helmet"
     ]
     assert nodes["constraint_1_matches"].params == {
@@ -194,6 +225,7 @@ def test_wearable_atom_fuses_part_ownership_and_whole_subject_evidence():
             "$constraint_1_wearable_part_matches", "$constraint_1_matches"
         ]
     }
+    assert nodes["constraint_1_wearable_present"].op == "logic.all@1.0"
     assert nodes["constraint_1_not"].inputs == {
         "condition": "$constraint_1_wearable_present"
     }
@@ -225,8 +257,9 @@ def test_required_pose_atoms_are_grounded_once_as_one_complete_subject_predicate
     variant = package.select_variant("image")
     nodes = {node.id: node for node in variant.nodes}
     grouped = nodes["pose_group_1_objects"]
-    assert grouped.inputs["frames"] == "$resized"
-    assert grouped.params["targets"][0]["phrases"] == [
+    grounding, targets = _grounding_source(variant, "pose_group_1_objects")
+    assert grounding.inputs["frames"] == "$resized"
+    assert targets[0]["phrases"] == [
         "person squatting with knees bent"
     ]
     assert nodes["pose_group_1_matches"].params == {
@@ -258,7 +291,8 @@ def test_relational_state_evidence_keeps_subject_and_positive_relation_context()
     evidence = next(
         node for node in variant.nodes if node.id == "constraint_1_objects"
     )
-    assert evidence.params["targets"][0]["phrases"] == [
+    _grounding, targets = _grounding_source(variant, "constraint_1_objects")
+    assert targets[0]["phrases"] == [
         "person with support under hips"
     ]
 

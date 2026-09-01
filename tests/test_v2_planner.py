@@ -244,14 +244,25 @@ def test_v2_planner_extracts_semantics_then_uses_deterministic_compiler():
     assert "只输出语义账本" in prompt
     assert "不输出工作流节点" in prompt
     assert "source_span" in prompt
+    assert "execution_atom_assets_read_only" not in prompt
     assert "rex.ground@" not in prompt
+    assert "执行原子资产不进入 LLM 上下文" in prompt
+    assert "LLM 只编排业务能力" in prompt
     assert "Python" in prompt
-    assert "每个能够独立保存结果" in prompt
+    assert "可独立判定、展示、保存或计时的主体链" in prompt
+    assert "和、且、同时、都表示 AND/all" in prompt
+    assert "或、或者、任一表示 OR/any" in prompt
+    assert "只出现一个条件时保持单条件" in prompt
+    assert "明确要求‘同一张/同一个/同一人’" in prompt
+    assert "命名区域边界" in prompt
+    assert "为每个独立区域建立一个 branch" in prompt
+    assert "不要把区域1和区域2的条件塞进同一个 branch" in prompt
     assert "full_frame 仅可作为 scope" in prompt
     assert "只是技能名称，不是事件名、告警名或框标签" in prompt
     assert "不得直接复制给 final_decision.name" in prompt
-    assert "用户没有明确给出时必须省略" in prompt
-    assert "target.detect 不接受 scope" in prompt
+    assert "用户没有明确给出的 tuning 参数必须省略" in prompt
+    assert '"id":"target.detect"' in prompt
+    assert '"schema_slot":"branches[].conditions[] ATOM"' in prompt
     user_payload = json.loads(call["messages"][1]["content"])
     assert user_payload["requested_skill_display_name"] == "红上衣灰裤人员"
 
@@ -328,6 +339,27 @@ def test_v2_planner_validates_and_returns_optional_business_rule_draft():
     assert result.business_draft is not None
     assert result.business_draft["branches"][0]["key"] == "people"
     assert result.business_draft["results"][0]["result_kind"] == "entities"
+
+    without_business = {
+        key: value for key, value in payload.items() if key != "business_rule"
+    }
+    retry_fake = FakeClient([
+        json.dumps(without_business, ensure_ascii=False),
+        json.dumps(payload, ensure_ascii=False),
+    ])
+    required_planner = DeepSeekSemanticPlanner(
+        build_default_registry(), client=retry_fake, model="deepseek-test"
+    )
+    required_result = required_planner.compile(
+        instruction,
+        requested_accept=["image"],
+        skill_id="required_business_draft",
+        display_name="必须生成业务草稿",
+        require_business_draft=True,
+    )
+    assert required_result.attempts == 2
+    assert required_result.business_draft is not None
+    assert "缺少必需的顶层 business_rule" in required_result.errors[0]
 
 
 def test_ground_surface_position_becomes_a_visible_target_phrase_not_a_region():
@@ -538,7 +570,9 @@ def test_v2_planner_accepts_optional_read_only_execution_context_without_putting
 def test_v2_planner_prompt_exposes_generic_count_motion_direction_and_scene_requirements():
     from clients.v2_planner import DeepSeekSemanticPlanner
 
-    prompt = DeepSeekSemanticPlanner._system_prompt()
+    prompt = DeepSeekSemanticPlanner(
+        build_default_registry(), client=FakeClient([])
+    )._system_prompt()
 
     for token in [
         "quantity",
@@ -565,6 +599,32 @@ def test_v2_planner_prompt_exposes_generic_count_motion_direction_and_scene_requ
     assert "不能把‘戴帽子的人/穿背心的人’误写成独立实体类别" in prompt
     assert "同一主体的完整框" in prompt
     assert "person wearing safety helmet" in prompt
+    assert "主体血缘" in prompt
+    assert "分支边界" in prompt
+    assert "关系完整性" in prompt
+    assert "输出类型" in prompt
+    assert "执行隔离" in prompt
+    assert "必须按视觉证据的定位难度排序" in prompt
+    assert "关联物→‘主体与关联物处于某关系’→主体" in prompt
+    assert "语义与规则的选择" in prompt
+    assert "优先使用模型正向语义直接识别" in prompt
+    assert "数量、命名区域、时序、速度、方向、精确几何、跨目标关系" in prompt
+    assert "禁止把 not/without/no 发送给检测模型" in prompt
+    assert "wearing、carrying、containing、loaded with、attached to、connected to" in prompt
+    assert "不得把所有关系统一改写成 wearing 或 with" in prompt
+    assert "attribute.color.verification_logic" in prompt
+    assert "FRACTION_ONLY" in prompt
+    assert "SEMANTIC_ONLY" in prompt
+    assert "不得把基础目标检测误写成独立业务条件" in prompt
+    assert "不得根据具体实体名、颜色名、技能名或示例名称建立特殊分支" in prompt
+    assert "P01-P13 预置演示技能是回归样例而不是可复制的工作流模板" in prompt
+    assert "business_capability_assets" in prompt
+    assert "execution_atom_assets_read_only" not in prompt
+    assert "rex.ground@" not in prompt
+    assert '"schema_slot":"branches[].time"' in prompt
+    assert '"schema_slot":"patterns[]"' in prompt
+    assert '"schema_slot":"results[]"' in prompt
+    assert "系统基础原子按媒体、资源、证据和输出闭包自动补齐" in prompt
 
 
 def test_v2_planner_repairs_fixed_region_count_when_model_omits_grouping():
@@ -928,6 +988,25 @@ def test_v2_planner_paraphrases_share_semantic_hash_and_workflow_topology():
     assert [node.op for node in results[0].variants["image"].nodes] == [
         node.op for node in results[1].variants["image"].nodes
     ]
-    assert [node.params for node in results[0].variants["image"].nodes] == [
-        node.params for node in results[1].variants["image"].nodes
+    def semantic_params(package):
+        return [
+            (
+                {key: value for key, value in node.params.items() if key != "label"}
+                if node.op == "objects.relabel@1.0"
+                else node.params
+            )
+            for node in package.variants["image"].nodes
+        ]
+
+    # The executable semantics are paraphrase-stable.  The final evidence
+    # label deliberately preserves each user's own complete predicate.
+    assert semantic_params(results[0]) == semantic_params(results[1])
+    labels = [
+        next(
+            node.params["label"]
+            for node in package.variants["image"].nodes
+            if node.op == "objects.relabel@1.0"
+        )
+        for package in results
     ]
+    assert labels == ["穿红色上衣、灰色裤子的人", "穿红色上衣、灰色长裤的人"]

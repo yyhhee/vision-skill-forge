@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from core.business_capabilities import build_business_capability_registry
 from core.registry import OperatorRegistry
 from core.business_rule_draft import (
     NaturalLanguageBusinessDraft,
@@ -43,6 +44,7 @@ class DeepSeekSemanticPlanner:
     ):
         load_dotenv()
         self.registry = registry
+        self.business_capabilities = build_business_capability_registry(registry)
         self.model = model or os.getenv("PLANNER_MODEL", "deepseek-v4-flash")
         if thinking is None:
             thinking = os.getenv("PLANNER_THINKING", "enabled").lower() not in {
@@ -166,6 +168,65 @@ class DeepSeekSemanticPlanner:
                 target["phrases"] = list(fallback["phrases"])
         target.setdefault("classes", list(fallback.get("classes", [])))
         ledger["target"] = target
+        return ledger
+
+    @staticmethod
+    def _repair_business_target_labels(
+        ledger: dict,
+        business_payload: dict | None,
+    ) -> dict:
+        """Keep per-class labels when an LLM batches several targets.
+
+        The semantic ledger may contain a useful ``target.classes`` mapping
+        while the business draft represents the same detector as a list of
+        bare phrases plus one display label.  Replacing that list with
+        ``{label, phrases}`` entries is a generic normalization step: it
+        preserves model categories for any multi-target task and prevents the
+        compiler from collapsing every result into one branch label.
+        """
+
+        if not isinstance(business_payload, dict):
+            return ledger
+        target = ledger.get("target")
+        classes = target.get("classes") if isinstance(target, dict) else None
+        if not isinstance(classes, list):
+            return ledger
+        class_items = [
+            item for item in classes
+            if isinstance(item, dict)
+            and str(item.get("label", "")).strip()
+            and item.get("phrases")
+        ]
+        if len(class_items) < 2:
+            return ledger
+
+        def repair_conditions(items: list[dict]) -> None:
+            for condition in items:
+                if not isinstance(condition, dict):
+                    continue
+                if condition.get("capability_id") == "target.detect":
+                    parameters = condition.setdefault("parameters", {})
+                    values = parameters.get("targets")
+                    if isinstance(values, list) and len(values) == len(class_items):
+                        parameters["targets"] = [
+                            {
+                                "label": str(item["label"]).strip(),
+                                "phrases": [
+                                    str(phrase).strip()
+                                    for phrase in item.get("phrases", [])
+                                    if str(phrase).strip()
+                                ],
+                            }
+                            for item in class_items
+                        ]
+                        # A single aggregate business label is no longer a
+                        # safe output label when each model class is visible.
+                        parameters.pop("business_label", None)
+                repair_conditions(condition.get("children") or [])
+
+        for branch in business_payload.get("branches", []):
+            if isinstance(branch, dict):
+                repair_conditions(branch.get("conditions") or [])
         return ledger
 
     @staticmethod
@@ -543,12 +604,142 @@ class DeepSeekSemanticPlanner:
         return ledger
 
     @staticmethod
-    def _system_prompt() -> str:
+    def _business_orchestration_rules() -> str:
+        return (
+            "业务编排必须满足以下不变量："
+            "一、主体血缘：每个条件必须通过 source/subject/object/attributes/equipment 引用可追溯到基础实体；"
+            "禁止只靠条件名称暗示输入。"
+            "二、分支边界：可独立判定、展示、保存或计时的主体链分别建立 branch；"
+            "同一主体的多项属性保留在同一 branch。"
+            "同一主体的证据复核：明确要求‘同一张/同一个/同一人’时，"
+            "让属性或关系条件引用同一主体来源，并使用 subject.same_attributes 或等价归属关系；"
+            "未明确同一主体时，不得擅自把不同目标绑定。"
+            "三、关系完整性：同时依赖两个或以上主体的空间关系、归属、配对和缺失关系保持在同一 branch，"
+            "不得拆断其依赖。"
+            "命名区域边界：一句话明确出现区域1、区域2或多个不同命名区域，且各区域分别有条件时，"
+            "为每个独立区域建立一个 branch，最终用 final_decision 的 AND/OR/N_OF_M 汇合；"
+            "同一基础目标（例如 person）可以在多个区域 branch 中复用，系统会共享/去重执行来源。"
+            "每个区域 branch 内的属性、数量、状态和空间条件必须通过 scope 或来源条件引用对应 resource:key；"
+            "不要把区域1和区域2的条件塞进同一个 branch，也不要用一个全画面条件冒充多个区域条件。"
+            "区域条件若共享同一检测目标，检测目标可作为无区域前置依赖；区域特有的后继条件必须绑定该区域，"
+            "否则不得猜测归属，应写 pending_decisions 或 unresolved。"
+            "四、逻辑分层：分支内部使用递归 AND/OR/NOT/N_OF_M；分支之间由 final_decision 或 patterns 组合；"
+            "禁止用条件名称代替逻辑结构。"
+            "自然语言连接词按语义映射：和、且、同时、都表示 AND/all；或、或者、任一表示 OR/any；"
+            "至少 N 个表示 N_OF_M，并将 N 写入 required_count；连接词不能只保留在名称中。"
+            "只出现一个条件时保持单条件，不得为了‘复核’凭空添加第二个条件；"
+            "A AND B、A OR B、单独 A 或单独 B 都必须忠实落到条件树。"
+            "颜色属性的双证据复核通过 attribute.color.verification_logic 表达："
+            "普通‘某颜色目标’且未指定复核方式时使用 AND；"
+            "明确要求颜色占比与模型属性语义证据同时满足时使用 AND，任一满足时使用 OR，"
+            "只按颜色占比时使用 FRACTION_ONLY，只按模型属性语义证据时使用 SEMANTIC_ONLY。"
+            "这四种模式是证据组合方式，不得把基础目标检测误写成独立业务条件。"
+            "五、输出类型：entities/tracks/events/count/value 必须分别引用兼容的实体、轨迹、事件或测量来源；"
+            "多分支最终判定是布尔来源，不能充当 entities 框来源。"
+            "六、媒体与资源：图片不得包含轨迹或时序能力；人工区域和方向只声明 resource，"
+            "业务条件通过 resource:key 引用。"
+            "用户明确说‘02 标注/场景标注/手工画出的…区域’时，这个区域是人工资源："
+            "必须声明 manual region_requirement，并让 spatial.membership 引用该 resource；"
+            "不得再创建用于识别该区域表面、材质或场景名称的 target.detect。"
+            "七、参数来源：用户未给出的阈值、时长、数量、区域数和方向不得猜测；"
+            "需要确认的值写 pending_decisions。"
+            "八、执行隔离：business_rule 只表达业务语义，不规划模型调用次数、抽帧、切片、去重或执行节点；"
+            "执行优化由确定性编译器统一完成。"
+            "同一媒体上的多个 target.detect 会由编译器合并为一次模型请求。声明这些可见证据时，"
+            "必须按视觉证据的定位难度排序：先局部、较小、易遮挡或需要精确定位的关联物证据，"
+            "再带关系/状态的组合语义证据，最后宽泛的主体或场景基础目标。"
+            "例如关联物→‘主体与关联物处于某关系’→主体；这只是同一次请求内的类别顺序，"
+            "不得因此创建多次模型调用。排序必须由证据在关系中的角色决定，不得按实体名称、"
+            "语言、预置案例或固定类别表猜测。"
+            "九、语义与规则的选择：单一、可直接看见、可用一句肯定描述表达且模型能够返回目标主体框的"
+            "类别、外观、穿戴、姿态或状态，优先使用模型正向语义直接识别，"
+            "例如已佩戴某物的主体、打开的门、冒烟的车辆；不得先凭像素、位置或宽高比自行推导简单语义。"
+            "否定语义必须检测剥离否定后的正向语义，再用 NOT、缺失或排除能力表达，"
+            "禁止把 not/without/no 发送给检测模型。"
+            "使用 subject.missing_equipment 表达任意‘主体缺少关联物/关系’时，如果正向事实能由一个主体框表达，"
+            "必须建立肯定式 target.detect 语义证据，并由 semantic_evidence 引用；"
+            "正向短语应忠实使用 wearing、carrying、containing、loaded with、attached to、connected to 等实际关系，"
+            "不得把所有关系统一改写成 wearing 或 with。"
+            "若业务语义还要求关联物处于可定位的主体相对位置（例如头部、手部、足部、上/下半身），"
+            "且关联物本身可被检测，verification_mode 必须选择“模型语义且关系复核”，并声明 wear_location；"
+            "这样模型语义框与位置关系需同时成立，可区分携带、邻近和实际关联。"
+            "若关系本身不能由稳定二维位置表达（例如远处锚点连接、内部状态），可使用“仅模型语义”。"
+            "数量、命名区域、时序、速度、方向、精确几何、跨目标关系，以及模型无法用单一主体框完整表达的条件，"
+            "使用确定性业务能力；用户明确要求复核时，才按用户语义组合模型证据与规则证据。"
+            "若模型语义框和基础目标框需要归属，只做同一主体回绑，不得把归属规则冒充为新的业务条件。"
+            "十、证据组合：基础检测、轨迹、区域或事件来源只是后继条件的数据依赖，不自动算作一条业务证据；"
+            "最终判定中的 A/B 必须是可独立成立的测量、模型语义、关系、状态或时序证据。"
+            "若业务能力资产暴露 verification_logic 或同类证据组合参数，优先用该参数表达 AND、OR、仅 A、仅 B；"
+            "若资产没有内置复核参数，则把 A/B 建成显式条件并用递归 AND/OR/NOT/N_OF_M 组合。"
+            "要求同一主体时，所有证据必须引用同一主体来源并配置归属关系，禁止跨主体拼接。"
+            "以上规则按依赖和类型判断，不得根据具体实体名、颜色名、技能名或示例名称建立特殊分支。"
+            "提示中的示例只用于说明字段格式，不构成编排规则。"
+            "P01-P13 预置演示技能是回归样例而不是可复制的工作流模板；"
+            "不得因为命中某个预置名称就照抄其分支、阈值、资源或执行步骤，"
+            "只能依据当前自然语言和动态业务能力资产重新建立语义依赖。"
+        )
+
+    @staticmethod
+    def _orchestration_slot_schema(slot: str) -> str:
+        return {
+            "condition": "branches[].conditions[] ATOM",
+            "branch_time": "branches[].time",
+            "pattern": "patterns[]",
+            "condition_operator": "conditions[].operator/children",
+            "result": "results[]",
+        }[slot]
+
+    def _business_capability_assets(self) -> list[dict]:
+        assets = []
+        for definition in self.business_capabilities.definitions():
+            parameters = []
+            for parameter in definition.parameters:
+                item = {
+                    "id": parameter.parameter_id,
+                    "type": parameter.editor,
+                    "required": parameter.required,
+                    "level": parameter.level,
+                }
+                if parameter.default is not None:
+                    item["default"] = parameter.default
+                if parameter.choices:
+                    item["choices"] = parameter.choices
+                if parameter.minimum is not None:
+                    item["minimum"] = parameter.minimum
+                if parameter.maximum is not None:
+                    item["maximum"] = parameter.maximum
+                parameters.append(item)
+            assets.append(
+                {
+                    "id": definition.capability_id,
+                    "name": definition.display_name,
+                    "category": definition.category,
+                    "description": definition.description,
+                    "schema_slot": self._orchestration_slot_schema(
+                        definition.orchestration_slot
+                    ),
+                    "input_types": definition.accepted_source_types,
+                    "output_type": definition.output_value_type,
+                    "media": definition.media_requirements,
+                    "resources": definition.resource_requirements,
+                    "parameters": parameters,
+                    "evidence": definition.evidence_contract,
+                }
+            )
+        return assets
+
+    def _planner_asset_contract(self) -> dict:
+        return {
+            "business_capability_assets": self._business_capability_assets(),
+        }
+
+    def _system_prompt(self) -> str:
         ontology = {
             "colors": sorted(set(COLOR_ALIASES.values())),
             "known_carriers": sorted(set(CARRIER_TEXT_ALIASES.values())),
             "attribute_dimensions": sorted(ATTRIBUTE_CATALOG),
         }
+        asset_contract = self._planner_asset_contract()
         return (
             "你是通用视觉技能的语义抽取器，只输出语义账本 JSON，不负责检测，"
             "不输出工作流节点、不输出操作符、不输出 Python 或任何可执行代码。"
@@ -581,6 +772,8 @@ class DeepSeekSemanticPlanner:
             "wearable/pose/state/appearance 等描述主体整体是否满足条件时，"
             "phrases 必须显式包含基础实体并返回同一主体的完整框，例如 person wearing safety helmet，"
             "不要只写 safety helmet 这样的局部部件框；颜色载体仍由 color.carrier 单独表达。"
+            "对于未佩戴、未带、缺少等可穿戴物的否定条件，正向可见证据必须表达“该物已佩戴在主体对应部位”；"
+            "不得把手持、携带、附近或仅落在主体大框内的物体视为已佩戴。"
             "通用结构化值契约："
             "quantity 可只报告计数 {\"measure\":\"count\"}，也可比较 "
             "{\"measure\":\"count\",\"operator\":\">=\",\"value\":3}；"
@@ -644,34 +837,21 @@ class DeepSeekSemanticPlanner:
             '"pending_decisions":[{"key":"英文键","kind":"count_threshold|duration|time_window|comparison_operator|direction_reference|correlation|generic",'
             '"prompt":"给用户的问题","reason":"为什么不确定","recommended_value":null,'
             '"affected_refs":["condition:branchKey.conditionKey"],"required_before":"run"}]}。'
-            "业务能力 ID 只可使用：target.detect、target.filter_class、attribute.color、"
-            "attribute.geometry、subject.same_attributes、subject.missing_equipment、"
-            "spatial.membership、spatial.association、measure.count、measure.statistic、"
-            "motion.track、motion.direction、motion.wrong_way、motion.speed、state.current、"
-            "state.transition、event.detect_or_compose。时间约束写在 branch.time，跨分支关系写 patterns，"
-            "不要把 temporal.*、logic.group 或 output.business_result 当普通条件。"
+            + self._business_orchestration_rules()
+            + "编排前必须读取下方动态资产契约，并按依赖图自底向上选择业务能力："
+            "每个 ATOM 的 capability_id 只能来自 business_capability_assets，且只能放入其 schema_slot；"
+            "参数名、必填项、枚举、范围、媒体、资源、输入类型和输出类型必须与该资产完全一致。"
+            "后继条件的来源类型必须兼容前驱输出类型；若当前资产无法无损表达用户语义，"
+            "写入 pending_decisions 或 unresolved，禁止杜撰能力、参数、原子或默认阈值。"
+            "执行原子资产不进入 LLM 上下文：业务能力注册时已经校验其编译配方引用的原子存在；"
+            "业务组合原子由确定性编译器选择，系统基础原子按媒体、资源、证据和输出闭包自动补齐。"
+            "不得在 business_rule 中输出执行原子 op、执行顺序、模型调用或系统基础节点；LLM 只编排业务能力。"
+            "同一来源可供多个后继条件复用；不要为同一语义重复检测或重复筛选。"
+            "每个独立业务主体建立一次基础实体来源，再以属性、关系、区域、数量、状态、运动或时间能力逐层收敛。"
             "parameters 中的来源用 condition:key 或 condition:branchKey.conditionKey；"
             "区域/方向用 resource:key，全画面用 full_frame。"
-            "target.detect 参数为 targets/phrases/business_label；attribute.color 为 source/part/color/minimum_fraction；"
-            "target.detect 不接受 scope；区域范围必须另建 spatial.membership，并引用检测条件；"
-            "subject.same_attributes 为 subject/attributes/minimum_overlap；spatial.membership 为 source/scope/membership/minimum_overlap/inside；"
-            "measure.count 为 source/scope/group_by/operator/threshold；motion.wrong_way 为 source/scope/reference/minimum_reverse_angle/minimum_displacement；"
-            "event.detect_or_compose 为 source/scope/method/event_label。"
-            "所有 percentage 参数统一输出 0 到 100 的百分数，禁止输出 0 到 1 的比例；"
-            "minimum_fraction、minimum_overlap、minimum_displacement 等效果调优参数，"
-            "用户没有明确给出时必须省略并采用能力默认值，不得自行猜测；"
-            "颜色能力未给出阈值时使用系统默认颜色证据基线，不要擅自填入 5% 等过低值；"
-            "attribute.color.part 只允许 whole、upper_clothing、lower_clothing，"
-            "spatial.membership.membership 只允许 center、overlap、overlap_ratio。"
-            "同一人的多项属性必须增加 subject.same_attributes，不能只用 AND。"
-            "每个能够独立保存结果、展示证据或单独持续计时的业务判断必须建立独立 branch；"
-            "例如‘区域1指定着装人员 AND 区域2人数大于2’要建立两个同媒体分支，最终判定再 AND，"
-            "但同一人的目标检测、颜色属性和 same_attributes 必须留在同一分支内。"
-            "任何 source/subject/object/attributes/equipment 都必须引用 condition:key 或 branch:key，"
-            "不得写 full_frame；full_frame 仅可作为 scope。人数统计必须先建立对应 target.detect，"
-            "再由 measure.count.source 引用该检测条件。"
-            "target.detect.business_label 是结果框面向用户显示的名称：普通人员可写‘人员’，"
-            "指定多属性人员应写完整业务名称，例如‘红色上衣、灰色裤子人员’。"
+            "source/subject/object/attributes/equipment 不得写 full_frame；full_frame 仅可作为 scope。"
+            "percentage 参数统一输出 0 到 100 的百分数；用户没有明确给出的 tuning 参数必须省略，采用资产默认值。"
             "顶层用户消息中的 requested_skill_display_name 只是技能名称，不是事件名、告警名或框标签，"
             "不得直接复制给 final_decision.name。final_decision.name 应根据业务语义生成简洁名称；"
             "用户明确给出事件/告警名称时原样采用，否则根据参与分支概括，例如多区域人员告警。"
@@ -686,6 +866,7 @@ class DeepSeekSemanticPlanner:
             "图片分支和视频分支是同一技能的两种可选执行流程，绝不能放入同一个 pattern；"
             "patterns 只允许编排同一视频流程内的多个视频分支。both 的 final_decision 可同时列出"
             "图片和视频来源，后端会按本次媒体自动选择同媒体来源。"
+            f"动态编排资产契约：{json.dumps(asset_contract, ensure_ascii=False, separators=(',', ':'))}。"
             f"规范目录仅用于映射，不限制开放实体：{json.dumps(ontology, ensure_ascii=False, separators=(',', ':'))}"
         )
 
@@ -697,6 +878,7 @@ class DeepSeekSemanticPlanner:
         skill_id: str,
         display_name: str,
         execution_context: dict | None = None,
+        require_business_draft: bool = False,
     ) -> PackageCompileResult:
         text = instruction.strip()
         messages = [
@@ -738,6 +920,13 @@ class DeepSeekSemanticPlanner:
                 ledger = self._parse_json_object(raw)
                 ledger = self._repair_target_fields(ledger, text)
                 business_payload = ledger.pop("business_rule", None)
+                if require_business_draft and business_payload is None:
+                    raise SemanticValidationError(
+                        "缺少必需的顶层 business_rule；一句话创建必须同时返回可审核业务编排。"
+                    )
+                ledger = self._repair_business_target_labels(
+                    ledger, business_payload
+                )
                 ledger = self._repair_ground_surface_positions(
                     ledger, business_payload
                 )

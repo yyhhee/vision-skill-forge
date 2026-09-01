@@ -468,7 +468,12 @@ def test_associate_object_center_in_subject_head_region_separates_helmeted_worke
         obj("helmeted", (0.1, 0.1, 0.5, 0.9)),
         obj("no_helmet", (0.6, 0.1, 0.9, 0.9)),
     ])
-    helmets = ObjectSet([obj("helmet", (0.2, 0.12, 0.3, 0.22))])
+    helmets = ObjectSet([
+        obj("helmet", (0.2, 0.12, 0.3, 0.22)),
+        # This helmet is held in the lower half of the other worker.  It is
+        # inside that person's large box but is not being worn on the head.
+        obj("held_helmet", (0.68, 0.56, 0.78, 0.66)),
+    ])
     result = spatial_associate(
         {"subjects": workers, "objects": helmets},
         {

@@ -88,6 +88,9 @@ _COUNT_OPERATOR_ALIASES = {
     "小于": "<", "少于": "<",
 }
 _NUMBERED_REGION = re.compile(r"区域\s*(?P<number>\d+)", re.I)
+_DETECTION_INSTRUCTION_PREFIX = re.compile(
+    r"^(?:请(?:帮我)?|帮我)?\s*(?:检测|识别|找出|查找|标注|框出|筛选出|判断)\s*"
+)
 
 
 def _canonical_region_role(value: Any) -> str | None:
@@ -309,6 +312,28 @@ def _canonical_hash(data: dict[str, Any]) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+def _final_entity_label(
+    original_instruction: str,
+    semantic_ir: CanonicalSemanticIR,
+) -> str:
+    """Return the user-facing predicate represented by final entity boxes.
+
+    Rex labels identify model categories such as ``person`` or ``vehicle``.
+    Once deterministic attributes, states, relations or exclusions have been
+    applied, those category labels no longer describe the result set.  Keep the
+    user's complete entity predicate as the final label without encoding any
+    task-specific vocabulary in the compiler.
+    """
+
+    label = _DETECTION_INSTRUCTION_PREFIX.sub(
+        "", str(original_instruction or "").strip()
+    )
+    label = re.sub(r"^[：:，,。；;\s]+|[。；;\s]+$", "", label)
+    if label.startswith("是否"):
+        label = label[2:].strip()
+    return label or semantic_ir.target.source_span or semantic_ir.target.concept
+
+
 def _append_grounding(
     nodes: list[dict[str, Any]],
     node_id: str,
@@ -334,13 +359,112 @@ def _append_grounding(
             "op": "objects.deduplicate@1.0",
             "inputs": {"objects": f"${raw_id}"},
             "params": {
-                "metric": "ios",
+                "metric": "instance",
                 "threshold": 0.45,
                 "keep": "best_localization",
             },
         },
     ])
     return f"${dedup_id}", [raw_id, dedup_id]
+
+
+def _merge_compatible_grounding_nodes(nodes: list[dict[str, Any]]) -> None:
+    """Batch compatible Rex categories into one model request per frame stream.
+
+    The semantic compiler builds independent evidence chains so every condition
+    remains editable and traceable. Independent chains must not imply
+    independent model calls, though: Rex accepts multiple categories in one
+    request. This deterministic lowering pass shares the model invocation and
+    preserves each original node id as an explicit label selector, so all
+    downstream references and atom bindings remain stable.
+
+    Calls are merged only when their frame input and non-target inference
+    controls are identical. A tiled stream and a full-frame stream therefore
+    remain separate because combining them would change visual semantics.
+    """
+
+    grouped: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+    for index, node in enumerate(nodes):
+        if node.get("op") != "rex.ground@1.1":
+            continue
+        params = dict(node.get("params") or {})
+        params.pop("targets", None)
+        compatibility_key = json.dumps(
+            {"inputs": node.get("inputs") or {}, "params": params},
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        grouped.setdefault(compatibility_key, []).append((index, node))
+
+    used_ids = {str(node.get("id")) for node in nodes}
+    replacements: dict[str, dict[str, Any]] = {}
+    insertions: dict[int, list[dict[str, Any]]] = {}
+    for group_number, group in enumerate(grouped.values(), start=1):
+        if len(group) < 2:
+            continue
+        first_index, first_node = group[0]
+        shared_id = "shared_grounding"
+        if shared_id in used_ids:
+            shared_id = f"shared_grounding_{group_number}"
+            suffix = 2
+            while shared_id in used_ids:
+                shared_id = f"shared_grounding_{group_number}_{suffix}"
+                suffix += 1
+        used_ids.add(shared_id)
+
+        shared_targets: list[dict[str, Any]] = []
+        target_cache: dict[tuple[str, ...], str] = {}
+        used_labels: set[str] = set()
+        for _index, node in group:
+            selected_labels: list[str] = []
+            for target in (node.get("params") or {}).get("targets", []):
+                phrases = tuple(
+                    str(phrase).strip()
+                    for phrase in (target.get("phrases") or [])
+                    if str(phrase).strip()
+                )
+                if not phrases:
+                    continue
+                ground_label = target_cache.get(phrases)
+                if ground_label is None:
+                    base_label = str(target.get("label") or phrases[0]).strip()
+                    ground_label = base_label
+                    suffix = 2
+                    while ground_label in used_labels:
+                        ground_label = f"{base_label} {suffix}"
+                        suffix += 1
+                    used_labels.add(ground_label)
+                    target_cache[phrases] = ground_label
+                    shared_targets.append({
+                        "label": ground_label,
+                        "phrases": list(phrases),
+                    })
+                if ground_label not in selected_labels:
+                    selected_labels.append(ground_label)
+            replacements[str(node["id"])] = {
+                "id": node["id"],
+                "op": "objects.filter_by_label@1.0",
+                "inputs": {"objects": f"${shared_id}"},
+                "params": {"labels": selected_labels, "mode": "include"},
+            }
+
+        shared_params = dict(first_node.get("params") or {})
+        shared_params["targets"] = shared_targets
+        insertions.setdefault(first_index, []).append({
+            "id": shared_id,
+            "op": "rex.ground@1.1",
+            "inputs": dict(first_node.get("inputs") or {}),
+            "params": shared_params,
+        })
+
+    if not replacements:
+        return
+    rewritten: list[dict[str, Any]] = []
+    for index, node in enumerate(nodes):
+        rewritten.extend(insertions.get(index, []))
+        rewritten.append(replacements.get(str(node.get("id")), node))
+    nodes[:] = rewritten
 
 
 def _final_polarity(source: str, source_span: str) -> str:
@@ -1361,7 +1485,10 @@ class WorkflowCompiler:
             if media_type != "video" and video_only:
                 raise SemanticValidationError("stream constraints require video")
             return self._compile_stream_variant(
-                semantic_ir, media_type, display_name
+                semantic_ir,
+                media_type,
+                display_name,
+                original_instruction=original_instruction,
             )
         nodes, frames = self._start_nodes(media_type)
         target_label = (
@@ -1578,6 +1705,23 @@ class WorkflowCompiler:
             event_refs.append(f"${alert_id}")
             draw_objects_ref = f"${event_tracks_id}"
 
+        # Conditions are evaluated against the stable base identity.  Apply the
+        # complete business predicate only to the final evidence boxes so
+        # counts, tracking and event summaries continue to consume the same
+        # entities and do not accidentally expose an implementation label.
+        if entity_conditions and len(semantic_ir.target.classes) <= 1:
+            nodes.append({
+                "id": "result_labeled",
+                "op": "objects.relabel@1.0",
+                "inputs": {"objects": draw_objects_ref},
+                "params": {
+                    "label": _final_entity_label(
+                        original_instruction, semantic_ir
+                    )
+                },
+            })
+            draw_objects_ref = "$result_labeled"
+
         draw_inputs = {"frames": frames, "objects": draw_objects_ref}
         if len(event_refs) == 1:
             draw_inputs["events"] = event_refs[0]
@@ -1598,6 +1742,7 @@ class WorkflowCompiler:
         elif event_refs:
             for position, ref in enumerate(event_refs, start=1):
                 outputs[f"events_{position}"] = ref
+        _merge_compatible_grounding_nodes(nodes)
         return {
             "media_type": media_type,
             "status": "needs_configuration"
@@ -1937,11 +2082,47 @@ class WorkflowCompiler:
                 semantic_node=True,
             )
             part_match_id = f"constraint_{index}_wearable_part_matches"
+            wearable_text = " ".join([
+                str(constraint.carrier or ""),
+                str(constraint.value or ""),
+                str(constraint.source_span or ""),
+                *part_phrases,
+            ]).lower()
+            carrier = CARRIER_TEXT_ALIASES.get(
+                str(constraint.carrier or "").strip().lower()
+            )
+            if carrier is None:
+                if any(marker in wearable_text for marker in (
+                    "head", "helmet", "hard hat", "safety hat", "安全帽",
+                    "头盔", "帽子",
+                )):
+                    carrier = "headwear"
+                elif any(marker in wearable_text for marker in (
+                    "foot", "shoe", "boot", "鞋", "靴",
+                )):
+                    carrier = "footwear"
+                elif any(marker in wearable_text for marker in (
+                    "pants", "trousers", "shorts", "skirt", "裤", "裙",
+                )):
+                    carrier = "lower_body_clothing"
+                elif any(marker in wearable_text for marker in (
+                    "shirt", "jacket", "coat", "vest", "上衣", "衬衫",
+                    "夹克", "外套", "背心",
+                )):
+                    carrier = "upper_body_clothing"
+            subject_region = (
+                CARRIER_CATALOG.get(carrier, {}).get("subject_region")
+                or [0.0, 0.0, 1.0, 1.0]
+            )
             nodes.append({
                 "id": part_match_id,
                 "op": "spatial.associate@1.0",
                 "inputs": {"subjects": "$candidates", "objects": part_ref},
-                "params": {"relation": "best_owner", "threshold": 0.1},
+                "params": {
+                    "relation": "center_in_subject_region",
+                    "threshold": 0.1,
+                    "subject_region": subject_region,
+                },
             })
 
             subject_id = f"constraint_{index}_objects"
@@ -1964,7 +2145,15 @@ class WorkflowCompiler:
             present_id = f"constraint_{index}_wearable_present"
             nodes.append({
                 "id": present_id,
-                "op": "logic.any@1.0",
+                # Positive selection favours recall. Negative/exclusion
+                # predicates must be conservative: only exclude a subject
+                # when whole-subject semantics and locally valid part
+                # evidence agree.
+                "op": (
+                    "logic.all@1.0"
+                    if constraint.polarity == "absent"
+                    else "logic.any@1.0"
+                ),
                 "inputs": {
                     "conditions": [
                         f"${part_match_id}", f"${subject_match_id}"
@@ -2151,6 +2340,8 @@ class WorkflowCompiler:
         semantic_ir: CanonicalSemanticIR,
         media_type: str,
         display_name: str,
+        *,
+        original_instruction: str,
     ) -> dict[str, Any]:
         nodes, frames = self._start_nodes(media_type)
         target_label = (
@@ -2948,6 +3139,22 @@ class WorkflowCompiler:
                 result_objects_ref = "$result_boxes"
         elif projected_objects_ref is not None:
             result_objects_ref = projected_objects_ref
+        if (
+            projected_objects_ref is None
+            and semantic_ir.constraints
+            and len(semantic_ir.target.classes) <= 1
+        ):
+            nodes.append({
+                "id": "result_labeled",
+                "op": "objects.relabel@1.0",
+                "inputs": {"objects": result_objects_ref},
+                "params": {
+                    "label": _final_entity_label(
+                        original_instruction, semantic_ir
+                    )
+                },
+            })
+            result_objects_ref = "$result_labeled"
         # Object labels are produced by target grounding and remain separate
         # from the skill/event display name.  This also preserves per-class
         # labels and labels on objects outside configured regions.
@@ -2997,6 +3204,7 @@ class WorkflowCompiler:
             outputs["regions"] = draw_region_ref
         if draw_direction_ref is not None:
             outputs["directions"] = draw_direction_ref
+        _merge_compatible_grounding_nodes(nodes)
         return {
             "media_type": media_type,
             "status": "needs_configuration"

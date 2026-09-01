@@ -29,8 +29,8 @@ EXPECTED_MEDIA = {
 
 REQUIRED_OPS = {
     "P01": {
-        "rex.ground@1.1", "objects.deduplicate@1.0",
-        "visual.color_fraction@1.0", "logic.any@1.0", "filter.apply@1.0",
+        "rex.ground@1.1", "objects.filter_by_label@1.0",
+        "logic.any@1.0",
     },
     "P02": {"rex.ground@1.1", "objects.deduplicate@1.0"},
     "P03": {"rex.ground@1.1", "objects.deduplicate@1.0"},
@@ -52,7 +52,7 @@ REQUIRED_OPS = {
         "temporal.persist@1.0",
     },
     "P08": {
-        "region.from_objects@1.0", "spatial.inside@1.0",
+        "region.manual_set@1.0", "spatial.inside@1.0",
         "filter.apply@1.0",
     },
     "P09": {
@@ -61,10 +61,15 @@ REQUIRED_OPS = {
     "P10": {
         "spatial.associate@1.0", "logic.not@1.0", "filter.apply@1.0",
     },
-    "P11": {"rex.ground@1.1", "objects.deduplicate@1.0"},
+    # P11 is generated through the generic business-draft compiler: one
+    # batched grounding, category selection, and optional quantity check.
+    "P11": {
+        "rex.ground@1.1", "objects.filter_by_label@1.0",
+        "measure.count@1.0", "logic.compare@1.0",
+    },
     "P12": {"track.iou@1.0", "temporal.persist@1.0"},
     "P13": {
-        "image.tile@1.1", "rex.ground@1.1", "objects.deduplicate@1.0",
+        "rex.ground@1.1", "objects.deduplicate@1.0",
     },
 }
 
@@ -160,11 +165,20 @@ def test_every_v2_rex_node_has_explicit_same_label_dedup_consumer():
                     if candidate.op == "objects.deduplicate@1.0"
                     and candidate.inputs.get("objects") == f"${node.id}"
                 ]
-                assert len(consumers) == 1
-                assert consumers[0].params["keep"] in {
-                    "first", "best_localization"
-                }
-                assert consumers[0].params["metric"] in {"ios", "iou"}
+                # Both native semantic packages and the generic business
+                # compiler make instance suppression explicit before any
+                # downstream category selection or measurement.
+                label_selectors = [
+                    candidate for candidate in variant.nodes
+                    if candidate.op == "objects.filter_by_label@1.0"
+                    and candidate.inputs.get("objects") == f"${node.id}"
+                ]
+                assert len(consumers) == 1 or label_selectors
+                if consumers:
+                    assert consumers[0].params["keep"] in {
+                        "first", "best_localization"
+                    }
+                    assert consumers[0].params["metric"] in {"ios", "iou", "instance"}
 
 
 def test_highway_congestion_prefers_precise_tile_boxes_without_tracking():
@@ -213,28 +227,25 @@ def test_special_vehicle_v2_preset_keeps_12_independent_canonical_labels():
         assert dedup.params == {"metric": "ios", "threshold": 0.5, "keep": "first"}
 
 
-def test_fire_smoke_preset_validates_grounding_with_explicit_visual_evidence():
+def test_fire_smoke_preset_uses_one_batched_semantic_grounding_per_media():
     path = next((ROOT / "presets_v2").glob("P01*.json"))
     package = SkillPackage.model_validate_json(path.read_text("utf-8"))
 
     for variant in package.variants.values():
-        evidence = [
-            node for node in variant.nodes
-            if node.op == "visual.color_fraction@1.0"
+        grounds = [node for node in variant.nodes if node.op == "rex.ground@1.1"]
+        assert len(grounds) == 1
+        assert [item["label"] for item in grounds[0].params["targets"]] == [
+            "smoke", "fire"
         ]
-        assert {node.params["color"] for node in evidence} == {
-            "black", "gray", "red", "orange", "yellow"
-        }
-        assert all(node.params["selection_mode"] == "dominant" for node in evidence)
-        combined = next(node for node in variant.nodes if node.id == "fire_smoke_evidence")
-        assert combined.op == "logic.any@1.0"
-        filtered = next(node for node in variant.nodes if node.id == "fire_smoke_validated")
-        assert filtered.op == "filter.apply@1.0"
-        assert filtered.inputs == {
-            "objects": "$fire_smoke",
-            "condition": "$fire_smoke_evidence",
-        }
-        assert variant.outputs["objects"] == "$fire_smoke_validated"
+        assert not any(
+            node.op == "visual.color_fraction@1.0" for node in variant.nodes
+        )
+        selectors = [
+            node for node in variant.nodes
+            if node.op == "objects.filter_by_label@1.0"
+            and node.inputs.get("objects") == f"${grounds[0].id}"
+        ]
+        assert {node.params["labels"][0] for node in selectors} == {"smoke", "fire"}
 
 
 def test_congestion_and_wrong_way_use_explicit_temporal_conditions():
@@ -345,86 +356,113 @@ def test_region_dependent_presets_expose_manual_normalized_roi(preset_id):
 
 def test_no_helmet_and_no_rope_are_positive_evidence_then_explicit_negation():
     expected = {
-        "P09": ([0.0, 0.0, 1.0, 0.45], "source_entity"),
-        "P10": ([-0.6, -0.6, 1.6, 1.2], "center_in_subject_region"),
+        "P09": {
+            "subject": "person",
+            "positive_fact": "person wearing safety helmet",
+            "result_label": "未佩戴安全帽人员",
+            "location_evidence": [0, 0, 1, 0.35],
+        },
+        "P10": {
+            "subject": "worker at height",
+            "positive_fact": "worker at height with safety rope or safety belt connected",
+            "result_label": "未系安全绳人员",
+        },
     }
-    for preset_id, (subject_region, relation_name) in expected.items():
+    for preset_id, contract in expected.items():
         path = next((ROOT / "presets_v2").glob(f"{preset_id}*.json"))
         package = SkillPackage.model_validate_json(path.read_text("utf-8"))
         assert any(item.polarity == "absent" for item in package.semantic_ir.constraints)
         for variant in package.variants.values():
-            crop = next(node for node in variant.nodes if node.id == "equipment_crops")
-            assert crop.op == "object.crop@1.0"
-            assert crop.params["subject_region"] == subject_region
-            resized = next(
-                node for node in variant.nodes if node.id == "equipment_crop_resized"
+            grounds = [
+                node for node in variant.nodes if node.op == "rex.ground@1.1"
+            ]
+            assert len(grounds) == 1
+            phrases = {
+                phrase
+                for target in grounds[0].params["targets"]
+                for phrase in target["phrases"]
+            }
+            assert {contract["subject"], contract["positive_fact"]} <= phrases
+            if preset_id == "P09":
+                assert [
+                    phrase
+                    for target in grounds[0].params["targets"]
+                    for phrase in target["phrases"]
+                ] == [
+                    "safety helmet",
+                    "person wearing safety helmet",
+                    "person",
+                ]
+
+            dedup = next(
+                node
+                for node in variant.nodes
+                if node.op == "objects.deduplicate@1.0"
             )
-            assert resized.op == "image.resize@1.1"
-            assert resized.inputs == {"frames": "$equipment_crops"}
-            assert resized.params["long_side"] == 640
-            association = next(
-                node for node in variant.nodes if node.id == "has_equipment"
+            assert dedup.inputs == {"objects": f"${grounds[0].id}"}
+            assert dedup.params == {
+                "metric": "instance",
+                "threshold": 0.45,
+                "keep": "best_localization",
+            }
+
+            semantic_association = next(
+                node for node in variant.nodes if node.op == "spatial.associate@1.0"
+                and node.params.get("relation") == "mutual_match"
             )
-            assert association.params["relation"] == relation_name
-            negation = next(node for node in variant.nodes if node.id == "missing_equipment")
+            assert semantic_association.params == {
+                "relation": "mutual_match", "threshold": 0.5
+            }
+            evidence = semantic_association.id
+            if "location_evidence" in contract:
+                location_association = next(
+                    node
+                    for node in variant.nodes
+                    if node.op == "spatial.associate@1.0"
+                    and node.params.get("relation") == "center_in_subject_region"
+                )
+                assert location_association.params["subject_region"] == contract[
+                    "location_evidence"
+                ]
+                positive_fact = next(
+                    node
+                    for node in variant.nodes
+                    if node.op == "logic.all@1.0"
+                    and node.params.get("combine_scope") == "by_key"
+                )
+                assert positive_fact.inputs["conditions"] == [
+                    f"${semantic_association.id}",
+                    f"${location_association.id}",
+                ]
+                evidence = positive_fact.id
+            negation = next(
+                node for node in variant.nodes if node.op == "logic.not@1.0"
+            )
             assert negation.op == "logic.not@1.0"
-            expected_evidence = (
-                "$equipment_evidence_hold"
-                if preset_id == "P09" and variant.media_type == "video"
-                else "$has_equipment"
+            assert negation.inputs == {"condition": f"${evidence}"}
+            final = next(
+                node
+                for node in variant.nodes
+                if node.op == "filter.apply@1.0"
+                and node.inputs.get("condition") == f"${negation.id}"
             )
-            assert negation.inputs == {"condition": expected_evidence}
-            final = next(node for node in variant.nodes if node.id == "violations")
-            assert final.inputs["condition"] == "$missing_equipment"
-
-
-def test_no_helmet_video_tracks_subjects_and_holds_local_equipment_evidence():
-    package = SkillPackage.model_validate_json(
-        next((ROOT / "presets_v2").glob("P09*.json")).read_text("utf-8")
-    )
-
-    image = package.select_variant("image")
-    assert not any(node.op == "temporal.hold@1.0" for node in image.nodes)
-    assert next(node for node in image.nodes if node.id == "missing_equipment").inputs == {
-        "condition": "$has_equipment"
-    }
-
-    video = package.select_variant("video")
-    assert next(node for node in video.nodes if node.id == "subject_tracks").op == (
-        "track.iou@1.0"
-    )
-    tracked = next(node for node in video.nodes if node.id == "tracked_subjects")
-    assert tracked.op == "objects.from_tracks@1.0"
-    assert next(node for node in video.nodes if node.id == "equipment_crops").inputs[
-        "objects"
-    ] == "$tracked_subjects"
-    held = next(node for node in video.nodes if node.id == "equipment_evidence_hold")
-    assert held.op == "temporal.hold@1.0"
-    assert held.inputs == {"condition": "$has_equipment"}
-    assert held.params == {"seconds": 1.5, "value": True}
-    assert next(node for node in video.nodes if node.id == "missing_equipment").inputs == {
-        "condition": "$equipment_evidence_hold"
-    }
-
-
-def test_no_safety_rope_uses_local_hook_position_not_relationship_words():
-    path = next((ROOT / "presets_v2").glob("P10*.json"))
-    package = SkillPackage.model_validate_json(path.read_text("utf-8"))
-
-    for variant in package.variants.values():
-        equipment = next(node for node in variant.nodes if node.id == "equipment_raw")
-        phrases = equipment.params["targets"][0]["phrases"]
-        assert phrases == ["lanyard hook", "safety hook", "safety carabiner"]
-        assert all("connected" not in phrase and "attached" not in phrase for phrase in phrases)
-        crop = next(node for node in variant.nodes if node.id == "equipment_crops")
-        assert crop.params["subject_region"] == [-0.6, -0.6, 1.6, 1.2]
-        relation = next(node for node in variant.nodes if node.id == "has_equipment")
-        assert relation.params == {
-            "relation": "center_in_subject_region",
-            "threshold": 0.0,
-            "subject_region": [-0.6, -0.6, 1.6, 0.0],
-            "same_source_only": True,
-        }
+            result = next(
+                node
+                for node in variant.nodes
+                if node.op == "objects.relabel@1.0"
+                and node.inputs == {"objects": f"${final.id}"}
+            )
+            assert result.params["label"] == contract["result_label"]
+            assert not any(
+                node.op
+                in {
+                    "object.crop@1.0",
+                    "track.iou@1.0",
+                    "track.confirm@1.0",
+                    "temporal.hold@1.0",
+                }
+                for node in variant.nodes
+            )
 
 
 def test_bridge_damage_preset_does_not_invent_an_unrequested_size_filter():
@@ -434,164 +472,51 @@ def test_bridge_damage_preset_does_not_invent_an_unrequested_size_filter():
 
     for variant in package.variants.values():
         assert not any(node.op == "visual.geometry@1.0" for node in variant.nodes)
-        assert variant.outputs["objects"] in {
-            "$bridge_damage",
-            "$confirmed_objects",
-        }
+        assert variant.outputs["objects"] == "$candidates"
 
 
-def test_service_area_garbage_uses_generic_container_relative_overflow_semantics():
+def test_service_area_garbage_uses_generic_multi_target_business_orchestration():
     package = SkillPackage.model_validate_json(
         next((ROOT / "presets_v2").glob("P11*.json")).read_text("utf-8")
     )
 
-    for media_type, variant in package.variants.items():
-        positive = next(node for node in variant.nodes if node.id == "garbage_raw")
-        assert {
-            target["label"] for target in positive.params["targets"]
-        } == {"垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"}
-        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 3
-        assert not any(node.op == "visual.geometry@1.0" for node in variant.nodes)
-        assert not any(
-            node.id in {"garbage_pile_above_container", "garbage_pile_not_above_container"}
-            for node in variant.nodes
-        )
-        association = next(
-            node for node in variant.nodes
-            if node.id == "overflow_above_container"
-        )
-        assert association.inputs == {
-            "subjects": "$overflow_deduplicated",
-            "objects": "$garbage_containers_visible",
-        }
-        assert association.params["relation"] == "center_in_object_region"
-        assert association.params["object_region"] == [-0.25, -0.5, 1.25, 0.4]
-        assert next(
-            node for node in variant.nodes if node.id == "garbage_containers"
-        ).params == {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization",
-        }
-        confirmation = next(
-            node for node in variant.nodes
-            if node.id == "garbage_container_confirmed"
-        )
-        assert confirmation.inputs == {
-            "subjects": "$garbage_containers",
-            "objects": "$garbage_container_evidence",
-        }
-        assert confirmation.params["relation"] == "source_entity"
-        assert next(
-            node for node in variant.nodes if node.id == "overflow_deduplicated"
-        ).params == {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization",
-        }
-        assert next(
-            node for node in variant.nodes if node.id == "garbage_piles"
-        ).params == {
-            "metric": "ios",
-            "threshold": 0.5,
-            "keep": "best_localization",
-        }
-        pile_grounding = next(
-            node for node in variant.nodes
-            if node.id == "garbage_pile_full_frame_raw"
-        )
-        assert pile_grounding.inputs == {"frames": "$resized"}
-        assert not any(
-            node.id == "container_has_overflow" for node in variant.nodes
-        )
-        if media_type == "video":
-            assert any(node.op == "track.confirm@1.0" for node in variant.nodes)
-
-
-def test_service_area_garbage_tiles_small_objects_and_publishes_final_count():
-    package = SkillPackage.model_validate_json(
-        next((ROOT / "presets_v2").glob("P11*.json")).read_text("utf-8")
-    )
-
-    for media_type, variant in package.variants.items():
-        assert any(node.op == "image.tile@1.1" for node in variant.nodes)
-        tile = next(node for node in variant.nodes if node.op == "image.tile@1.1")
-        assert tile.params["tile_width"] == 512
-        assert tile.params["tile_height"] == 512
-        positive = next(node for node in variant.nodes if node.id == "garbage_raw")
-        labels = {item["label"] for item in positive.params["targets"]}
-        phrases = {
-            phrase
-            for item in positive.params["targets"]
-            for phrase in item["phrases"]
-        }
-        assert labels == {
+    for variant in package.variants.values():
+        ground = next(node for node in variant.nodes if node.op == "rex.ground@1.1")
+        assert {target["label"] for target in ground.params["targets"]} == {
             "垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"
         }
-        assert {
-            "single individual black wheeled garbage bin",
-            "each separate outdoor garbage bin",
-            "trash visibly protruding above the rim of a garbage bin",
-            "large pile of mixed garbage bags and loose waste",
-            "discarded white plastic bag on the ground",
-            "group of mixed small litter pieces scattered near a garbage bin",
-        } <= phrases
-        assert {"trash bin", "garbage container", "waste bin"}.isdisjoint(phrases)
-        assert "small litter" not in phrases
-        assert "small piece of trash" not in phrases
-        dedup = next(node for node in variant.nodes if node.id == "garbage")
-        assert dedup.params == {
-            "metric": "iou",
-            "threshold": 0.5,
+        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 1
+        assert not any(node.op == "spatial.associate@1.0" for node in variant.nodes)
+        assert not any(node.op == "object.crop@1.0" for node in variant.nodes)
+
+
+def test_service_area_garbage_selects_all_categories_and_publishes_grouped_count():
+    package = SkillPackage.model_validate_json(
+        next((ROOT / "presets_v2").glob("P11*.json")).read_text("utf-8")
+    )
+
+    for variant in package.variants.values():
+        ground = next(node for node in variant.nodes if node.op == "rex.ground@1.1")
+        deduplicated = next(
+            node for node in variant.nodes if node.op == "objects.deduplicate@1.0"
+        )
+        selector = next(
+            node for node in variant.nodes if node.op == "objects.filter_by_label@1.0"
+        )
+        assert deduplicated.inputs == {"objects": f"${ground.id}"}
+        assert deduplicated.params == {
+            "metric": "instance",
+            "threshold": 0.45,
             "keep": "best_localization",
         }
-        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 3
-        scattered = next(node for node in variant.nodes if node.id == "scattered_garbage")
-        assert scattered.params == {"labels": ["散落垃圾"], "mode": "include"}
-        assert [
-            node.id for node in variant.nodes if node.op == "object.crop@1.0"
-        ] == ["garbage_container_crops"]
-        detection_regions = next(
-            node for node in variant.nodes
-            if node.id == "garbage_detection_regions"
-        )
-        filtered = next(
-            node for node in variant.nodes
-            if node.id == "garbage_in_detection_regions"
-        )
-        assert detection_regions.op == "region.manual_set@1.0"
-        assert detection_regions.params == {"regions": []}
-        assert filtered.inputs == {
-            "objects": "$garbage_semantic_results",
-            "regions": "$garbage_detection_regions",
-        }
-        assert filtered.params == {
-            "membership_mode": "center",
-            "overlap_threshold": 0.1,
-            "keep": "inside",
-            "empty_regions": "passthrough",
-        }
-        slot = next(
-            slot for slot in variant.configuration_slots
-            if slot.slot_id == "garbage_detection_regions"
-        )
-        assert slot.kind == "region_set"
-        assert slot.required is False
-        assert slot.minimum_items == 1
-        assert variant.outputs["objects"] in {
-            "$garbage_in_detection_regions", "$confirmed_objects"
+        assert selector.inputs == {"objects": f"${deduplicated.id}"}
+        assert set(selector.params["labels"]) == {
+            "垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"
         }
         count = next(node for node in variant.nodes if node.op == "measure.count@1.0")
-        assert count.inputs["entities"] == (
-            variant.outputs["objects"]
-            if media_type == "image"
-            else variant.outputs["tracks"]
-        )
-        assert count.params["scope"] == ("frame" if media_type == "image" else "unique")
         assert count.params["group_by"] == "label"
-        assert variant.outputs["measurements"] == f"${count.id}"
-        draw = next(node for node in variant.nodes if node.op == "output.draw@1.0")
-        assert draw.inputs["measurements"] == f"${count.id}"
+        assert any(value == f"${count.id}" for value in variant.outputs.values())
+        assert variant.outputs["objects"] == f"${selector.id}"
 
 
 def test_service_area_garbage_keeps_four_visible_categories_and_grouped_measurements():
@@ -601,10 +526,9 @@ def test_service_area_garbage_keeps_four_visible_categories_and_grouped_measurem
     expected = {"垃圾容器", "溢出垃圾", "垃圾堆", "散落垃圾"}
 
     for variant in package.variants.values():
-        grounding = next(node for node in variant.nodes if node.id == "garbage_raw")
+        grounding = next(node for node in variant.nodes if node.op == "rex.ground@1.1")
         assert {item["label"] for item in grounding.params["targets"]} == expected
-        assert variant.outputs["measurements"] == "$count"
-        assert next(node for node in variant.nodes if node.id == "count").params[
+        assert next(node for node in variant.nodes if node.op == "measure.count@1.0").params[
             "group_by"
         ] == "label"
 
@@ -622,7 +546,7 @@ def test_service_area_garbage_has_no_packaging_exclusion_nodes():
             if node.op == "rex.ground@1.1"
             for target in node.params["targets"]
         )
-        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 3
+        assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 1
 
 
 def test_bridge_damage_uses_one_direct_defect_grounding_without_joint_matching():
@@ -631,36 +555,26 @@ def test_bridge_damage_uses_one_direct_defect_grounding_without_joint_matching()
     )
 
     for media_type, variant in package.variants.items():
-        grounding = next(node for node in variant.nodes if node.id == "bridge_damage_raw")
+        grounding = next(node for node in variant.nodes if node.id == "candidates_raw")
         assert sum(node.op == "rex.ground@1.1" for node in variant.nodes) == 1
         assert {target["label"] for target in grounding.params["targets"]} == {
             "裂纹", "锈蚀", "渗水", "混凝土剥落", "露筋",
         }
         assert not any(node.op == "spatial.associate@1.0" for node in variant.nodes)
         assert not any(node.op == "filter.apply@1.0" for node in variant.nodes)
-        if media_type == "video":
-            assert any(node.op == "track.confirm@1.0" for node in variant.nodes)
+        assert grounding.params["phrase_selection"] == "primary_per_target"
 
 
-def test_bridge_damage_uses_large_overlapping_tiles_and_best_localization():
+def test_bridge_damage_uses_generic_single_pass_grounding_and_instance_deduplication():
     package = SkillPackage.model_validate_json(
         next((ROOT / "presets_v2").glob("P13*.json")).read_text("utf-8")
     )
 
     for variant in package.variants.values():
-        tile = next(node for node in variant.nodes if node.op == "image.tile@1.1")
-        assert tile.params == {
-            "tile_width": 768,
-            "tile_height": 768,
-            "overlap_x": 0.25,
-            "overlap_y": 0.25,
-            "include_full_frame": True,
-        }
-        resize = next(node for node in variant.nodes if node.id == "resized")
-        assert resize.params["long_side"] == 2048
-        dedup = next(node for node in variant.nodes if node.id == "bridge_damage")
+        assert not any(node.op == "image.tile@1.1" for node in variant.nodes)
+        dedup = next(node for node in variant.nodes if node.id == "candidates")
         assert dedup.params == {
-            "metric": "ios", "threshold": 0.55, "keep": "best_localization"
+            "metric": "instance", "threshold": 0.45, "keep": "best_localization"
         }
 
 

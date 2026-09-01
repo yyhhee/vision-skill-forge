@@ -66,6 +66,25 @@ def build_runtime_contract(
     published_sources: dict[str, str] = {}
     output_bindings: dict[str, str] = {}
 
+    def final_output_name(prefix: str, decision_id: str) -> str:
+        safe = "".join(
+            character
+            if character.isalnum() or character in "_-"
+            else "_"
+            for character in decision_id
+        )
+        if not safe or not safe[0].isalpha():
+            safe = "decision_" + safe
+        return f"{prefix}_{safe}"[:180]
+
+    def requires_event_value(spec: ResultSpec) -> bool:
+        """Whether a business result must bind to an EventSet, not a verdict."""
+
+        return (
+            spec.semantic_type in {"event_set", "timeline"}
+            or spec.projection.kind in {"events", "duration", "stages"}
+        )
+
     def publish(source_ref: str, node_id: str | None, *, replace: bool = True) -> None:
         if not node_id or node_id not in variant_node_ids:
             return
@@ -100,6 +119,22 @@ def build_runtime_contract(
     for branch in branches:
         if branch.root_node_id:
             publish(f"branch:{branch.branch_id}", branch.root_node_id)
+    if len(branches) == 1 and not branches[0].root_node_id:
+        # A review document may temporarily retain its business branch while
+        # the effective package is the deterministic semantic fallback. Bind
+        # that single branch to the package's final typed output instead of
+        # publishing a dangling branch reference. Multiple branches are never
+        # guessed because their independent meanings cannot be reconstructed
+        # from one aggregate output.
+        fallback_node = next(
+            (
+                output_bindings[name]
+                for name in ("condition", "events", "objects", "tracks")
+                if name in output_bindings
+            ),
+            None,
+        )
+        publish(f"branch:{branches[0].branch_id}", fallback_node)
 
     # EventPattern and FinalDecision nodes are produced after the editable
     # RuleGraph has been lowered, so their stable aliases must be recovered
@@ -139,18 +174,58 @@ def build_runtime_contract(
         if not spec.media_types or media_type in spec.media_types
     ]
     for spec in result_specs:
-        result_node_id = next(
-            (
-                output_bindings[name]
-                for name in spec.required_outputs
-                if name in output_bindings
-            ),
-            None,
-        )
+        result_node_id = None
+        # ``final:<id>`` names the final business verdict.  A result declared
+        # as events/timeline instead needs the event emitted by that verdict.
+        # Prefer the alert output whenever a trigger is configured, while
+        # retaining the final output as the fallback for event-native finals
+        # that deliberately have no trigger.  This is type-driven and applies
+        # to every generated or manually edited business rule.
+        if (
+            spec.source_ref
+            and spec.source_ref.startswith("final:")
+            and requires_event_value(spec)
+        ):
+            decision_id = spec.source_ref.split(":", 1)[1]
+            result_node_id = output_bindings.get(
+                final_output_name("alert", decision_id)
+            )
+        if result_node_id is None:
+            result_node_id = next(
+                (
+                    output_bindings[name]
+                    for name in spec.required_outputs
+                    if name in output_bindings
+                ),
+                None,
+            )
         if result_node_id is None and spec.source_ref:
             result_node_id = published_sources.get(spec.source_ref)
         if result_node_id is None and spec.source_ref and spec.source_ref.startswith("node:"):
             result_node_id = spec.source_ref.split(":", 1)[1]
+        if result_node_id is None and len(branches) == 1:
+            fallback_outputs = {
+                "entities": ("objects",),
+                "tracks": ("tracks",),
+                "events": ("events",),
+                "duration": ("events",),
+                "stages": ("events",),
+                "media": ("media",),
+                "count": ("measurements", "objects", "tracks", "events"),
+                "value": ("measurements", "condition"),
+                "status": ("condition", "events", "objects", "tracks"),
+                "identity": (
+                    "condition", "events", "objects", "tracks", "measurements"
+                ),
+            }.get(spec.projection.kind, ())
+            result_node_id = next(
+                (
+                    output_bindings[name]
+                    for name in fallback_outputs
+                    if name in output_bindings
+                ),
+                None,
+            )
         publish(f"result:{spec.result_id}", result_node_id)
     return {
         "schema_version": "1.0",

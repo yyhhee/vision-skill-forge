@@ -22,7 +22,7 @@ class OnePersonRex:
         return [{"phrase": phrases[0], "bbox": [0.1, 0.2, 0.5, 0.8]}]
 
 
-def _compiled_document():
+def _compiled_document(*, event_result: bool = False):
     registry = build_default_registry()
     semantic = CanonicalSemanticIR.model_validate(
         {
@@ -125,7 +125,7 @@ def _compiled_document():
             {
                 "display_name": "人员数量告警",
                 "source_ref": "final:primary",
-                "result_kind": "decision",
+                "result_kind": "events" if event_result else "decision",
                 "evidence_policy": "required",
             },
         ],
@@ -174,3 +174,44 @@ def test_business_rule_executes_to_final_outputs_boxes_and_traceable_evidence(tm
     assert any(item["evidence_type"] == "box" for item in evidence["records"])
     assert record.annotated_media is not None
     assert record.annotated_media.is_file()
+
+
+def test_final_event_result_uses_triggered_event_output_for_every_business_rule(tmp_path):
+    registry, document = _compiled_document(event_result=True)
+    package = document.effective_skill_package
+    assert package is not None
+    event_spec = next(
+        item
+        for item in document.skill_template.result_specs
+        if item.display_name == "人员数量告警"
+    )
+
+    media = tmp_path / "people.jpg"
+    Image.new("RGB", (100, 60), "white").save(media)
+    record = SkillPackageRuntime(
+        registry,
+        rex=OnePersonRex(),
+        run_store=RunStore(tmp_path / "runs"),
+    ).run(package, package, media, editor_document=document)
+
+    result = json.loads((record.run_dir / "run_result_v3.json").read_text("utf-8"))
+    output = next(
+        item
+        for item in result["business_outputs"]
+        if item["display_name"] == "人员数量告警"
+    )
+    runtime_values = json.loads(
+        (record.run_dir / "runtime_values.json").read_text("utf-8")
+    )
+    source = next(
+        item
+        for item in runtime_values
+        if item["business_source_ref"] == f"result:{event_spec.result_id}"
+    )
+
+    assert output["semantic_type"] == "event_set"
+    assert output["status"] == "satisfied"
+    assert len(output["value"]) == 1
+    assert output["value"][0]["label"] == "人员数量告警"
+    assert source["source_node_id"] == "trigger_primary"
+    assert source["value_type"] == "event_set"

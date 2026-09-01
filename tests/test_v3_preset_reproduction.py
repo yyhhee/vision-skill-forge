@@ -6,6 +6,7 @@ from pathlib import Path
 from core.business_capabilities import build_business_capability_registry
 from core.business_rule_editor import BusinessRuleEditor
 from core.editor_generation import build_editor_document
+from core.editor_migrations import migrate_editor_document
 from core.editor_service import EditorService
 from core.registry import build_default_registry
 from core.schema import SkillPackage
@@ -61,9 +62,16 @@ def test_every_manifest_case_loads_into_the_same_editable_business_editor_and_re
             (ROOT / "presets_v2" / case["package"]).read_text("utf-8")
         )
         assert list(package.input.accept) == case["media"]
-        document = editor.prepare(
-            build_editor_document(package, source_type="preset")
+        document_path = (
+            ROOT / "presets_v2" / "editor_documents" / case["package"]
         )
+        document = (
+            migrate_editor_document(json.loads(document_path.read_text("utf-8")))
+            if document_path.is_file()
+            else build_editor_document(package, source_type="preset")
+        )
+        document.effective_skill_package = package
+        document = editor.prepare(document)
         visible_capabilities = set()
         for branch in document.skill_template.business_branches:
             visible_capabilities.update(

@@ -94,7 +94,7 @@ with sync_playwright() as p:
         check("02 抽帧模式联动显示FPS字段", vis2 is True, vis2)
 
         # 切片手风琴 + 联动
-        page.locator("text=切片增强与去重 ｜").first.click()
+        page.locator("text=小目标增强：切片覆盖与重复框合并").first.click()
         page.wait_for_timeout(500)
         page.locator("label", has_text="启用切片增强").first.click()
         page.wait_for_timeout(600)

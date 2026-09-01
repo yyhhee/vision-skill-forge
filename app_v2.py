@@ -129,6 +129,83 @@ def json_object_or_empty(value: str | None) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
+def effective_condition_config_rows(
+    parameter_rows: list[dict[str, Any]],
+    condition_rows: list[dict[str, Any]],
+    selected_condition: str | None,
+) -> list[list[str]]:
+    """Append the effective A/B evidence chains to the read-only config table.
+
+    The editable parameters belong to one atom (for example ``attribute.color``),
+    while the executed rule may combine several evidence paths.  Keeping these
+    paths visible in the table prevents the base detector and its evidence
+    verifier from appearing as one duplicated condition.  This projection is
+    metadata only; parameter editing still uses ``parameter_rows`` unchanged.
+    """
+
+    table = parameter_table_rows(parameter_rows)
+    if not selected_condition:
+        return table
+    group = next(
+        (
+            row for row in condition_rows
+            if selected_condition in (
+                row.get("verification_child_ids")
+                or row.get("logic_child_ids")
+                or []
+            )
+            and (row.get("verification_members") or row.get("member_summaries"))
+        ),
+        None,
+    )
+    if group is None:
+        return table
+    members = group.get("verification_members") or []
+    if not members:
+        by_id = {
+            row.get("condition_id"): row for row in condition_rows
+        }
+        members = [
+            {
+                "name": by_id.get(condition_id, {}).get("name") or "条件",
+                "summary": by_id.get(condition_id, {}).get("summary") or "",
+            }
+            for condition_id in (group.get("logic_child_ids") or [])
+        ]
+    for index, member in enumerate(members):
+        label = f"条件 {chr(65 + index) if index < 26 else index + 1}"
+        table.append([
+            label,
+            str(member.get("name") or "复核证据"),
+            "",
+            "LLM业务编排 + 系统确定性编译",
+            str(member.get("summary") or ""),
+        ])
+    logic = str(
+        group.get("verification_logic")
+        or group.get("logic_relation_label")
+        or ""
+    ).strip()
+    if logic and len(members) > 1:
+        labels = [
+            f"条件 {chr(65 + index) if index < 26 else index + 1}"
+            for index in range(len(members))
+        ]
+        combination_text = (
+            f"{logic}（{'、'.join(labels)}）"
+            if logic.startswith("至少")
+            else f" {logic} ".join(f"（{label}）" for label in labels)
+        )
+        table.append([
+            "最终复核组合",
+            combination_text,
+            "",
+            "LLM业务编排 + 系统确定性编译",
+            "只有组合规则满足时，才输出对应的最终业务结果。",
+        ])
+    return table
+
+
 class V2AppController:
     def __init__(
         self,
@@ -395,6 +472,7 @@ class V2AppController:
             requested_accept=requested,
             skill_id=identity,
             display_name=name,
+            require_business_draft=True,
         )
         if result.package is None:
             detail = "；".join(result.errors) or "语义账本无法无损编译"
@@ -475,6 +553,20 @@ class V2AppController:
         else:
             package = migrate_v1_spec(VisualSkillSpec.model_validate(raw))
             note = "旧预置已显式迁移；语义需重新确认"
+        document_path = self.preset_root / "editor_documents" / f"{preset_name}.json"
+        if document_path.is_file():
+            try:
+                document = migrate_editor_document(
+                    json.loads(document_path.read_text(encoding="utf-8"))
+                )
+                if document.skill_template.skill_id != package.skill_id:
+                    raise ValueError("技能标识不匹配")
+                document.effective_skill_package = package
+                self._generated_editor_documents[package.skill_id] = document
+            except Exception as exc:
+                raise gr.Error(
+                    f"预置业务编排文档无效：{preset_name}：{exc}"
+                ) from exc
         text = self._dump(package)
         source = (
             "### 当前实际执行来源\n"
@@ -852,6 +944,19 @@ class V2AppController:
                 lines.append(
                     f"- **{parameter.label}**：{choices.get(str(value), str(value))}"
                 )
+        if expression.capability_id == "attribute.color":
+            mode = str(
+                expression.parameters.get("verification_logic") or "AND"
+            ).upper()
+            mode_label = friendly_choice_label(mode)
+            lines.extend([
+                "- **条件 A（颜色占比）**：由“颜色、判断区域、颜色至少占该部位”控制。",
+                "- **条件 B（模型属性语义 + 同一主体归属）**：模型短语由基础目标与颜色自动生成，归属关系由系统确定性编译。",
+                f"- **A/B 组合**：当前为“{mode_label}”；可改为 A 与 B 同时满足、A 或 B 任一满足、仅颜色占比或仅模型属性证据。",
+            ])
+        lines.append(
+            "- **来源说明**：条件结构（A、B、C、D…）由 LLM 根据自然语言生成；执行原子由系统从已注册能力配方自动编译。可修改业务参数和组合方式，不能直接改执行原子。"
+        )
         return (
             "#### 当前条件作用对象\n" + "\n".join(lines)
             if lines
@@ -912,8 +1017,16 @@ class V2AppController:
             for item in conditions
             if item["kind"] == "条件"
         ]
+        review_primary = next(
+            (
+                item["condition_id"]
+                for item in conditions
+                if item["kind"] == "条件" and item.get("review_primary")
+            ),
+            None,
+        )
         selected_condition = condition_id if condition_id in atom_ids else (
-            atom_ids[0] if atom_ids else None
+            review_primary or (atom_ids[0] if atom_ids else None)
         )
         expression = None
         if branch and branch.condition_root and selected_condition:
@@ -955,14 +1068,18 @@ class V2AppController:
         )
         if selected_row is not None:
             capability_id = selected_row.get("capability_id")
-            condition_name = selected_row["name"]
+            condition_name = selected_row.get("configuration_name") or selected_row["name"]
         if branch and branch.condition_root and selected_condition:
             stack = [branch.condition_root]
             while stack:
                 item = stack.pop()
                 if item.expression_id == selected_condition:
                     capability_id = item.capability_id
-                    condition_name = item.display_name
+                    if not (
+                        selected_row is not None
+                        and selected_row.get("configuration_name")
+                    ):
+                        condition_name = item.display_name
                     break
                 stack.extend(reversed(item.children))
         input_help = self.business_condition_input_help(
@@ -986,7 +1103,9 @@ class V2AppController:
             ),
             "condition_name": condition_name,
             "parameters": parameter_rows,
-            "parameter_table": parameter_table_rows(parameter_rows),
+            "parameter_table": effective_condition_config_rows(
+                parameter_rows, conditions, selected_condition
+            ),
             "parameter_help": parameter_help,
             "input_help": input_help,
             "selected_condition": expression,
@@ -1013,7 +1132,10 @@ class V2AppController:
         ]
         condition_choices = [
             (
-                f"{'　' * item['depth']}{item['name']} · {item['category']}",
+                f"{'　' * item['depth']}"
+                f"{item.get('configuration_name') or item['name']}"
+                f" · {item['category']}"
+                f"{'（依赖来源）' if item.get('dependency_only') else ''}",
                 item["condition_id"],
             )
             for item in view["conditions"]
@@ -1312,7 +1434,10 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), f"✅ 已更新“{selected['name']}”。"
+        return (
+            self._dump(document),
+            f"✅ 已更新“{selected['name']}”到 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def business_add_branch(
         self, editor_json: str, media_type: str, display_name: str
@@ -1325,7 +1450,10 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), "✅ 已新增条件分支；请添加业务条件。"
+        return (
+            self._dump(document),
+            "✅ 已新增条件分支到 03 草稿（尚未生效）；配置完成后请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def business_branch_action(
         self,
@@ -1352,7 +1480,10 @@ class V2AppController:
                 raise BusinessRuleEditError("不支持的分支操作。")
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), f"✅ 分支已{action}。"
+        return (
+            self._dump(document),
+            f"✅ 分支已{action}，当前仍是 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def business_add_condition(
         self, editor_json: str, branch_id: str, capability_id: str
@@ -1369,7 +1500,7 @@ class V2AppController:
         return (
             self._dump(document),
             condition_id,
-            f"✅ 已新增“{definition.display_name}”；请完成待填写参数。",
+            f"✅ 已新增“{definition.display_name}”到 03 草稿（尚未生效）；完成参数后请点击【校验并生成当前运行版本（使修改生效）】。",
         )
 
     def business_condition_action(
@@ -1407,7 +1538,11 @@ class V2AppController:
                 raise BusinessRuleEditError("不支持的条件操作。")
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), f"✅ 条件已{action}。", selected
+        return (
+            self._dump(document),
+            f"✅ 条件已{action}，当前仍是 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。",
+            selected,
+        )
 
     def business_group_conditions(
         self,
@@ -1428,7 +1563,7 @@ class V2AppController:
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
         message = (
-            "✅ 已取消该节点的 NOT 取反。"
+            "✅ 已取消该节点的 NOT 取反，当前仍是 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。"
             if operator == "NOT" and len(condition_ids or []) == 1
             and any(
                 item["condition_id"] == condition_ids[0] and item["logic"] == "NOT"
@@ -1436,7 +1571,7 @@ class V2AppController:
                     self._parse_editor_json(editor_json), branch_id
                 )
             )
-            else f"✅ 已按 {operator} 编排所选节点。"
+            else f"✅ 已按 {operator} 编排所选节点，当前仍是 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。"
         )
         return self._dump(document), message
 
@@ -1543,7 +1678,10 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(updated), "✅ 已保存嵌套条件组关系。"
+        return (
+            self._dump(updated),
+            "✅ 已保存嵌套条件组关系到 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def business_imported_logic_controls(
         self,
@@ -1637,7 +1775,7 @@ class V2AppController:
             raise gr.Error(str(exc)) from exc
         return (
             self._dump(updated),
-            "✅ 已修改当前生效条件关系；完成校验后将写入运行版本。",
+            "✅ 已修改 03 草稿中的条件关系（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】，04 才会使用新逻辑。",
         )
 
     def business_apply_condition(
@@ -1667,7 +1805,10 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), "✅ 条件参数已写入业务文档；发布前将重新校验并编译。"
+        return (
+            self._dump(document),
+            "✅ 条件参数已保存到 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】，04 才会使用新参数。",
+        )
 
     def business_branch_time_controls(
         self, editor_json: str, branch_id: str | None
@@ -1772,7 +1913,10 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), "✅ 分支时间与有效状态策略已更新。"
+        return (
+            self._dump(document),
+            "✅ 分支时间与有效状态策略已保存到 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     @staticmethod
     def _friendly_result_kind(value: str) -> str:
@@ -2122,7 +2266,10 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), "✅ 分支编排已保存；该组可继续与其它分支或编排组组合，并可用于最终判定。"
+        return (
+            self._dump(document),
+            "✅ 分支编排已保存到 03 草稿（尚未生效）；该组可继续与其它分支或编排组组合。完成后请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def business_apply_final(
         self,
@@ -2149,7 +2296,10 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), "✅ 最终判定已更新。"
+        return (
+            self._dump(document),
+            "✅ 最终判定已保存到 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def business_add_output_row(
         self, rows: list[list[Any]] | None
@@ -2230,7 +2380,10 @@ class V2AppController:
             document = self.business_rule_editor.set_result_rows(document, parsed)
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), "✅ 业务输出与展示初稿已更新。"
+        return (
+            self._dump(document),
+            "✅ 业务输出与展示初稿已保存（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def business_apply_trigger(
         self,
@@ -2250,7 +2403,10 @@ class V2AppController:
             )
         except (BusinessRuleEditError, KeyError, ValueError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(document), "✅ 触发策略已更新；条件语义和持续约束未被改变。"
+        return (
+            self._dump(document),
+            "✅ 触发策略已保存到 03 草稿（尚未生效）；条件语义和持续约束未被改变。请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def unified_editor_controls(
         self,
@@ -2371,7 +2527,7 @@ class V2AppController:
             updated = self.editor_service.set_parameter(document, node_id, parameter, value)
         except EditorMutationError as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(updated), f"已记录用户覆盖：{node_id}.{parameter}；应用整个配置后进入运行版本。"
+        return self._dump(updated), f"已记录用户覆盖：{node_id}.{parameter} 到 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。"
 
     def unified_reset_parameter(
         self, editor_json: str, node_id: str, parameter: str
@@ -2381,7 +2537,7 @@ class V2AppController:
             updated = self.editor_service.reset_parameter(document, node_id, parameter)
         except EditorMutationError as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(updated), f"已恢复 LLM 生成/系统默认值：{node_id}.{parameter}"
+        return self._dump(updated), f"已恢复 LLM 生成/系统默认值：{node_id}.{parameter}；当前仍是 03 草稿（尚未生效），请点击【校验并生成当前运行版本（使修改生效）】。"
 
     def unified_mutate_graph(
         self,
@@ -2417,7 +2573,7 @@ class V2AppController:
                 raise EditorMutationError("请选择图编辑动作")
         except EditorMutationError as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(updated), f"已完成：{action}。当前为未应用草稿。"
+        return self._dump(updated), f"已完成：{action}。当前为 03 未应用草稿；请点击【校验并生成当前运行版本（使修改生效）】。"
 
     def unified_mutate_branch(
         self,
@@ -2460,7 +2616,7 @@ class V2AppController:
                 raise EditorMutationError("请选择业务分支动作")
         except (EditorMutationError, StopIteration) as exc:
             raise gr.Error(str(exc) or "找不到业务分支") from exc
-        return self._dump(updated), f"已完成：{action}。当前为未应用草稿。"
+        return self._dump(updated), f"已完成：{action}。当前为 03 未应用草稿；请点击【校验并生成当前运行版本（使修改生效）】。"
 
     def unified_insert_recipe(
         self, editor_json: str, media_type: str, recipe_id: str, branch_id: str
@@ -2472,7 +2628,7 @@ class V2AppController:
             )
         except EditorMutationError as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(updated), f"已插入可复用 Recipe：{recipe_id}。请补齐外部输入并校验。"
+        return self._dump(updated), f"已插入可复用 Recipe：{recipe_id} 到 03 草稿（尚未生效）。请补齐外部输入后点击【校验并生成当前运行版本（使修改生效）】。"
 
     def unified_apply_patterns(self, editor_json: str, patterns_json: str):
         document = self._parse_editor_json(editor_json)
@@ -2483,7 +2639,7 @@ class V2AppController:
             updated = self.editor_service.set_event_patterns(document, patterns)
         except (ValueError, EditorMutationError, json.JSONDecodeError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(updated), "复杂事件编排草稿已更新；请执行完整校验并应用。"
+        return self._dump(updated), "复杂事件编排已保存到 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。"
 
     def unified_resolve_pending(
         self, editor_json: str, decision_id: str, value_text: str
@@ -2502,7 +2658,7 @@ class V2AppController:
         updated.version += 1
         updated.effective_skill_package = None
         updated.validation_report.update({"dirty": True, "can_run": False})
-        return self._dump(updated), f"已确认：{decision_id}。请完整校验并应用。"
+        return self._dump(updated), f"已确认：{decision_id}，仍是 03 草稿（尚未生效）。请点击【校验并生成当前运行版本（使修改生效）】。"
 
     def unified_apply_results(self, editor_json: str, results_json: str):
         document = self._parse_editor_json(editor_json)
@@ -2513,7 +2669,10 @@ class V2AppController:
             updated = self.editor_service.set_result_specs(document, specs)
         except (ValueError, EditorMutationError, json.JSONDecodeError) as exc:
             raise gr.Error(str(exc)) from exc
-        return self._dump(updated), "结果与证据契约已写入草稿；请完整校验并应用。"
+        return (
+            self._dump(updated),
+            "✅ 结果与证据契约已保存到 03 草稿（尚未生效）；请点击【校验并生成当前运行版本（使修改生效）】。",
+        )
 
     def unified_validate_apply(self, editor_json: str):
         document = self._parse_editor_json(editor_json)
@@ -2525,13 +2684,23 @@ class V2AppController:
         if package is None:
             raise gr.Error("编译未生成 Effective SkillPackage")
         pending = compiled.validation_report.get("pending", [])
-        status = "✅ 条件、时间编排、最终判定和业务输出已校验，当前运行版本已更新。"
+        status = (
+            f"✅ 条件、时间编排、最终判定和业务输出已校验；当前运行版本已更新（v{compiled.version}）。"
+            "04 运行将使用本次校验后的配置。"
+        )
         if pending:
-            status = f"⚠️ 结构已编译，但仍有 {len(pending)} 项不确定条件，确认前禁止运行。"
+            status = (
+                f"⚠️ 草稿已编译但尚未生效：仍有 {len(pending)} 项不确定条件。"
+                "完成确认后，再点击【校验并生成当前运行版本（使修改生效）】；04 暂不允许运行。"
+            )
         return self._dump(compiled), self._dump(package), status
 
     def _editor_document(
-        self, effective_json: str, editor_json: str, source_type: str = "legacy"
+        self,
+        effective_json: str,
+        editor_json: str,
+        source_type: str = "legacy",
+        active_media_type: str | None = None,
     ) -> SkillEditorDocument:
         package = SkillPackage.model_validate_json(effective_json)
         if editor_json:
@@ -2549,7 +2718,7 @@ class V2AppController:
                     if not same_effective:
                         existing = self._sync_editor_scene_resources(existing, package)
                         existing.effective_skill_package = package
-                    return self._refresh_editor_validation(existing)
+                    return self._refresh_editor_validation(existing, active_media_type)
             except Exception:
                 pass
         cached = self._generated_editor_documents.get(package.skill_id)
@@ -2562,21 +2731,25 @@ class V2AppController:
                 cached.model_copy(deep=True), package
             )
             synced.effective_skill_package = package
-            return self._refresh_editor_validation(synced)
+            return self._refresh_editor_validation(synced, active_media_type)
         built = build_editor_document(package, source_type=source_type)
         self._generated_editor_documents.setdefault(
             package.skill_id, built.model_copy(deep=True)
         )
-        return self._refresh_editor_validation(built)
+        return self._refresh_editor_validation(built, active_media_type)
 
     def prepare_run_editor_document(
-        self, effective_json: str, editor_json: str
+        self, effective_json: str, editor_json: str, media_type: str | None = None
     ) -> str:
         """Refresh annotations and run blockers immediately before execution."""
 
         if not editor_json:
             return ""
-        return self._dump(self._editor_document(effective_json, editor_json))
+        return self._dump(
+            self._editor_document(
+                effective_json, editor_json, active_media_type=media_type
+            )
+        )
 
     @staticmethod
     def run_configuration_blocker_message(
@@ -2601,7 +2774,7 @@ class V2AppController:
         return "；".join(parts) or "请查看 02 标注中的待配置项"
 
     def _refresh_editor_validation(
-        self, document: SkillEditorDocument
+        self, document: SkillEditorDocument, active_media_type: str | None = None
     ) -> SkillEditorDocument:
         """Refresh run readiness after package/scene-resource projection.
 
@@ -2623,6 +2796,26 @@ class V2AppController:
                 if required is not None:
                     requirement.required_before = "run" if required else "never"
         report = self.editor_service.validate(document)
+        if active_media_type:
+            active_key = _variant_key(active_media_type)
+            requirements = {
+                item.requirement_id: item
+                for item in document.skill_template.resource_requirements
+            }
+            # Image and video annotations are independent.  Validate only the
+            # resource requirements of the media that will actually run.
+            report["resource_blockers"] = [
+                requirement_id
+                for requirement_id in report.get("resource_blockers", [])
+                if not requirements.get(requirement_id)
+                or not requirements[requirement_id].media_types
+                or active_key in requirements[requirement_id].media_types
+            ]
+            report["valid"] = bool(
+                not report.get("errors")
+                and not report.get("pending")
+                and not report["resource_blockers"]
+            )
         document.validation_report = {
             **report,
             "can_run": bool(
@@ -2953,6 +3146,31 @@ class V2AppController:
             ]
         return f"Detect {', '.join(phrases)}" if phrases else "Detect requested targets"
 
+    @staticmethod
+    def _grounding_target_display(params: dict[str, Any]) -> str:
+        """Show the exact model phrases, retaining business labels as context."""
+
+        displays = []
+        for target in params.get("targets", []):
+            if not isinstance(target, dict):
+                continue
+            label = str(target.get("label") or "").strip()
+            phrases = [
+                str(phrase).strip()
+                for phrase in target.get("phrases", [])
+                if str(phrase).strip()
+            ]
+            phrase_text = " / ".join(dict.fromkeys(phrases))
+            if not phrase_text:
+                phrase_text = label
+            if label and phrase_text and label.casefold() != phrase_text.casefold():
+                displays.append(f"{phrase_text}（{label}）")
+            elif phrase_text:
+                displays.append(phrase_text)
+            elif label:
+                displays.append(label)
+        return "；".join(dict.fromkeys(displays))
+
     def grounding_prompt_controls(
         self, effective_json: str, media_type: str
     ) -> list[dict[str, Any]]:
@@ -2972,14 +3190,10 @@ class V2AppController:
             default_prompt = self._default_grounding_query(node.params)
             override = node.params.get("query_prompt")
             prompt = override.strip() if isinstance(override, str) and override.strip() else default_prompt
-            labels = [
-                str(target["label"])
-                for target in node.params.get("targets", [])
-                if isinstance(target, dict) and target.get("label")
-            ]
+            labels = self._grounding_target_display(node.params)
             controls.append({
                 "node_id": node.id,
-                "label": "、".join(labels) or node.id,
+                "label": labels or node.id,
                 "op": node.op,
                 "prompt": prompt,
                 "default_prompt": default_prompt,
@@ -3197,6 +3411,11 @@ class V2AppController:
                 return "检测到" + str(
                     node.params.get("output_label") or event_label or "目标"
                 )
+            if node.op == "objects.relabel@1.0":
+                # Relabeling changes only the user-facing evidence name.  It is
+                # transparent to the condition DAG and must not replace an
+                # event summary with an implementation node id.
+                return describe(node_for(node.inputs.get("objects")), visited)
             if node.op == "reduce.exists@1.0":
                 source = node_for(node.inputs.get("sets"))
                 return "存在" + describe(source, visited)
@@ -4887,7 +5106,11 @@ class V2AppController:
                         float,
                         "去重阈值",
                     ),
-                    "keep": "first",
+                    "keep": (
+                        "best_localization"
+                        if tile_enabled
+                        else current_dedup.get("keep", "first")
+                    ),
                 }
         updated = SkillPackage.model_validate(data)
         errors = validate_skill_package(updated, self.registry)
@@ -7164,7 +7387,8 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                 )
                             gr.Markdown(
                                 "#### 当前条件配置\n"
-                                "下表用于确认 LLM 生成了什么。固定内容只读；需要修改的枚举、数值和场景资源在下方使用受控选项修改。"
+                                "下表用于确认 LLM 生成了什么。固定内容只读；需要修改的枚举、数值和场景资源在下方使用受控选项修改。\n\n"
+                                "来源说明：LLM 建议是自然语言生成的业务配置；用户修改是人工调整；系统确定性编译是系统依据已注册业务能力配方自动补齐执行原子。条件成员按 A、B、C、D…编号，普通用户可修改业务参数和 AND/OR/NOT 组合，不直接编辑执行原子。"
                             )
                             with gr.Row():
                                 business_condition_name = gr.Textbox(
@@ -7177,7 +7401,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                     label="显示效果调优参数（推荐保持显示）",
                                 )
                             business_parameter_table = gr.Dataframe(
-                                headers=["配置项", "当前值", "单位", "来源", "作用说明"],
+                                headers=["配置项", "当前值", "单位", "配置来源", "作用说明"],
                                 datatype=["str", "str", "str", "str", "str"],
                                 type="array",
                                 value=[],
@@ -7256,17 +7480,18 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                 business_region_override_apply = gr.Button(
                                     "应用到这个区域", variant="primary"
                                 )
-                            with gr.Accordion("组合条件（AND / OR / NOT）", open=True):
+                            with gr.Accordion("逻辑组合（全部 / 任一 / 至少 N 项）", open=True):
                                 gr.Markdown(
-                                    "选择一个括号组，直接决定这组条件是“全部成立”“任一成立”还是“至少 N 项成立”。"
-                                    "需要 `NOT` 时打开“反转结果”。只有构造 `(A AND B) OR C` 这类新层级时，才使用下方“新建括号组”。"
+                                    "每个逻辑组就是一组带括号的条件：选择“全部满足”表示 AND，选择“任一满足”表示 OR，"
+                                    "选择“至少 N 项满足”表示 N-of-M；需要排除时勾选“反转结果（NOT）”。"
+                                    "一般只需修改当前组的关系；只有要新增 `(A AND B) OR C` 这种嵌套层级时，才使用“新增嵌套逻辑”。"
                                 )
                                 with gr.Group(visible=False) as business_imported_logic_group:
                                     gr.Markdown(
-                                        "#### 修改当前括号组"
+                                        "#### 修改当前逻辑组"
                                     )
                                     business_imported_logic_selector = gr.Dropdown(
-                                        choices=[], label="选择括号组"
+                                        choices=[], label="选择要修改的逻辑组"
                                     )
                                     with gr.Row():
                                         business_imported_logic_operator = gr.Radio(
@@ -7290,14 +7515,14 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                     )
                                     business_imported_logic_summary = gr.Markdown()
                                     business_imported_logic_apply = gr.Button(
-                                        "应用到当前括号组", variant="primary"
+                                        "保存这组逻辑", variant="primary"
                                     )
                                 with gr.Group(visible=False) as business_expression_logic_group:
                                     gr.Markdown(
-                                        "#### 修改当前括号组"
+                                        "#### 修改当前逻辑组"
                                     )
                                     business_expression_logic_selector = gr.Dropdown(
-                                        choices=[], label="选择括号组"
+                                        choices=[], label="选择要修改的逻辑组"
                                     )
                                     with gr.Row():
                                         business_expression_logic_operator = gr.Radio(
@@ -7322,18 +7547,18 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                     )
                                     business_expression_logic_summary = gr.Markdown()
                                     business_expression_logic_apply = gr.Button(
-                                        "应用到当前括号组", variant="primary"
+                                        "保存这组逻辑", variant="primary"
                                     )
                                 with gr.Group(visible=False) as business_new_logic_group:
                                     gr.Markdown(
-                                        "#### 新建括号组（高级）\n"
-                                        "仅在需要新增括号层级时使用；候选项必须位于同一父组。"
+                                        "#### 新增嵌套逻辑（可选）\n"
+                                        "仅当需要新增括号层级时使用；先选择同一父组中的条件，再选择全部、任一或至少 N 项。"
                                     )
                                     business_group_members = gr.Dropdown(
                                         choices=[],
                                         value=[],
                                         multiselect=True,
-                                        label="选择要放进新括号的条件或已有括号组",
+                                        label="选择要放入新逻辑组的条件或已有逻辑组",
                                         allow_custom_value=False,
                                     )
                                     with gr.Row():
@@ -7345,7 +7570,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                                  ("对所选一项取反（NOT）", "NOT"),
                                             ],
                                             value="AND",
-                                            label="编排关系",
+                                            label="这组条件如何成立？",
                                         )
                                         business_group_required = gr.Number(
                                             1,
@@ -7355,7 +7580,7 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                                             visible=False,
                                         )
                                     business_group_button = gr.Button(
-                                        "创建括号组", variant="primary"
+                                        "新增这组逻辑", variant="primary"
                                     )
                             with gr.Accordion(
                                 "分支时间与有效状态｜持续、累计、窗口占比",
@@ -7638,10 +7863,12 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                             )
 
                     gr.Markdown(
-                        "完成本区域修改后，必须生成新的当前运行版本；04 只运行校验通过的版本。"
+                        "修改参数或逻辑后，页面先保存为 **03 草稿**，不会立即影响运行。"
+                        "必须点击下方 **【校验并生成当前运行版本（使修改生效）】**；"
+                        "看到“当前运行版本已更新”后，04 才会使用新配置。"
                     )
                     business_compile_apply = gr.Button(
-                        "校验并生成当前运行版本", variant="primary"
+                        "校验并生成当前运行版本（使修改生效）", variant="primary"
                     )
 
                 # Kept temporarily for shadow regression only. It is not a
@@ -7806,11 +8033,12 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                         interactive=False,
                         value="生成或加载技能后，在这里读取可编辑事件原子。",
                     )
-                with gr.Accordion("切片增强与去重 ｜ 小目标漏检时使用", open=False):
+                with gr.Accordion("小目标增强：切片覆盖与重复框合并", open=False):
                     gr.Markdown(
-                        "**什么时候用**：目标在画面里很小（远处车辆、路面小碎片、高空作业人员）导致漏检。"
-                        "**怎么配**：勾选“切片增强”，把大图切成 640×640 小块分别检测再合并；"
-                        "切片会有重复框，用去重合并（IoS 0.5 是稳妥默认，一般不用改）。"
+                        "**先解决覆盖，再解决重复。**  切片把大图分块，横向/纵向覆盖只影响目标是否会落在相邻两块中，"
+                        "不决定是否合并框；同一目标被多块识别后，才由下方的合并方式和阈值处理。\n\n"
+                        "**推荐默认值**：切片 640×640、横纵覆盖 20%、实例级融合、阈值 0.45。"
+                        "小目标在切片边缘漏检时先提高覆盖比例；不同目标被合并时再提高合并阈值。"
                     )
                     tile_enabled = gr.Checkbox(False, label="启用切片增强（小目标场景打开）")
                     with gr.Column(visible=False) as tile_options:
@@ -7821,24 +8049,40 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                             tile_width = gr.Number(640, precision=0, label="切片宽度")
                             tile_height = gr.Number(640, precision=0, label="切片高度")
                             overlap_x = gr.Slider(
-                                0, 0.9, 0.2, step=0.05, label="横向重叠比例"
+                                0, 0.9, 0.2, step=0.05,
+                                label="切片间横向覆盖（让相邻图片重复覆盖）"
                             )
                             overlap_y = gr.Slider(
-                                0, 0.9, 0.2, step=0.05, label="纵向重叠比例"
+                                0, 0.9, 0.2, step=0.05,
+                                label="切片间纵向覆盖（让相邻图片重复覆盖）"
                             )
                         with gr.Row():
                             dedup_metric = gr.Radio(
                                 [
-                                    ("IoS（按较小框重叠，推荐）", "ios"),
-                                    ("IoU（按整体重叠）", "iou"),
+                                    ("实例级融合（默认：框接近，或包含且中心一致）", "instance"),
+                                    ("IoS（小框被大框包含时也容易合并）", "ios"),
+                                    ("IoU（仅整体框接近时合并）", "iou"),
                                 ],
-                                value="ios",
-                                label="去重指标",
+                                value="instance",
+                                label="重复框合并方式（只处理同一目标的多次检测）",
                             )
                             dedup_threshold = gr.Slider(
-                                0, 1, 0.5, step=0.05, label="去重阈值（越高越宽松）"
+                                0, 1, 0.5, step=0.05,
+                                label="合并阈值（越低越容易把框合并）"
                             )
-                    preprocess_button = gr.Button("应用切片/去重配置", variant="primary")
+                        with gr.Accordion("查看：实例级融合、IoS、IoU 有什么区别", open=False):
+                            gr.Markdown(
+                                "1. **IoU**：交集 / 并集。两个框大小、位置都很接近才会高，较严格。\n\n"
+                                "2. **IoS**：交集 / 较小框面积。小框被大框包含时会很高，较宽松。\n\n"
+                                "3. **实例级融合**：同帧 + 同类别 + 同来源实体，且满足其一："
+                                "（1）IoU ≥ 去重阈值；（2）IoS ≥ max(0.8, 去重阈值)，"
+                                "且两个框中心距离 ≤ 较小框对角线的 25%。满足后视为同一实例，保留定位更好的框。\n\n"
+                                "**合并后保留哪个框？** IoU、IoS、实例级融合只决定两个框是否属于同一实例，"
+                                "不决定保留哪一个。启用切片时，优先保留未被切片边缘截断、来自更小切片"
+                                "（画面细节更多）的框；若定位质量相同，保留模型先返回的框。未启用切片时，"
+                                "保持原有的第一个框。"
+                            )
+                    preprocess_button = gr.Button("应用覆盖与重复框合并配置", variant="primary")
                 with gr.Accordion("候选框二次可见性确认（可选）", open=False):
                     gr.Markdown(
                         "**何时使用**：切片已找回候选框，但某个类别容易被相似物体误报时。"
@@ -8218,7 +8462,10 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
                         gr.Markdown(
                             "业务能力是面向业务需求的可组合语义，例如检测目标、判断可见属性、限定区域、统计数量、判断关系或持续时间、发出事件。\n\n"
                             "一句话生成技能时，大模型只在这一层理解并生成业务规则；随后系统会将每项业务能力自动编译为所需的执行原子。"
-                            "这里用于查看能力说明和可编辑业务参数，不需要手动选择抽帧、去重等底层执行步骤。"
+                            "这里用于查看能力说明和可编辑业务参数，不需要手动选择抽帧、去重等底层执行步骤。\n\n"
+                            "通用编排约束：每个可独立判定的主体、命名区域或事件链建立独立分支；"
+                            "分支内用递归 AND / OR / NOT / N-of-M 组合属性、数量、关系和状态条件；"
+                            "最后再按用户原句把多个分支汇合并触发事件。P01–P13 仅用于回归验证，不会被当作模板复制。"
                         )
                     capability_asset_rows = gr.Dataframe(
                         headers=["类别", "业务能力", "媒体", "所需标注", "编译组合"],
@@ -11483,7 +11730,9 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
             if editor_json:
                 try:
                     editor_json = controller.prepare_run_editor_document(
-                        effective_json, editor_json
+                        effective_json,
+                        editor_json,
+                        detect_media_type(media_path) if media_path else variant,
                     )
                     document = controller._parse_editor_json(editor_json)
                     package = SkillPackage.model_validate_json(effective_json)
@@ -11563,5 +11812,6 @@ __all__ = [
     "V2AppController",
     "build_v2_app",
     "default_v2_controller",
+    "effective_condition_config_rows",
     "json_object_or_empty",
 ]

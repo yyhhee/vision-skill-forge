@@ -20,6 +20,31 @@ def _ios(a, b):
     return intersection / smaller if smaller else 0.0
 
 
+def _instance_overlap(a, b, threshold):
+    """Decide whether two same-class boxes are observations of one instance.
+
+    Plain IoS incorrectly suppresses distinct, partially occluded instances:
+    a smaller person's box can overlap much of itself with a nearer person's
+    box even though their centres are clearly different.  Multi-view evidence
+    is treated as the same instance when the boxes have ordinary NMS-level
+    IoU, or when one box is nearly contained in the other *and* their centres
+    are tightly aligned.
+    """
+
+    if _iou(a, b) >= threshold:
+        return True
+    if _ios(a, b) < max(0.8, threshold):
+        return False
+    ax0, ay0, ax1, ay1 = a
+    bx0, by0, bx1, by1 = b
+    distance = ((ax0 + ax1 - bx0 - bx1) ** 2 + (ay0 + ay1 - by0 - by1) ** 2) ** 0.5 / 2.0
+    smaller_diagonal = min(
+        ((ax1 - ax0) ** 2 + (ay1 - ay0) ** 2) ** 0.5,
+        ((bx1 - bx0) ** 2 + (by1 - by0) ** 2) ** 0.5,
+    )
+    return bool(smaller_diagonal and distance / smaller_diagonal <= 0.25)
+
+
 def _deduplicate(objects, threshold, metric, keep="first"):
     overlap = _ios if metric == "ios" else _iou
     candidates = list(objects)
@@ -37,7 +62,11 @@ def _deduplicate(objects, threshold, metric, keep="first"):
             item.frame_index == candidate.frame_index
             and item.label == candidate.label
             and item.source_entity_id == candidate.source_entity_id
-            and overlap(item.bbox, candidate.bbox) >= threshold
+            and (
+                _instance_overlap(item.bbox, candidate.bbox, threshold)
+                if metric == "instance"
+                else overlap(item.bbox, candidate.bbox) >= threshold
+            )
             for item in kept
         ):
             continue
@@ -121,9 +150,14 @@ def objects_deduplicate(inputs, params, services, node_id):
         raise ValueError(
             "objects.deduplicate keep must be first or best_localization"
         )
+    metric = params["metric"]
+    if metric not in {"ios", "iou", "instance"}:
+        raise ValueError(
+            "objects.deduplicate metric must be ios, iou or instance"
+        )
     return ObjectSet(_deduplicate(
         iter_object_samples(inputs["objects"]),
         float(params["threshold"]),
-        params["metric"],
+        metric,
         keep,
     ))

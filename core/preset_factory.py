@@ -7,7 +7,7 @@ from typing import Any, Callable
 
 from .registry import OperatorRegistry, build_default_registry
 from .schema import SkillPackage
-from .semantic import SemanticNormalizer
+from .semantic import SemanticNormalizer, WorkflowCompiler
 from .validator import assert_valid_skill_package
 
 
@@ -176,7 +176,8 @@ class PresetDefinition:
     instruction: str
     media: tuple[str, ...]
     ledger: dict[str, Any]
-    builder: Callable[[str], VariantDraft]
+    builder: Callable[[str], VariantDraft] | None
+    use_generic_compiler: bool = False
 
 
 def node(
@@ -941,6 +942,19 @@ def build_package(
         definition.ledger,
         definition.instruction,
     )
+    if definition.use_generic_compiler:
+        package = WorkflowCompiler(registry).compile(
+            semantic_ir,
+            original_instruction=definition.instruction,
+            requested_accept=list(definition.media),
+            skill_id=definition.skill_id,
+            display_name=definition.display_name,
+        )
+        assert_valid_skill_package(package, registry)
+        return package
+
+    if definition.builder is None:
+        raise ValueError(f"{definition.preset_id}: 缺少预置构建器")
     variants: dict[str, Any] = {}
     for media_type in definition.media:
         draft = definition.builder(media_type)

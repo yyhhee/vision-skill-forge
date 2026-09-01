@@ -40,6 +40,20 @@ def _compile(
     )
 
 
+def _grounding_source(variant, node_id):
+    nodes = {node.id: node for node in variant.nodes}
+    node = nodes[node_id]
+    if node.op == "rex.ground@1.1":
+        return node, node.params["targets"]
+    assert node.op == "objects.filter_by_label@1.0"
+    source = nodes[node.inputs["objects"].removeprefix("$")]
+    labels = set(node.params["labels"])
+    return source, [
+        target for target in source.params["targets"]
+        if target["label"] in labels
+    ]
+
+
 def test_quantity_atom_compiles_to_count_and_explicit_comparison():
     instruction = "车辆数量大于5"
     package = _compile(
@@ -110,7 +124,7 @@ def test_enumerated_target_classes_compile_to_distinct_grounding_labels():
         if node.op == "objects.deduplicate@1.0"
     )
     assert deduplication.params == {
-        "metric": "ios", "threshold": 0.45, "keep": "best_localization"
+        "metric": "instance", "threshold": 0.45, "keep": "best_localization"
     }
 
 
@@ -164,6 +178,39 @@ def test_report_only_count_runs_after_attribute_filter_and_is_a_declared_output(
             if media_type == "image"
             else [tracks.id, count.id]
         )
+
+
+def test_conditional_entity_output_uses_the_complete_user_predicate_label():
+    instruction = "识别未带安全帽的人。"
+    package = _compile(
+        instruction,
+        [{
+            "kind": "wearable",
+            "value": "safety helmet",
+            "polarity": "absent",
+            "source": instruction,
+            "source_span": "未带安全帽",
+            "phrases": ["person wearing safety helmet"],
+        }],
+        mode="entity_query",
+        requested=["image"],
+        target={
+            "concept": "person",
+            "source_span": "人",
+            "phrases": ["person"],
+        },
+    )
+
+    variant = package.variants["image"]
+    relabel = next(
+        node for node in variant.nodes if node.op == "objects.relabel@1.0"
+    )
+    draw = next(node for node in variant.nodes if node.op == "output.draw@1.0")
+
+    assert relabel.params == {"label": "未带安全帽的人"}
+    assert relabel.inputs == {"objects": "$filtered"}
+    assert draw.inputs["objects"] == f"${relabel.id}"
+    assert variant.outputs["objects"] == f"${relabel.id}"
 
 
 def test_video_report_only_count_is_unique_tracks_while_image_count_is_per_frame():
@@ -399,7 +446,8 @@ def test_relative_spatial_atom_compiles_reference_entity_and_box_relation():
     variant = package.select_variant("image")
     reference = next(node for node in variant.nodes if node.id == "constraint_1_reference")
     relation = next(node for node in variant.nodes if node.id == "constraint_1_relation")
-    assert reference.params["targets"][0]["phrases"] == ["excavator"]
+    _grounding, targets = _grounding_source(variant, reference.id)
+    assert targets[0]["phrases"] == ["excavator"]
     assert relation.op == "spatial.associate@1.0"
     assert relation.inputs == {
         "subjects": "$candidates",
@@ -430,7 +478,8 @@ def test_inside_automatic_region_compiles_region_grounding_and_inside_operator()
     region_objects = next(node for node in variant.nodes if node.id == "constraint_1_region_objects")
     region = next(node for node in variant.nodes if node.id == "constraint_1_region")
     inside = next(node for node in variant.nodes if node.id == "constraint_1_inside")
-    assert region_objects.params["targets"][0]["phrases"] == ["traffic lane"]
+    _grounding, targets = _grounding_source(variant, region_objects.id)
+    assert targets[0]["phrases"] == ["traffic lane"]
     assert region.op == "region.from_objects@1.0"
     assert inside.inputs == {"objects": "$candidates", "region": "$constraint_1_region"}
 
@@ -560,15 +609,16 @@ def test_region_motion_and_persist_compile_one_track_keyed_event_workflow():
     assert matched_tracks.params == {"history_mode": "matching_samples"}
     assert boxes.inputs == {"tracks": f"${matched_tracks.id}"}
     assert boxes.params == {"selection": "all"}
-    assert not any(node.op == "objects.relabel@1.0" for node in variant.nodes)
-    assert draw.inputs["objects"] == f"${boxes.id}"
+    relabel = next(node for node in variant.nodes if node.op == "objects.relabel@1.0")
+    assert relabel.inputs == {"objects": f"${boxes.id}"}
+    assert draw.inputs["objects"] == f"${relabel.id}"
     alert = next(node for node in variant.nodes if node.op == "output.alert@1.0")
     assert alert.inputs == {"events": f"${event.id}"}
     assert draw.inputs["events"] == f"${alert.id}"
     assert draw.inputs["regions"] == f"${region.id}"
     assert variant.outputs == {
         "media": f"${draw.id}",
-        "objects": f"${boxes.id}",
+        "objects": f"${relabel.id}",
         "tracks": f"${matched_tracks.id}",
         "events": f"${alert.id}",
         "regions": f"${region.id}",
@@ -1127,7 +1177,8 @@ def test_independent_region_attribute_branch_and_plain_count_branch_are_combined
         assert nodes["business_label_outside_1"].inputs["left"] == "$candidates"
         assert nodes["business_labeled_objects"].op == "objects.merge@1.0"
         assert variant.outputs["objects"] == "$business_labeled_objects"
-        assert nodes["candidates_raw"].params["targets"][0]["label"] == "人"
+        _grounding, targets = _grounding_source(variant, "candidates_raw")
+        assert targets[0]["label"] == "人"
         assert nodes["condition_event"].params["label"] == "多区域人员告警"
         assert nodes["alerts"].params["label"] == "多区域人员告警"
         assert variant.outputs["events"] == "$alerts"

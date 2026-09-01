@@ -37,6 +37,7 @@ from .editor_schema import (
 from .parameter_presentations import parameter_presentation
 from .registry import OperatorRegistry
 from .result_presentation_schema import PresentationSpec
+from .visual_catalog import COLOR_ALIASES
 
 
 class BusinessRuleEditError(ValueError):
@@ -1620,11 +1621,68 @@ class BusinessRuleEditor:
                 return "、".join(condition_reference(item) for item in value)
             return str(value)
 
+        def model_evidence_phrases(item: ConditionExpression) -> list[str]:
+            """Resolve the actual Rex phrases backing an attribute condition."""
+
+            graph = prepared.skill_template.rule_graphs.get(branch.media_type)
+            if graph is None:
+                return []
+            source_ref = f"condition:{item.expression_id}"
+            selected_labels: set[str] = set()
+            direct_phrases: list[str] = []
+            for node in graph.nodes:
+                if source_ref not in node.business_source_refs:
+                    continue
+                if node.operator == "objects.filter_by_label@1.0":
+                    selected_labels.update(
+                        str(label).strip()
+                        for label in node.params.get("labels", [])
+                        if str(label).strip()
+                    )
+                elif node.operator and node.operator.startswith("rex.ground@"):
+                    for target in node.params.get("targets", []):
+                        if not isinstance(target, dict):
+                            continue
+                        direct_phrases.extend(
+                            str(phrase).strip()
+                            for phrase in target.get("phrases", [])
+                            if str(phrase).strip()
+                        )
+            phrases: list[str] = []
+            for node in graph.nodes:
+                if not node.operator or not node.operator.startswith("rex.ground@"):
+                    continue
+                for target in node.params.get("targets", []):
+                    if not isinstance(target, dict):
+                        continue
+                    if selected_labels and str(target.get("label", "")) not in selected_labels:
+                        continue
+                    phrases.extend(
+                        str(phrase).strip()
+                        for phrase in target.get("phrases", [])
+                        if str(phrase).strip()
+                    )
+            return list(dict.fromkeys(phrases or direct_phrases))
+
         def condition_card_text(
             item: ConditionExpression,
             definition: BusinessCapabilityDefinition,
         ) -> tuple[str, str]:
             params = item.parameters
+
+            def target_text(value: Any) -> str:
+                values = value if isinstance(value, list) else [value]
+                labels = []
+                for target in values:
+                    if isinstance(target, dict):
+                        target = target.get("label") or target.get("phrases")
+                    if isinstance(target, list):
+                        target = " / ".join(str(part) for part in target)
+                    text = str(target or "").strip()
+                    if text:
+                        labels.append(text)
+                return "、".join(labels)
+
             object_values: list[str] = []
             for parameter_id in (
                 "targets", "labels", "business_label", "source", "subject",
@@ -1633,7 +1691,7 @@ class BusinessRuleEditor:
                 value = params.get(parameter_id)
                 if value in (None, "", [], {}):
                     continue
-                text = condition_reference(value)
+                text = target_text(value) if parameter_id == "targets" else condition_reference(value)
                 if text and text not in object_values:
                     object_values.append(text)
             details = "、".join(object_values)
@@ -1643,7 +1701,78 @@ class BusinessRuleEditor:
                 title = f"{definition.display_name}：{details}"
             else:
                 title = definition.display_name
-            if details:
+            if item.capability_id == "target.detect":
+                target_names = target_text(params.get("targets")) or "目标"
+                summary = f"模型检测「{target_names}」，作为本分支的基础目标。"
+            elif item.capability_id == "attribute.color":
+                source_name = condition_reference(params.get("source"))
+                color_name = condition_reference(params.get("color"))
+                source_expression = None
+                source_value = params.get("source")
+                if isinstance(source_value, str) and source_value.startswith("condition:"):
+                    source_expression = expressions.get(source_value.split(":", 1)[1])
+                source_stage = (
+                    "基础目标"
+                    if source_expression is not None
+                    and source_expression.capability_id == "target.detect"
+                    else "已筛选主体"
+                    if source_expression is not None
+                    else "主体来源"
+                )
+                evidence_phrases = model_evidence_phrases(item)
+                evidence_text = (
+                    f"「{'、'.join(evidence_phrases)}」"
+                    if evidence_phrases
+                    else f"带“{color_name}”属性的"
+                )
+                verification_logic = str(
+                    params.get("verification_logic") or "AND"
+                ).strip().upper()
+                if verification_logic == "OR":
+                    decision_text = (
+                        f"{color_name}占比校验或该归属证据任一满足后，输出匹配主体。"
+                    )
+                elif verification_logic == "FRACTION_ONLY":
+                    decision_text = f"仅按{color_name}占比校验输出匹配主体。"
+                elif verification_logic == "SEMANTIC_ONLY":
+                    decision_text = "仅按模型属性语义证据及同一主体归属输出匹配主体。"
+                else:
+                    decision_text = (
+                        f"{color_name}占比校验与该归属证据同时满足后，输出匹配主体。"
+                    )
+                summary = (
+                    f"模型属性证据{evidence_text}归属于{source_stage}「{source_name}」；"
+                    f"{decision_text}"
+                )
+            elif item.capability_id == "subject.same_attributes":
+                attributes = params.get("attributes") or []
+                attributes = attributes if isinstance(attributes, list) else [attributes]
+                if len(attributes) == 1:
+                    summary = "复用已匹配回主体的属性结果，不再重复检测或配对。"
+                else:
+                    summary = (
+                        f"确认「{condition_reference(params.get('subject'))}」同时具有："
+                        f"{condition_reference(attributes)}。"
+                    )
+            elif (
+                definition.output_value_type in {"entity_set", "scoped_set"}
+                and isinstance(params.get("source"), str)
+                and params.get("source", "").startswith("condition:")
+            ):
+                source_name = condition_reference(params.get("source"))
+                source_value = params.get("source")
+                source_expression = expressions.get(source_value.split(":", 1)[1])
+                source_stage = (
+                    "基础目标"
+                    if source_expression is not None
+                    and source_expression.capability_id == "target.detect"
+                    else "已筛选主体"
+                )
+                summary = (
+                    f"从{source_stage}「{source_name}」执行“{definition.display_name}”；"
+                    "输出进一步筛选后的主体集合。"
+                )
+            elif details:
                 summary = f"针对「{details}」执行“{definition.display_name}”。"
             else:
                 configured = [
@@ -1720,9 +1849,12 @@ class BusinessRuleEditor:
                 if relation == "N_OF_M":
                     expression = _find(root, row["condition_id"])
                     relation = f"至少 {expression.required_count or 1} 项满足"
-                row["member_summaries"] = [
-                    child["summary"] for child in members
-                ]
+                # The child cards immediately below already contain the full
+                # explanations.  A logic-group card should show only member
+                # names and their connector, otherwise the same text appears
+                # in the overview, the group, and each child.
+                row["member_summaries"] = [child["name"] for child in members]
+                row["logic_child_ids"] = [child["condition_id"] for child in members]
                 row["logic_relation_label"] = relation
                 for index, child in enumerate(members):
                     child["logic_member_label"] = (
@@ -1730,6 +1862,131 @@ class BusinessRuleEditor:
                         if index < 26
                         else f"条件 {index + 1}"
                     )
+
+                # A generated colour branch has one dependency node
+                # (the base detector) and one colour capability.  Present
+                # the *effective evidence decision* instead of misleadingly
+                # showing that dependency as a separate business condition.
+                # The editable expressions stay unchanged; this is only a
+                # faithful projection of what the compiler executes.
+                if len(members) == 2:
+                    member_expressions = [
+                        expressions.get(member["condition_id"])
+                        for member in members
+                    ]
+                    target_expression = next(
+                        (
+                            expression
+                            for expression in member_expressions
+                            if expression is not None
+                            and expression.capability_id == "target.detect"
+                        ),
+                        None,
+                    )
+                    color_expression = next(
+                        (
+                            expression
+                            for expression in member_expressions
+                            if expression is not None
+                            and expression.capability_id == "attribute.color"
+                        ),
+                        None,
+                    )
+                    expected_source = (
+                        f"condition:{target_expression.expression_id}"
+                        if target_expression is not None
+                        else None
+                    )
+                    if (
+                        target_expression is not None
+                        and color_expression is not None
+                        and color_expression.parameters.get("source") == expected_source
+                    ):
+                        raw_targets = target_expression.parameters.get("targets") or []
+                        raw_targets = (
+                            raw_targets if isinstance(raw_targets, list) else [raw_targets]
+                        )
+                        base_phrases: list[str] = []
+                        for target in raw_targets:
+                            if isinstance(target, dict):
+                                phrases = target.get("phrases") or target.get("label") or []
+                            else:
+                                phrases = target
+                            phrases = phrases if isinstance(phrases, list) else [phrases]
+                            base_phrases.extend(
+                                str(phrase).strip()
+                                for phrase in phrases
+                                if str(phrase).strip()
+                            )
+                        base_text = "、".join(dict.fromkeys(base_phrases)) or target_expression.display_name
+                        color_text = str(
+                            color_expression.parameters.get("color") or "颜色"
+                        ).strip()
+                        evidence_phrases = model_evidence_phrases(color_expression)
+                        evidence_text = "、".join(evidence_phrases) or f"{color_text} {base_text}"
+                        verification_logic = str(
+                            color_expression.parameters.get("verification_logic") or "AND"
+                        ).strip().upper()
+                        verification_members = [
+                            {
+                                "name": f"模型「{base_text}」+ {color_text}占比",
+                                "summary": (
+                                    f"条件 A：在模型检测到的「{base_text}」主体框内，"
+                                    f"校验{color_text}像素占比。"
+                                ),
+                            },
+                            {
+                                "name": f"模型「{evidence_text}」+ 同一主体归属",
+                                "summary": (
+                                    f"条件 B：模型检测属性语义证据「{evidence_text}」，"
+                                    f"并将证据匹配回同一个「{base_text}」主体。"
+                                ),
+                            },
+                        ]
+                        if verification_logic == "FRACTION_ONLY":
+                            verification_members = verification_members[:1]
+                        elif verification_logic == "SEMANTIC_ONLY":
+                            verification_members = verification_members[1:]
+                        elif verification_logic not in {"AND", "OR"}:
+                            verification_logic = "AND"
+                        row["verification_members"] = verification_members
+                        row["verification_logic"] = (
+                            verification_logic
+                            if len(verification_members) > 1
+                            else ""
+                        )
+                        row["verification_child_ids"] = [
+                            member["condition_id"] for member in members
+                        ]
+                        row["effective_formula"] = (
+                            f" {verification_logic} ".join(
+                                f"（{member['name']}）"
+                                for member in verification_members
+                            )
+                            if len(verification_members) > 1
+                            else verification_members[0]["name"]
+                        )
+                        target_row = next(
+                            member
+                            for member in members
+                            if member["condition_id"]
+                            == target_expression.expression_id
+                        )
+                        color_row = next(
+                            member
+                            for member in members
+                            if member["condition_id"]
+                            == color_expression.expression_id
+                        )
+                        target_row["dependency_only"] = True
+                        target_row["configuration_name"] = (
+                            f"基础模型来源：{base_text}"
+                        )
+                        color_row["review_primary"] = True
+                        mode_label = verification_logic or "单证据"
+                        color_row["configuration_name"] = (
+                            f"{color_expression.display_name}复核（{mode_label}）"
+                        )
             if is_imported_proxy:
                 rows[0]["kind"] = "导入判定"
                 rows[0]["category"] = "已验证业务流程"
@@ -2127,7 +2384,105 @@ class BusinessRuleEditor:
                         workflow_parts.append(row["summary"])
                     else:
                         workflow_parts.append(row["name"])
-                rows[0]["summary"] = " → ".join(workflow_parts) or logical_result
+                # Imported packages can keep the executable OR/AND node and
+                # the evidence merge outside ``branch.node_ids``.  In that
+                # case the step cards still contain the concrete detector and
+                # label filters, but the old projection reduced the overview
+                # to only the detector (for example ``检测：smoke、fire``),
+                # making it look as if one evidence branch had been dropped.
+                # Project the business result from the graph fan-in instead:
+                # detector(s) -> logical relation -> merged output.  This is
+                # deliberately operator/data-flow based, so it applies to
+                # arbitrary labels, relations and task types rather than a
+                # preset-specific smoke/fire exception.
+                semantic_logic_ops = {
+                    "logic.all@1.0": "AND",
+                    "logic.any@1.0": "OR",
+                    "logic.not@1.0": "NOT",
+                    "reduce.quantify@1.0": "N_OF_M",
+                }
+                semantic_logic_nodes = [
+                    node
+                    for node in (graph.nodes if graph else [])
+                    if node.enabled
+                    and node.operator in semantic_logic_ops
+                    and (node.output_name or node.output_names)
+                ]
+
+                def node_relation_labels(node: RuleNode) -> list[str]:
+                    labels: list[str] = []
+                    for source in incoming_nodes(node.node_id, "conditions", "condition"):
+                        labels.extend(node_labels(source.node_id))
+                    return list(dict.fromkeys(label for label in labels if label))
+
+                semantic_projection: list[str] = []
+                detection_steps = [
+                    row["name"]
+                    for row in imported_rows.values()
+                    if row["name"].startswith("检测：")
+                ]
+                semantic_projection.extend(detection_steps)
+                for node in semantic_logic_nodes:
+                    relation = semantic_logic_ops[node.operator]
+                    labels = node_relation_labels(node)
+                    if relation == "NOT":
+                        logic_text = f"NOT（{'、'.join(labels) or '前序条件'}）"
+                    elif relation == "N_OF_M":
+                        count = int(node.params.get("required_count", 1) or 1)
+                        logic_text = (
+                            f"至少 {count} 项满足"
+                            + (f"（{'、'.join(labels)}）" if labels else "")
+                        )
+                    else:
+                        logic_text = f"{relation}：{' 或 '.join(labels)}" if relation == "OR" else (
+                            f"{relation}：{' 且 '.join(labels)}" if labels else relation
+                        )
+                    semantic_projection.append(logic_text)
+
+                # The business object output is commonly an objects.merge
+                # fan-in.  Resolve its incoming labels through the same graph
+                # resolver used by the cards, preserving every evidence set.
+                merge_nodes = [
+                    node
+                    for node in (graph.nodes if graph else [])
+                    if node.enabled
+                    and node.operator == "objects.merge@1.0"
+                    and (node.output_name == "objects" or "objects" in node.output_names)
+                ]
+                output_labels: list[str] = []
+                evidence_filter_ids: set[str] = set()
+
+                def collect_evidence_filters(node_id: str, seen: set[str] | None = None) -> None:
+                    seen = set() if seen is None else seen
+                    if node_id in seen:
+                        return
+                    seen.add(node_id)
+                    node = graph_nodes.get(node_id)
+                    if node is not None and node.operator == "objects.filter_by_label@1.0":
+                        evidence_filter_ids.add(node_id)
+                    for source in incoming_nodes(node_id, "objects", "entities", "sets"):
+                        collect_evidence_filters(source.node_id, seen)
+
+                for node in merge_nodes:
+                    for source in incoming_nodes(node.node_id, "objects", "entities"):
+                        output_labels.extend(node_labels(source.node_id))
+                        collect_evidence_filters(source.node_id)
+                output_labels = list(dict.fromkeys(label for label in output_labels if label))
+                for node_id in evidence_filter_ids:
+                    row = imported_rows.get(node_id)
+                    if row is not None:
+                        # These cards are evidence fan-out members of the
+                        # logical group, not sequential business steps.
+                        row["workflow_role"] = "evidence_branch"
+                if output_labels:
+                    semantic_projection.append(f"输出：{'、'.join(output_labels)}")
+
+                if semantic_logic_nodes and semantic_projection:
+                    rows[0]["summary"] = " → ".join(
+                        dict.fromkeys(semantic_projection)
+                    )
+                else:
+                    rows[0]["summary"] = " → ".join(workflow_parts) or logical_result
         return rows
 
     def parameter_rows(
@@ -2357,6 +2712,12 @@ class BusinessRuleEditor:
 
     @staticmethod
     def _coerce(parameter: BusinessParameterDefinition, value: Any) -> Any:
+        if parameter.parameter_id == "color" and isinstance(value, str):
+            normalized = value.strip().lower()
+            value = COLOR_ALIASES.get(
+                normalized,
+                COLOR_ALIASES.get(normalized.replace(" ", ""), value),
+            )
         if parameter.editor in {"number", "duration", "percentage", "angle_degrees"}:
             try:
                 value = float(value)
