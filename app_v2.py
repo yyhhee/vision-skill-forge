@@ -6949,11 +6949,11 @@ def build_v2_app(controller: V2AppController) -> gr.Blocks:
       document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); });
     }
     """
-    with gr.Blocks(title="Vision Skill Builder V2", css=css, js=annotation_drag_js) as demo:
+    with gr.Blocks(title="Vision Skill Forge", css=css, js=annotation_drag_js) as demo:
         gr.HTML(
             """
             <section class="vs-hero">
-              <p class="vs-kicker">VISION SKILL BUILDER / V2</p>
+              <p class="vs-kicker">VISION SKILL FORGE</p>
               <h1>AI 一句话生成视觉技能</h1>
                       <p>一句话先生成可编辑技能；需要时补充区域或方向参考；最后在图片或视频上运行并查看可解释结果。</p>
               <div class="vs-badges"><span class="vs-badge">自然语言生成</span><span class="vs-badge">可编辑规则</span><span class="vs-badge">图片与视频</span><span class="vs-badge">结果与证据</span></div>
