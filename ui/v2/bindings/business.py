@@ -16,6 +16,7 @@ from ui.event_rule_editor import (
     friendly_choice_label,
 )
 from ui.v2.bindings.creation import CreationBindings
+from ui.v2.controllers.configuration import runtime_edit
 from ui.v2.workspace import Workspace
 
 
@@ -111,6 +112,12 @@ def bind_business(
             return editor_json, "没有可撤销的修改。", state
         previous = undo.pop()
         redo.append(editor_json)
+        previous = controller._dump(
+            controller.configuration_service.stage(
+                controller._parse_editor_json(editor_json),
+                controller._parse_editor_json(previous),
+            )
+        )
         return previous, "已撤销上一步配置修改。", {"undo": undo, "redo": redo[-50:]}
 
     def _redo_editor(editor_json, history):
@@ -120,6 +127,12 @@ def bind_business(
             return editor_json, "没有可重做的修改。", state
         following = redo.pop()
         undo.append(editor_json)
+        following = controller._dump(
+            controller.configuration_service.stage(
+                controller._parse_editor_json(editor_json),
+                controller._parse_editor_json(following),
+            )
+        )
         return following, "已重做配置修改。", {"undo": undo[-50:], "redo": redo}
 
     def _restore_generated(effective_json, editor_json, history, source_mode_value):
@@ -128,6 +141,13 @@ def bind_business(
         restored, status = controller.restore_default_editor_document(
             effective_json, source_mode_value
         )
+        if editor_json:
+            restored = controller._dump(
+                controller.configuration_service.stage(
+                    controller._parse_editor_json(editor_json),
+                    controller._parse_editor_json(restored),
+                )
+            )
         state = dict(history or {})
         undo = [*state.get("undo", []), editor_json][-50:]
         return restored, status, {"undo": undo, "redo": []}
@@ -681,16 +701,19 @@ def bind_business(
             ],
         )
     workspace.review.business_region_override_apply.click(
-        _apply_region_overrides,
+        runtime_edit(controller, _apply_region_overrides),
         [
-            workspace.review.effective,
             workspace.review.editor_document,
-            workspace.review.variant_choice,
-            workspace.review.business_region_event,
-            workspace.review.business_region_name,
-            workspace.review.business_region_comparison,
-            workspace.review.business_region_operator,
-            workspace.review.business_region_value,
+            *[
+                workspace.review.effective,
+                workspace.review.editor_document,
+                workspace.review.variant_choice,
+                workspace.review.business_region_event,
+                workspace.review.business_region_name,
+                workspace.review.business_region_comparison,
+                workspace.review.business_region_operator,
+                workspace.review.business_region_value,
+            ],
         ],
         [workspace.review.effective, workspace.review.editor_document],
     ).then(
@@ -1376,6 +1399,10 @@ def bind_business(
             workspace.current_source,
             workspace.create.task_target,
         ],
+    ).then(
+        controller.load_editor_configuration,
+        [workspace.review.effective, workspace.create.source_mode],
+        workspace.review.editor_document,
     ).then(
         lambda status: status,
         workspace.create.source_status,

@@ -317,6 +317,10 @@ def bind_creation(
             workspace.review.variant_choice,
         ],
     ).then(
+        controller.load_editor_configuration,
+        [workspace.review.effective, workspace.create.source_mode],
+        workspace.review.editor_document,
+    ).then(
         _unresolved_of,
         workspace.review.semantic,
         workspace.review.unresolved,
@@ -360,6 +364,10 @@ def bind_creation(
             workspace.create.source_status,
             workspace.current_source,
         ],
+    ).then(
+        controller.load_editor_configuration,
+        [workspace.review.effective, workspace.create.source_mode],
+        workspace.review.editor_document,
     ).then(_unresolved_of, workspace.review.semantic, workspace.review.unresolved).then(
         controller.preferred_executable_variant,
         [workspace.review.effective, workspace.annotation.annotation_variant],

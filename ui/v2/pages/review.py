@@ -23,6 +23,9 @@ from ui.event_rule_editor import (
 class ReviewPage:
     """Explicit page handles consumed by event registration."""
 
+    configuration_state: gr.HTML
+    configuration_apply_button: gr.Button
+
     apply_variant_button: gr.Button
     atomic_apply_button: gr.Button
     atomic_node: gr.Dropdown
@@ -251,6 +254,20 @@ class ReviewPage:
 
 def build_review_page(controller: V2AppController) -> ReviewPage:
     with gr.Tab("03 审核"):
+        configuration_state = gr.HTML(
+            "<div class='status-card'><b>尚未加载运行版本</b></div>",
+            elem_id="configuration-lifecycle-review",
+        )
+        configuration_apply_button = gr.Button(
+            "应用修改，更新运行版本",
+            variant="primary",
+            elem_id="configuration-lifecycle-apply",
+        )
+        gr.Markdown(
+            "修改条件、分支、时间或输出后，先在对应卡片保存到草稿，再点击上方“应用修改”。"
+            "只有显示“当前运行版本已更新”后，04 才会使用新配置。",
+            elem_id="configuration-lifecycle-help",
+        )
         gr.HTML(
             """
                     <section class="vs-section">
@@ -502,7 +519,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                         "枚举使用下拉，数值使用数字输入；固定内容只读。"
                     )
                     business_apply_condition_button = gr.Button(
-                        "应用这个参数", variant="primary"
+                        "保存当前参数到草稿", variant="primary"
                     )
                     with gr.Group(visible=False) as business_region_override_group:
                         gr.Markdown(
@@ -573,7 +590,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             )
                             business_imported_logic_summary = gr.Markdown()
                             business_imported_logic_apply = gr.Button(
-                                "保存这组逻辑", variant="primary"
+                                "保存逻辑到草稿", variant="primary"
                             )
                         with gr.Group(visible=False) as business_expression_logic_group:
                             gr.Markdown("#### 修改当前逻辑组")
@@ -603,7 +620,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             )
                             business_expression_logic_summary = gr.Markdown()
                             business_expression_logic_apply = gr.Button(
-                                "保存这组逻辑", variant="primary"
+                                "保存逻辑到草稿", variant="primary"
                             )
                         with gr.Group(visible=False) as business_new_logic_group:
                             gr.Markdown(
@@ -715,7 +732,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             "当前分支立即判断，不附加持续约束。"
                         )
                         business_branch_time_apply = gr.Button(
-                            "应用分支时间设置", variant="primary"
+                            "保存分支时间到草稿", variant="primary"
                         )
 
                 with gr.Tab("分支编排"):
@@ -775,7 +792,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                                 label="这些分支属于同一个什么对象",
                             )
                         business_pattern_apply = gr.Button(
-                            "保存当前编排组", variant="primary"
+                            "保存编排组到草稿", variant="primary"
                         )
 
                 with gr.Tab("最终判定"):
@@ -830,7 +847,9 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                         business_final_failed = gr.Checkbox(
                             True, label="显示失败或等待中的分支"
                         )
-                    business_final_apply = gr.Button("应用最终判定", variant="primary")
+                    business_final_apply = gr.Button(
+                        "保存最终判定到草稿", variant="primary"
+                    )
 
                 with gr.Tab("业务输出"):
                     gr.Markdown(
@@ -869,7 +888,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             "删除所选输出", variant="stop"
                         )
                         business_outputs_apply = gr.Button(
-                            "应用业务输出", variant="primary"
+                            "保存业务输出到草稿", variant="primary"
                         )
 
                 with gr.Tab("触发策略"):
@@ -913,16 +932,16 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                         label="触发时输出",
                     )
                     business_trigger_apply = gr.Button(
-                        "应用触发策略", variant="primary"
+                        "保存触发策略到草稿", variant="primary"
                     )
 
             gr.Markdown(
                 "修改参数或逻辑后，页面先保存为 **03 草稿**，不会立即影响运行。"
-                "必须点击下方 **【校验并生成当前运行版本（使修改生效）】**；"
+                "必须点击 **【应用修改，更新运行版本】**（本页顶部与下方是同一个操作）；"
                 "看到“当前运行版本已更新”后，04 才会使用新配置。"
             )
             business_compile_apply = gr.Button(
-                "校验并生成当前运行版本（使修改生效）", variant="primary"
+                "应用修改，更新运行版本", variant="primary"
             )
 
         # Kept temporarily for shadow regression only. It is not a
@@ -1388,7 +1407,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                     "保存结果与证据契约到草稿", variant="secondary"
                 )
             unified_apply_button = gr.Button(
-                "完整校验并应用为当前运行版本", variant="primary"
+                "应用修改，更新运行版本", variant="primary"
             )
             with gr.Accordion("完整 V3 编辑文档（审计）", open=False):
                 atomic_rows = gr.JSON(label="原子参数清单")
@@ -1474,6 +1493,8 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
             saved_path = gr.Textbox(label="保存路径")
 
     return ReviewPage(
+        configuration_state=configuration_state,
+        configuration_apply_button=configuration_apply_button,
         apply_variant_button=apply_variant_button,
         atomic_apply_button=atomic_apply_button,
         atomic_node=atomic_node,

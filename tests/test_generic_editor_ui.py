@@ -85,7 +85,7 @@ def test_ui_keeps_five_steps_adds_generic_atoms_and_hides_internal_region_id(tmp
     assert "事件规则编辑｜条件分支、时间编排、最终判定与业务输出" in dumped
     assert "复杂事件编排" in dumped
     assert "业务输出规格" in dumped
-    assert "完整校验并应用为当前运行版本" in dumped
+    assert "应用修改，更新运行版本" in dumped
     internal_id = next(
         component
         for component in config["components"]

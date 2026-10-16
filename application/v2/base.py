@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from application.v2.configuration import ConfigurationService
 from application.v2.support import ROOT, ApplicationError, _variant_key
 from core.business_capabilities import build_business_capability_registry
 from core.business_rule_editor import BusinessRuleEditor
@@ -53,6 +54,7 @@ class ApplicationContext:
         )
         self.configuration_binder = ConfigurationBinder(registry)
         self.editor_service = EditorService(registry)
+        self.configuration_service = ConfigurationService(self.editor_service)
         self.business_capabilities = build_business_capability_registry(registry)
         self.business_rule_editor = BusinessRuleEditor(
             self.business_capabilities, registry

@@ -1463,7 +1463,6 @@ def test_annotation_projection_refreshes_stale_run_blockers(tmp_path):
 def test_two_named_natural_language_regions_project_to_run_resources(tmp_path):
     from core.business_capabilities import build_business_capability_registry
     from core.business_rule_draft import apply_business_rule_draft
-    from core.editor_service import EditorService
     from tests.test_business_rule_draft import _base, _image_draft
 
     registry, document, _ = _base(("image",))
@@ -1486,8 +1485,8 @@ def test_two_named_natural_language_regions_project_to_run_resources(tmp_path):
         requested_accept=["image"],
     )
     controller = _controller(tmp_path)
-    package = EditorService(registry).apply(converted).effective_skill_package
-    effective = controller._dump(package)
+    converted_json, effective, _ = controller.unified_validate_apply(controller._dump(converted))
+    converted = controller._parse_editor_json(converted_json)
     pending_editor = controller._editor_document(
         effective, controller._dump(converted), source_type="natural_language"
     )
@@ -1825,6 +1824,7 @@ def test_event_rule_apply_callback_maps_each_named_region_table_row(tmp_path):
     )
 
     updated = callback(
+        controller._dump(controller._editor_document(json.dumps(data, ensure_ascii=False), "")),
         json.dumps(data, ensure_ascii=False), "video variant", "events", "vehicles_raw",
         ["车辆"], "region", "many", ">=", 4, None, None, None, "all", 1,
         0.6, "once", "高速车辆拥堵", [
@@ -1861,6 +1861,7 @@ def test_event_rule_apply_callback_maps_region_operators_and_thresholds(tmp_path
     )
 
     updated = callback(
+        controller._dump(controller._editor_document(json.dumps(data, ensure_ascii=False), "")),
         json.dumps(data, ensure_ascii=False), "video variant", "events", "vehicles_raw",
         ["车辆"], "region", "many", ">=", 4, None, None, None, "all", 1,
         0.6, "once", "高速车辆拥堵", [
@@ -1892,6 +1893,7 @@ def test_event_rule_apply_callback_maps_condition_region_choices(tmp_path):
     )
 
     updated = callback(
+        controller._dump(controller._editor_document(json.dumps(data, ensure_ascii=False), "")),
         json.dumps(data, ensure_ascii=False), "video variant", "events", "vehicles_raw",
         ["车辆"], "region", "many@@northbound", ">=", 4,
         None, None, None, "all", 1, 0.6, "once",

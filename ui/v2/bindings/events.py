@@ -15,6 +15,7 @@ import gradio as gr
 
 from ui.v2.bindings.business import BusinessBindings
 from ui.v2.bindings.creation import CreationBindings
+from ui.v2.controllers.configuration import runtime_edit
 from ui.v2.workspace import Workspace
 
 
@@ -701,47 +702,53 @@ def bind_events(
     # Retains the stable internal API used by saved UI-client integrations.
     # It is intentionally not connected to a visible control.
     workspace.review.event_rule_legacy_apply_probe.click(
-        _apply_event_rule,
+        runtime_edit(controller, _apply_event_rule),
         [
-            workspace.review.effective,
-            workspace.review.variant_choice,
-            workspace.review.event_rule_event,
-            workspace.review.event_rule_category_node,
-            workspace.review.event_rule_categories,
-            workspace.review.event_rule_scope,
-            workspace.review.event_rule_condition_1,
-            workspace.review.event_rule_operator_1,
-            workspace.review.event_rule_value_1,
-            workspace.review.event_rule_condition_2,
-            workspace.review.event_rule_operator_2,
-            workspace.review.event_rule_value_2,
-            workspace.review.event_rule_logic,
-            workspace.review.event_rule_seconds,
-            workspace.review.event_rule_gap,
-            workspace.review.event_rule_trigger,
-            workspace.review.event_rule_alert,
-            workspace.review.event_rule_region_overrides,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.review.variant_choice,
+                workspace.review.event_rule_event,
+                workspace.review.event_rule_category_node,
+                workspace.review.event_rule_categories,
+                workspace.review.event_rule_scope,
+                workspace.review.event_rule_condition_1,
+                workspace.review.event_rule_operator_1,
+                workspace.review.event_rule_value_1,
+                workspace.review.event_rule_condition_2,
+                workspace.review.event_rule_operator_2,
+                workspace.review.event_rule_value_2,
+                workspace.review.event_rule_logic,
+                workspace.review.event_rule_seconds,
+                workspace.review.event_rule_gap,
+                workspace.review.event_rule_trigger,
+                workspace.review.event_rule_alert,
+                workspace.review.event_rule_region_overrides,
+            ],
         ],
         workspace.review.effective,
     )
 
     workspace.review.event_rule_apply_button.click(
-        _apply_event_rule_cards,
+        runtime_edit(controller, _apply_event_rule_cards),
         [
-            workspace.review.effective,
-            workspace.review.variant_choice,
-            workspace.review.event_rule_event,
-            workspace.review.event_rule_card_state,
-            workspace.review.event_rule_logic,
-            workspace.review.event_rule_seconds,
-            workspace.review.event_rule_gap,
-            workspace.review.event_rule_trigger,
-            workspace.review.event_rule_alert,
-            workspace.review.event_rule_association,
-            workspace.review.event_rule_association_subject,
-            workspace.review.event_rule_association_object,
-            workspace.review.event_rule_association_threshold,
-            *event_rule_card_inputs,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.review.variant_choice,
+                workspace.review.event_rule_event,
+                workspace.review.event_rule_card_state,
+                workspace.review.event_rule_logic,
+                workspace.review.event_rule_seconds,
+                workspace.review.event_rule_gap,
+                workspace.review.event_rule_trigger,
+                workspace.review.event_rule_alert,
+                workspace.review.event_rule_association,
+                workspace.review.event_rule_association_subject,
+                workspace.review.event_rule_association_object,
+                workspace.review.event_rule_association_threshold,
+                *event_rule_card_inputs,
+            ],
         ],
         workspace.review.effective,
     ).then(
@@ -859,11 +866,14 @@ def bind_events(
         workspace.review.event_rule_summary,
     )
     workspace.review.apply_variant_button.click(
-        controller.apply_variant_json,
+        runtime_edit(controller, controller.apply_variant_json),
         [
-            workspace.review.effective,
-            workspace.review.variant_choice,
-            workspace.review.variant_editor,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.review.variant_choice,
+                workspace.review.variant_editor,
+            ],
         ],
         workspace.review.effective,
     ).then(

@@ -25,6 +25,10 @@ class ExecutionService:
             raise ApplicationError("请先上传媒体")
         generated = SkillPackage.model_validate_json(generated_json)
         effective = SkillPackage.model_validate_json(effective_json)
+        if editor_json:
+            self.configuration_service.require_current(
+                self._parse_editor_json(editor_json), effective
+            )
         key = detect_media_type(media_path)
         errors = validate_skill_package(effective, self.registry)
         if errors:

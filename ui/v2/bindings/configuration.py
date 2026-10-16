@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 import gradio as gr
 
 from ui.v2.bindings.business import BusinessBindings
+from ui.v2.controllers.configuration import runtime_edit
 from ui.v2.workspace import Workspace
 
 
@@ -53,15 +54,18 @@ def bind_configuration(
         _context_outputs,
     )
     workspace.review.context_apply_button.click(
-        controller.apply_context_confirmation_control,
+        runtime_edit(controller, controller.apply_context_confirmation_control),
         [
-            workspace.review.effective,
-            workspace.review.variant_choice,
-            workspace.review.context_enabled,
-            workspace.review.context_targets,
-            workspace.review.context_phrases,
-            workspace.review.context_padding,
-            workspace.review.context_long_side,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.review.variant_choice,
+                workspace.review.context_enabled,
+                workspace.review.context_targets,
+                workspace.review.context_phrases,
+                workspace.review.context_padding,
+                workspace.review.context_long_side,
+            ],
         ],
         workspace.review.effective,
     ).then(
@@ -141,12 +145,15 @@ def bind_configuration(
         _grounding_prompt_outputs,
     )
     workspace.review.grounding_prompt_apply_button.click(
-        controller.apply_grounding_prompt_control,
+        runtime_edit(controller, controller.apply_grounding_prompt_control),
         [
-            workspace.review.effective,
-            workspace.review.variant_choice,
-            workspace.review.grounding_prompt_node,
-            workspace.review.grounding_prompt_text,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.review.variant_choice,
+                workspace.review.grounding_prompt_node,
+                workspace.review.grounding_prompt_text,
+            ],
         ],
         workspace.review.effective,
     ).then(
@@ -163,11 +170,14 @@ def bind_configuration(
         _grounding_prompt_outputs,
     )
     workspace.review.grounding_prompt_reset_button.click(
-        controller.reset_grounding_prompt_control,
+        runtime_edit(controller, controller.reset_grounding_prompt_control),
         [
-            workspace.review.effective,
-            workspace.review.variant_choice,
-            workspace.review.grounding_prompt_node,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.review.variant_choice,
+                workspace.review.grounding_prompt_node,
+            ],
         ],
         workspace.review.effective,
     ).then(
@@ -210,8 +220,8 @@ def bind_configuration(
         workspace.review.resize_interpolation,
     ]
     workspace.review.resize_apply_button.click(
-        controller.apply_preprocessing,
-        _preprocess_inputs,
+        runtime_edit(controller, controller.apply_preprocessing),
+        [workspace.review.editor_document, *_preprocess_inputs],
         workspace.review.effective,
     ).then(
         business._apply_feedback,
@@ -219,8 +229,8 @@ def bind_configuration(
         [workspace.review.config_status, workspace.review.validation],
     )
     workspace.review.preprocess_button.click(
-        controller.apply_preprocessing,
-        _preprocess_inputs,
+        runtime_edit(controller, controller.apply_preprocessing),
+        [workspace.review.editor_document, *_preprocess_inputs],
         workspace.review.effective,
     ).then(
         business._apply_feedback,
@@ -228,16 +238,19 @@ def bind_configuration(
         [workspace.review.config_status, workspace.review.validation],
     )
     workspace.review.sample_button.click(
-        controller.apply_video_sampling,
+        runtime_edit(controller, controller.apply_video_sampling),
         [
-            workspace.review.effective,
-            workspace.review.sample_mode,
-            workspace.review.sample_fps,
-            workspace.review.interval_seconds,
-            workspace.review.frame_step,
-            workspace.review.start_seconds,
-            workspace.review.end_seconds,
-            workspace.review.max_frames,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.review.sample_mode,
+                workspace.review.sample_fps,
+                workspace.review.interval_seconds,
+                workspace.review.frame_step,
+                workspace.review.start_seconds,
+                workspace.review.end_seconds,
+                workspace.review.max_frames,
+            ],
         ],
         workspace.review.effective,
     ).then(
@@ -246,15 +259,18 @@ def bind_configuration(
         [workspace.review.config_status, workspace.review.validation],
     )
     workspace.review.output_config_button.click(
-        controller.apply_output_configuration,
+        runtime_edit(controller, controller.apply_output_configuration),
         [
-            workspace.review.effective,
-            workspace.review.variant_choice,
-            workspace.review.output_size_mode,
-            workspace.review.output_width,
-            workspace.review.output_height,
-            workspace.review.output_fps_mode,
-            workspace.review.output_fps,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.review.variant_choice,
+                workspace.review.output_size_mode,
+                workspace.review.output_width,
+                workspace.review.output_height,
+                workspace.review.output_fps_mode,
+                workspace.review.output_fps,
+            ],
         ],
         workspace.review.effective,
     ).then(

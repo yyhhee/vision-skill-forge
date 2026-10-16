@@ -16,6 +16,8 @@ import gradio as gr
 class RunPage:
     """Explicit page handles consumed by event registration."""
 
+    configuration_state: gr.HTML
+
     annotated_image: gr.Image
     annotated_video: gr.Video
     business_results_html: gr.HTML
@@ -38,6 +40,10 @@ class RunPage:
 
 def build_run_page(controller: V2AppController) -> RunPage:
     with gr.Tab("04 运行"):
+        configuration_state = gr.HTML(
+            "<div class='status-card'><b>尚未加载运行版本</b></div>",
+            elem_id="configuration-lifecycle-run",
+        )
         gr.HTML(
             """
                     <section class="vs-section">
@@ -110,6 +116,7 @@ def build_run_page(controller: V2AppController) -> RunPage:
                     trace = gr.JSON(label="逐节点 Trace")
 
     return RunPage(
+        configuration_state=configuration_state,
         annotated_image=annotated_image,
         annotated_video=annotated_video,
         business_results_html=business_results_html,

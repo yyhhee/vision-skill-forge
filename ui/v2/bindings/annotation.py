@@ -14,6 +14,7 @@ from core.schema import SkillPackage
 from ui.v2.bindings.business import BusinessBindings
 from ui.v2.bindings.creation import CreationBindings
 from ui.v2.bindings.events import EventsBindings
+from ui.v2.controllers.configuration import runtime_edit
 from ui.v2.workspace import Workspace
 
 
@@ -492,13 +493,16 @@ def bind_annotation(
         ],
     )
     workspace.annotation.clear_annotation_button.click(
-        controller.clear_saved_annotations,
+        runtime_edit(controller, controller.clear_saved_annotations),
         [
-            workspace.review.effective,
-            workspace.annotation.annotation_variant,
-            workspace.annotation.annotation_asset_path,
-            workspace.annotation.annotation_timestamp,
-            workspace.annotation_state,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.annotation.annotation_variant,
+                workspace.annotation.annotation_asset_path,
+                workspace.annotation.annotation_timestamp,
+                workspace.annotation_state,
+            ],
         ],
         [
             workspace.review.effective,
@@ -546,18 +550,21 @@ def bind_annotation(
         ],
     )
     workspace.annotation.bind_annotation_button.click(
-        _bind_and_refresh,
+        runtime_edit(controller, _bind_and_refresh),
         [
-            workspace.review.effective,
-            workspace.annotation.annotation_variant,
-            workspace.annotation.annotation_slot,
-            workspace.annotation.annotation_tool,
-            workspace.annotation.annotation_points,
-            workspace.annotation.annotation_item_id,
-            workspace.annotation.annotation_item_label,
-            workspace.annotation.annotation_asset_path,
-            workspace.annotation.annotation_timestamp,
-            workspace.annotation_state,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.annotation.annotation_variant,
+                workspace.annotation.annotation_slot,
+                workspace.annotation.annotation_tool,
+                workspace.annotation.annotation_points,
+                workspace.annotation.annotation_item_id,
+                workspace.annotation.annotation_item_label,
+                workspace.annotation.annotation_asset_path,
+                workspace.annotation.annotation_timestamp,
+                workspace.annotation_state,
+            ],
         ],
         [
             workspace.review.effective,
@@ -626,15 +633,18 @@ def bind_annotation(
         ],
     )
     workspace.annotation.delete_annotation_button.click(
-        _delete_and_refresh,
+        runtime_edit(controller, _delete_and_refresh),
         [
-            workspace.review.effective,
-            workspace.annotation.annotation_variant,
-            workspace.annotation.annotation_slot,
-            workspace.annotation.annotation_delete_target,
-            workspace.annotation.annotation_asset_path,
-            workspace.annotation.annotation_timestamp,
-            workspace.annotation_state,
+            workspace.review.editor_document,
+            *[
+                workspace.review.effective,
+                workspace.annotation.annotation_variant,
+                workspace.annotation.annotation_slot,
+                workspace.annotation.annotation_delete_target,
+                workspace.annotation.annotation_asset_path,
+                workspace.annotation.annotation_timestamp,
+                workspace.annotation_state,
+            ],
         ],
         [
             workspace.review.effective,

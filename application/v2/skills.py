@@ -252,6 +252,9 @@ class SkillService:
         skill_id, version = selection.rsplit("/v", 1)
         package_store, _ = self._asset_stores(save_root)
         package = package_store.load(skill_id, int(version))
+        self._generated_editor_documents[package.skill_id] = build_editor_document(
+            package, source_type="legacy"
+        )
         text = self._dump(package)
         source = (
             "### 当前实际执行来源\n"

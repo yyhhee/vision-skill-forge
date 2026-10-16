@@ -333,7 +333,7 @@ class EditorController:
     def unified_validate_apply(self, editor_json: str):
         document = self._parse_editor_json(editor_json)
         try:
-            compiled = self.editor_service.apply(document)
+            compiled = self.configuration_service.publish(document)
         except Exception as exc:
             raise gr.Error(f"配置不能应用：{exc}") from exc
         package = compiled.effective_skill_package
@@ -341,7 +341,7 @@ class EditorController:
             raise gr.Error("编译未生成 Effective SkillPackage")
         pending = compiled.validation_report.get("pending", [])
         status = (
-            f"✅ 条件、时间编排、最终判定和业务输出已校验；当前运行版本已更新（v{compiled.version}）。"
+            f"✅ 条件、时间编排、最终判定和业务输出已校验；当前运行版本已更新（R{self.configuration_service.publication(compiled)['revision']}）。"
             "04 运行将使用本次校验后的配置。"
         )
         if pending:
@@ -369,9 +369,19 @@ class EditorController:
                     == package.model_dump(mode="json")
                 )
                 if existing.skill_template.skill_id == package.skill_id:
+                    if self.configuration_service.status(existing, package).dirty:
+                        existing.validation_report["dirty"] = True
+                        existing.effective_skill_package = None
+                        return self._refresh_editor_validation(
+                            existing, active_media_type
+                        )
                     if not same_effective:
+                        previous = existing.model_copy(deep=True)
                         existing = self._sync_editor_scene_resources(existing, package)
                         existing.effective_skill_package = package
+                        existing = self.configuration_service.accept_runtime_update(
+                            previous, existing
+                        )
                     return self._refresh_editor_validation(existing, active_media_type)
             except Exception:  # noqa: S110, BLE001 — preserved V2 behavior
                 pass
@@ -399,6 +409,7 @@ class EditorController:
 
         if not editor_json:
             return ""
+        self._parse_editor_json(editor_json)
         return self._dump(
             self._editor_document(
                 effective_json, editor_json, active_media_type=media_type
@@ -437,6 +448,7 @@ class EditorController:
         successful 02 annotation save.
         """
 
+        document = self.business_rule_editor.prepare(document)
         package = document.effective_skill_package
         if package is not None:
             slot_required = {
@@ -469,13 +481,21 @@ class EditorController:
                 and not report.get("pending")
                 and not report["resource_blockers"]
             )
+        previous_report = dict(document.validation_report)
         document.validation_report = {
             **report,
+            **{
+                key: previous_report[key]
+                for key in ("configuration_publication", "dirty")
+                if key in previous_report
+            },
             "can_run": bool(
-                document.effective_skill_package is not None and report["valid"]
+                document.effective_skill_package is not None
+                and report["valid"]
+                and not previous_report.get("dirty")
             ),
         }
-        return document
+        return self.configuration_service.initialize(document)
 
     @staticmethod
     def _sync_editor_scene_resources(
