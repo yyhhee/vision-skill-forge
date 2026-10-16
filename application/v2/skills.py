@@ -7,6 +7,11 @@ import re
 from dataclasses import asdict
 from pathlib import Path
 
+from application.v2.skill_assets import (
+    load_saved_document,
+    parse_saved_selection,
+    save_complete_asset,
+)
 from application.v2.support import MEDIA_CHOICES, ROOT, ApplicationError, _variant_key
 from core.business_rule_draft import (
     BusinessDraftError,
@@ -249,12 +254,27 @@ class SkillService:
     def load_saved_skill(self, selection: str, save_root: str = ""):
         if not selection or "/v" not in selection:
             raise ApplicationError("请选择已保存技能")
-        skill_id, version = selection.rsplit("/v", 1)
-        package_store, _ = self._asset_stores(save_root)
-        package = package_store.load(skill_id, int(version))
-        self._generated_editor_documents[package.skill_id] = build_editor_document(
-            package, source_type="legacy"
-        )
+        skill_id, version = parse_saved_selection(selection)
+        package_store, document_store = self._asset_stores(save_root)
+        try:
+            package = package_store.load(skill_id, version)
+            if package.skill_id != skill_id or package.version != version:
+                raise ValueError("运行包的技能标识或版本与所选保存版本不匹配")
+            document, note = load_saved_document(
+                package, document_store, self.configuration_service
+            )
+            # Safe metadata migrations precede the new clean baseline.
+            document = self.business_rule_editor.prepare(document)
+            document.version = package.version
+            document = self.configuration_service.rebase_saved_snapshot(
+                document, package
+            )
+        except (ValueError, OSError, KeyError) as exc:
+            raise ApplicationError(
+                f"加载已保存技能失败：{exc}；未覆盖当前编辑文档。"
+            ) from exc
+        # Replace the cache only after the selected pair has fully validated.
+        self._generated_editor_documents[package.skill_id] = document
         text = self._dump(package)
         source = (
             "### 当前实际执行来源\n"
@@ -265,7 +285,7 @@ class SkillService:
             text,
             text,
             self._dump(package.semantic_ir),
-            f"已加载 {selection}",
+            f"已加载 {selection}；{note}",
             source,
         )
 
@@ -320,24 +340,30 @@ class SkillService:
         display_name: str = "",
         save_root: str = "",
     ) -> str:
+        package = SkillPackage.model_validate_json(effective_json)
+        if editor_json:
+            self.configuration_service.require_current(
+                self._parse_editor_json(editor_json), package
+            )
         document = self._editor_document(effective_json, editor_json)
         if document.effective_skill_package is None:
             raise ApplicationError("03 中存在未应用草稿，不能保存为正式版本")
         package_store, document_store = self._asset_stores(save_root)
-        package_path = self.save_skill(
-            effective_json,
-            skill_id,
-            display_name,
-            store=package_store,
-        )
+        errors = validate_skill_package(package, self.registry)
+        if errors:
+            raise ApplicationError("保存前校验失败：" + "；".join(errors))
         try:
-            document_path = document_store.save(
+            package_path, document_path = save_complete_asset(
+                package,
                 document,
-                skill_id=skill_id.strip() or None,
-                display_name=display_name.strip() or None,
+                package_store,
+                document_store,
+                self.configuration_service,
+                skill_id=skill_id,
+                display_name=display_name,
             )
-        except (ValueError, FileNotFoundError, OSError) as exc:
-            raise ApplicationError(str(exc)) from exc
+        except (ValueError, OSError) as exc:
+            raise ApplicationError(f"保存完整技能失败：{exc}") from exc
         return f"运行包：{package_path}\n可编辑文档：{document_path}"
 
     def delete_saved_skill(self, selection: str, save_root: str = "") -> str:

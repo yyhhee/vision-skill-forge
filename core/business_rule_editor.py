@@ -91,7 +91,7 @@ _RELATION_LABELS = {
     "center_in_object_region": "中心位于{object}的{region}",
 }
 
-_RESULT_KIND_SCHEMA: dict[str, tuple[str, str, str]] = {
+RESULT_KIND_SCHEMA: dict[str, tuple[str, str, str]] = {
     "decision": ("decision", "single", "status"),
     "boolean": ("boolean", "single", "status"),
     "count": ("scalar", "single", "count"),
@@ -1075,6 +1075,7 @@ class BusinessRuleEditor:
         correlation_scope: str = "global",
         display_name: str = "复杂事件",
         pattern_id: str | None = None,
+        create_new: bool = False,
     ) -> SkillEditorDocument:
         result = self.prepare(document).model_copy(deep=True)
         branches = {
@@ -1087,8 +1088,7 @@ class BusinessRuleEditor:
         # as an input of another group.
         selected = list(
             dict.fromkeys(
-                item if ":" in item else f"branch:{item}"
-                for item in (branch_ids or [])
+                item if ":" in item else f"branch:{item}" for item in (branch_ids or [])
             )
         )
         patterns = {
@@ -1105,9 +1105,26 @@ class BusinessRuleEditor:
                 continue
             unknown.append(source_ref)
         if unknown:
-            raise BusinessRuleEditError("分支编排引用了已不存在的分支或编排组，请重新选择。")
-        existing = patterns.get(pattern_id) if pattern_id else next(
-            (item for item in patterns.values() if [stage.source_ref for stage in item.stages] == selected), None
+            raise BusinessRuleEditError(
+                "分支编排引用了已不存在的分支或编排组，请重新选择。"
+            )
+        if create_new and pattern_id:
+            raise BusinessRuleEditError("新建组不能同时指定已有编排组。")
+        if create_new and mode == "none":
+            raise BusinessRuleEditError("新建组请选择一种组合关系。")
+        existing = (
+            patterns.get(pattern_id)
+            if pattern_id
+            else None
+            if create_new
+            else next(
+                (
+                    item
+                    for item in patterns.values()
+                    if [stage.source_ref for stage in item.stages] == selected
+                ),
+                None,
+            )
         )
         if pattern_id and existing is None:
             raise BusinessRuleEditError("选择的编排组已不存在，请重新选择。")
@@ -1115,17 +1132,37 @@ class BusinessRuleEditor:
             if existing is None and not selected and len(patterns) == 1:
                 existing = next(iter(patterns.values()))
             if existing is None and patterns:
-                raise BusinessRuleEditError("请先选择要取消的编排组；不会清空其它编排组。")
+                raise BusinessRuleEditError(
+                    "请先选择要取消的编排组；不会清空其它编排组。"
+                )
             if existing is not None:
                 reference = f"event:{existing.pattern_id}"
-                consumers = [item.display_name for item in patterns.values() if any(stage.source_ref == reference for stage in item.stages)]
+                consumers = [
+                    item.display_name
+                    for item in patterns.values()
+                    if any(stage.source_ref == reference for stage in item.stages)
+                ]
                 final = result.skill_template.final_decision
-                if final and reference in [final.source_ref, *final.source_refs, *(ref for refs in final.media_source_refs.values() for ref in refs)]:
+                if final and reference in [
+                    final.source_ref,
+                    *final.source_refs,
+                    *(ref for refs in final.media_source_refs.values() for ref in refs),
+                ]:
                     consumers.append(final.display_name)
-                consumers.extend(spec.display_name for spec in result.skill_template.result_specs if spec.source_ref == reference)
+                consumers.extend(
+                    spec.display_name
+                    for spec in result.skill_template.result_specs
+                    if spec.source_ref == reference
+                )
                 if consumers:
-                    raise BusinessRuleEditError("该编排组仍被引用，请先修改依赖：" + "、".join(consumers))
-                result.skill_template.event_patterns = [item for item in result.skill_template.event_patterns if item.pattern_id != existing.pattern_id]
+                    raise BusinessRuleEditError(
+                        "该编排组仍被引用，请先修改依赖：" + "、".join(consumers)
+                    )
+                result.skill_template.event_patterns = [
+                    item
+                    for item in result.skill_template.event_patterns
+                    if item.pattern_id != existing.pattern_id
+                ]
             result.version += 1
             return refresh_document_hashes(result)
         if existing and f"event:{existing.pattern_id}" in selected:
@@ -1136,16 +1173,24 @@ class BusinessRuleEditor:
             while pending:
                 reference = pending.pop()
                 if reference == f"event:{existing.pattern_id}":
-                    raise BusinessRuleEditError("编排组修改会产生循环引用，请重新选择成员。")
+                    raise BusinessRuleEditError(
+                        "编排组修改会产生循环引用，请重新选择成员。"
+                    )
                 if reference in visited:
                     continue
                 visited.add(reference)
                 if reference.startswith("event:"):
                     dependency = patterns.get(reference.split(":", 1)[1])
                     if dependency:
-                        pending.extend(stage.source_ref for stage in dependency.stages if stage.source_ref)
+                        pending.extend(
+                            stage.source_ref
+                            for stage in dependency.stages
+                            if stage.source_ref
+                        )
         if media_type != "video" and mode == "sequence":
-            raise BusinessRuleEditError("顺序关系需要视频流程；图片分支可使用并行、互斥、任意或部分汇聚。")
+            raise BusinessRuleEditError(
+                "顺序关系需要视频流程；图片分支可使用并行、互斥、任意或部分汇聚。"
+            )
         minimum = 1 if mode == "repeat" else 2
         if len(selected) < minimum:
             raise BusinessRuleEditError(f"当前编排方式至少需要选择{minimum}个分支。")
@@ -1156,8 +1201,14 @@ class BusinessRuleEditor:
                 raise BusinessRuleEditError("当前编排方式需要填写大于0秒的时间窗口。")
         if mode == "n_of_m":
             if required_count is None or not 1 <= int(required_count) <= len(selected):
-                raise BusinessRuleEditError("至少完成分支数 N 必须在1和已选分支数之间。")
+                raise BusinessRuleEditError(
+                    "至少完成分支数 N 必须在1和已选分支数之间。"
+                )
         stages = []
+        previous_stages = (
+            {stage.source_ref: stage for stage in existing.stages} if existing else {}
+        )
+        used_stage_ids = {stage.stage_id for stage in previous_stages.values()}
         for index, source_ref in enumerate(selected, start=1):
             prefix, source_id = source_ref.split(":", 1)
             if prefix == "branch":
@@ -1166,9 +1217,21 @@ class BusinessRuleEditor:
             else:
                 source = patterns[source_id]
                 source_rule_id = f"event_{source_id}"
+            previous_stage = previous_stages.get(source_ref)
+            stage_id = f"stage_{index}"
+            while not previous_stage and stage_id in used_stage_ids:
+                stage_id += "_new"
+            used_stage_ids.add(stage_id)
             stages.append(
-                PatternStage(
-                    stage_id=f"stage_{index}",
+                previous_stage.model_copy(
+                    update={
+                        "display_name": source.display_name,
+                        "source_rule_id": source_rule_id,
+                    }
+                )
+                if previous_stage
+                else PatternStage(
+                    stage_id=stage_id,
                     display_name=source.display_name,
                     source_rule_id=source_rule_id,
                     source_ref=source_ref,
@@ -1240,26 +1303,28 @@ class BusinessRuleEditor:
             ]
         # Updates keep their stable identity: parent groups, final decisions
         # and outputs must continue to reference the same published group.
-        result.skill_template.event_patterns = [
-            pattern
-            for pattern in result.skill_template.event_patterns
-            if existing is None or pattern.pattern_id != existing.pattern_id
-        ]
-        result.skill_template.event_patterns.append(
-            EventPattern(
-                pattern_id=existing.pattern_id if existing else _new_id("pattern"),
-                display_name=display_name.strip() or "复杂事件",
-                media_type=media_type,  # type: ignore[arg-type]
-                pattern_type=pattern_type,
-                stages=stages,
-                transitions=transitions,
-                gateways=gateways,
-                correlation=CorrelationPolicy(scope=correlation_scope),  # type: ignore[arg-type]
-                instance_policy=existing.instance_policy.model_copy(deep=True) if existing else InstancePolicy(),
-                parameters=parameters,
-                trigger_policy=dict(existing.trigger_policy) if existing else {},
-            )
+        replacement = EventPattern(
+            pattern_id=existing.pattern_id if existing else _new_id("pattern"),
+            display_name=display_name.strip() or "复杂事件",
+            media_type=media_type,  # type: ignore[arg-type]
+            pattern_type=pattern_type,
+            stages=stages,
+            transitions=transitions,
+            gateways=gateways,
+            correlation=CorrelationPolicy(scope=correlation_scope),  # type: ignore[arg-type]
+            instance_policy=existing.instance_policy.model_copy(deep=True)
+            if existing
+            else InstancePolicy(),
+            parameters=parameters,
+            trigger_policy=dict(existing.trigger_policy) if existing else {},
         )
+        if existing:
+            result.skill_template.event_patterns = [
+                replacement if pattern.pattern_id == existing.pattern_id else pattern
+                for pattern in result.skill_template.event_patterns
+            ]
+        else:
+            result.skill_template.event_patterns.append(replacement)
         result.version += 1
         return refresh_document_hashes(result)
 
@@ -1282,6 +1347,15 @@ class BusinessRuleEditor:
 
         result = self.prepare(document).model_copy(deep=True)
         branch = self._branch(result, branch_id)
+        if any(
+            q.enabled and q.target_ref != f"branch:{branch_id}"
+            for q in branch.temporal_qualifiers
+        ):
+            raise BusinessRuleEditError(
+                "此分支含作用于其它对象的时间策略，请在高级配置中修改，不能用分支设置覆盖。"
+            )
+        if sum(q.enabled for q in branch.temporal_qualifiers) > 1:
+            raise BusinessRuleEditError("此分支含多条时间策略，请在高级配置中逐项修改。")
         if mode != "immediate" and branch.media_type != "video":
             raise BusinessRuleEditError(
                 "持续、累计和窗口占比需要视频；图片分支只能立即判断。"
@@ -1295,9 +1369,12 @@ class BusinessRuleEditor:
         if validity_mode == "hold_for" and hold_seconds is None:
             raise BusinessRuleEditError("请填写分支成立后的保持时间。")
         try:
-            branch.temporal_qualifiers = []
+            branch.temporal_qualifiers = [
+                q for q in branch.temporal_qualifiers
+                if not q.enabled and q.target_ref != f"branch:{branch_id}"
+            ]
             if mode != "immediate":
-                branch.temporal_qualifiers = [
+                branch.temporal_qualifiers += [
                     TemporalQualifierSpec(
                         qualifier_id=f"{branch.branch_id}_time",
                         display_name=f"{branch.display_name}时间约束",
@@ -1479,7 +1556,7 @@ class BusinessRuleEditor:
             if source_ref not in available and not source_ref.startswith(("node:", "output:")):
                 raise BusinessRuleEditError(f"业务输出“{name}”的来源已不存在。")
             result_kind = str(row.get("result_kind") or "decision")
-            schema = _RESULT_KIND_SCHEMA.get(result_kind)
+            schema = RESULT_KIND_SCHEMA.get(result_kind)
             if schema is None:
                 raise BusinessRuleEditError(f"业务输出“{name}”选择了不支持的结果类型。")
             semantic_type, value_shape, projection_kind = schema
@@ -1599,7 +1676,7 @@ class BusinessRuleEditor:
 
     @staticmethod
     def _result_kind(spec: ResultSpec) -> str:
-        for kind, schema in _RESULT_KIND_SCHEMA.items():
+        for kind, schema in RESULT_KIND_SCHEMA.items():
             if (
                 spec.semantic_type,
                 spec.value_shape,

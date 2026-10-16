@@ -350,13 +350,18 @@ def _project_value(spec: ResultSpec, source: RuntimeValueEnvelope) -> Any:
     return value
 
 
-def _source_is_compatible(spec: ResultSpec, source: RuntimeValueEnvelope) -> bool:
+def projection_accepts_type(spec: ResultSpec, value_type: str) -> bool:
+    """Shared compatibility contract for the output editor and runtime."""
     accepted = (
         _IDENTITY_SOURCE_TYPES.get(spec.semantic_type, set())
         if spec.projection.kind == "identity"
         else _PROJECTION_SOURCE_TYPES.get(spec.projection.kind, set())
     )
-    return source.value_type in accepted
+    return value_type in accepted
+
+
+def _source_is_compatible(spec: ResultSpec, source: RuntimeValueEnvelope) -> bool:
+    return projection_accepts_type(spec, source.value_type)
 
 
 def _result_status(

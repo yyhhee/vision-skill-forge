@@ -19,7 +19,10 @@ from ui.v2.controllers.configuration import ConfigurationController, draft_edit
 from ui.v2.controllers.editor import EditorController
 from ui.v2.controllers.events import EventRuleController
 from ui.v2.controllers.execution import ExecutionConfigController
+from ui.v2.controllers.output_editor import OutputEditorController
+from ui.v2.controllers.pattern_editor import PatternEditorController
 from ui.v2.controllers.results import ResultController
+from ui.v2.controllers.time_configuration import TimeConfigurationController
 
 Parameters = ParamSpec("Parameters")
 ReturnValue = TypeVar("ReturnValue")
@@ -52,6 +55,9 @@ class V2AppController(
     ExecutionService,
     AssetController,
     ConfigurationController,
+    TimeConfigurationController,
+    PatternEditorController,
+    OutputEditorController,
 ):
     """One state owner; domain adapters never create independent skill copies."""
 
@@ -97,9 +103,15 @@ class V2AppController(
     business_apply_branch_time = draft_edit(
         BusinessRuleController.business_apply_branch_time
     )
+    save_time_configuration = draft_edit(
+        TimeConfigurationController.save_time_configuration
+    )
     business_apply_pattern = draft_edit(BusinessRuleController.business_apply_pattern)
+    save_pattern_group = draft_edit(PatternEditorController.save_pattern_group)
     business_apply_final = draft_edit(BusinessRuleController.business_apply_final)
     business_apply_outputs = draft_edit(BusinessRuleController.business_apply_outputs)
+    save_output_form = draft_edit(OutputEditorController.save_output_form)
+    delete_output_form = draft_edit(OutputEditorController.delete_output_form)
     business_apply_trigger = draft_edit(BusinessRuleController.business_apply_trigger)
     unified_apply_parameter = draft_edit(EditorController.unified_apply_parameter)
     unified_reset_parameter = draft_edit(EditorController.unified_reset_parameter)

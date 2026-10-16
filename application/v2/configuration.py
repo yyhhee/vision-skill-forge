@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.document_hashes import refresh_document_hashes
 from core.editor_schema import SkillEditorDocument
 from core.schema import SkillPackage
 
@@ -69,6 +70,28 @@ class ConfigurationService:
         if _PUBLICATION not in result.validation_report:
             result.validation_report[_PUBLICATION] = self.publication(result)
         return result
+
+    def rebase_saved_snapshot(
+        self, document: SkillEditorDocument, package: SkillPackage
+    ) -> SkillEditorDocument:
+        """Rebase validated asset metadata without recompiling its saved graph.
+
+        Callers must validate the original clean document/runtime pair first.
+        Saving under a new name/version is not a new run revision or rule edit.
+        """
+        previous = self.publication(document)
+        result = document.model_copy(deep=True)
+        result.effective_skill_package = package.model_copy(deep=True)
+        result.validation_report = {
+            **result.validation_report,
+            "dirty": False,
+            _PUBLICATION: {
+                "revision": int(previous.get("revision", 1)),
+                "configuration_hash": configuration_hash(result),
+                "package_hash": package_hash(package),
+            },
+        }
+        return refresh_document_hashes(result)
 
     @staticmethod
     def publication(document: SkillEditorDocument) -> dict:

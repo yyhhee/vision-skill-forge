@@ -16,6 +16,8 @@ from ui.event_rule_editor import (
     friendly_choice_label,
 )
 from ui.v2.bindings.creation import CreationBindings
+from ui.v2.bindings.output_editor import bind_output_editor, output_form_fields
+from ui.v2.bindings.pattern_editor import bind_pattern_editor
 from ui.v2.controllers.configuration import runtime_edit
 from ui.v2.workspace import Workspace
 
@@ -909,22 +911,56 @@ def bind_business(
         workspace.review.business_branch_validity,
         workspace.review.business_branch_hold,
         workspace.review.business_branch_time_status,
+        workspace.review.business_time_confirm,
+        workspace.review.business_branch_time_apply,
     ]
-    workspace.review.editor_document.change(
-        controller.business_branch_time_controls,
-        [workspace.review.editor_document, workspace.review.business_branch],
+    _time_inputs = [
+        workspace.review.editor_document,
+        workspace.review.business_branch,
+        workspace.review.business_time_target,
+    ]
+    for component, event in [
+        (workspace.review.editor_document, "change"),
+        (workspace.review.business_branch, "input"),
+    ]:
+        getattr(component, event)(
+            controller.time_configuration_targets,
+            _time_inputs,
+            [
+                workspace.review.business_time_target,
+                workspace.review.business_time_inventory,
+            ],
+        ).then(
+            controller.time_configuration_controls,
+            _time_inputs,
+            _business_branch_time_outputs,
+        )
+    workspace.review.business_time_target.input(
+        controller.time_configuration_controls,
+        _time_inputs,
         _business_branch_time_outputs,
     )
-    workspace.review.business_branch.input(
-        controller.business_branch_time_controls,
-        [workspace.review.editor_document, workspace.review.business_branch],
-        _business_branch_time_outputs,
-    )
+    for component in [
+        workspace.review.business_branch_time_mode,
+        workspace.review.business_branch_validity,
+    ]:
+        component.input(
+            controller.time_configuration_visibility,
+            [
+                workspace.review.business_branch_time_mode,
+                workspace.review.business_branch_validity,
+                workspace.review.business_time_target,
+                workspace.review.editor_document,
+                workspace.review.business_branch,
+            ],
+            _business_branch_time_outputs[1:11],
+        )
     workspace.review.business_branch_time_apply.click(
-        controller.business_apply_branch_time,
+        controller.save_time_configuration,
         [
             workspace.review.editor_document,
             workspace.review.business_branch,
+            workspace.review.business_time_target,
             workspace.review.business_branch_time_mode,
             workspace.review.business_branch_duration,
             workspace.review.business_branch_window,
@@ -934,11 +970,12 @@ def bind_business(
             workspace.review.business_branch_emission,
             workspace.review.business_branch_validity,
             workspace.review.business_branch_hold,
+            workspace.review.business_time_confirm,
         ],
         [workspace.review.editor_document, workspace.review.business_rule_status],
     ).then(
-        controller.business_branch_time_controls,
-        [workspace.review.editor_document, workspace.review.business_branch],
+        controller.time_configuration_controls,
+        _time_inputs,
         _business_branch_time_outputs,
     )
 
@@ -964,37 +1001,54 @@ def bind_business(
         workspace.review.business_pattern_panel,
     ]
     workspace.review.editor_document.change(
-        controller.business_secondary_controls,
+        controller.pattern_secondary_controls,
         [workspace.review.editor_document, workspace.review.variant_choice],
         _business_secondary_outputs,
     )
     workspace.review.variant_choice.change(
-        controller.business_secondary_controls,
+        controller.pattern_secondary_controls,
         [workspace.review.editor_document, workspace.review.variant_choice],
         _business_secondary_outputs,
     )
     workspace.review.business_pattern_apply.click(
-        controller.business_apply_pattern,
+        controller.save_pattern_group,
         [
             workspace.review.editor_document,
             workspace.review.variant_choice,
+            workspace.review.pattern_editor_selector,
+            workspace.review.pattern_editor_name,
             workspace.review.business_pattern_mode,
             workspace.review.business_pattern_branches,
             workspace.review.business_pattern_window,
             workspace.review.business_pattern_required,
             workspace.review.business_pattern_correlation,
         ],
-        [workspace.review.editor_document, workspace.review.business_rule_status],
+        [
+            workspace.review.editor_document,
+            workspace.review.business_rule_status,
+            workspace.review.pattern_editor_selector,
+        ],
     ).then(
-        controller.business_secondary_controls,
+        controller.pattern_secondary_controls,
         [workspace.review.editor_document, workspace.review.variant_choice],
         _business_secondary_outputs,
     )
 
     def _business_pattern_parameter_visibility(mode):
         return (
-            gr.update(visible=mode == "sequence"),
-            gr.update(visible=mode == "n_of_m"),
+            gr.update(
+                visible=mode
+                in {"sequence", "all_completed_within_window", "absence", "repeat"},
+                label="相邻步骤最长间隔（秒，0 为不限制）"
+                if mode == "sequence"
+                else "观察窗口（秒）",
+            ),
+            gr.update(
+                visible=mode in {"n_of_m", "repeat"},
+                label="窗口内至少发生几次"
+                if mode == "repeat"
+                else "需要完成几个分支 N",
+            ),
         )
 
     workspace.review.business_pattern_mode.change(
@@ -1005,6 +1059,7 @@ def bind_business(
             workspace.review.business_pattern_required,
         ],
     )
+    bind_pattern_editor(controller, workspace)
     workspace.review.business_final_apply.click(
         controller.business_apply_final,
         [
@@ -1019,18 +1074,22 @@ def bind_business(
         ],
         [workspace.review.editor_document, workspace.review.business_rule_status],
     ).then(
-        controller.business_secondary_controls,
+        controller.pattern_secondary_controls,
         [workspace.review.editor_document, workspace.review.variant_choice],
         _business_secondary_outputs,
     )
     workspace.review.business_output_add.click(
-        controller.business_add_output_row,
-        workspace.review.business_outputs_table,
-        workspace.review.business_outputs_table,
+        controller.output_editor_new,
+        None,
+        workspace.review.output_editor_selector,
     ).then(
         controller.business_output_delete_choices,
         workspace.review.business_outputs_table,
         workspace.review.business_output_delete_select,
+    ).then(
+        controller.output_editor_controls,
+        [workspace.review.editor_document, workspace.review.output_editor_selector],
+        output_form_fields(workspace),
     )
     workspace.review.business_outputs_table.change(
         controller.business_output_delete_choices,
@@ -1038,26 +1097,45 @@ def bind_business(
         workspace.review.business_output_delete_select,
     )
     workspace.review.business_output_delete.click(
-        controller.business_delete_output_row,
+        controller.delete_output_form,
         [
-            workspace.review.business_outputs_table,
-            workspace.review.business_output_delete_select,
+            workspace.review.editor_document,
+            workspace.review.output_editor_selector,
         ],
-        workspace.review.business_outputs_table,
+        [
+            workspace.review.editor_document,
+            workspace.review.business_rule_status,
+            workspace.review.output_editor_selector,
+        ],
     ).then(
         controller.business_output_delete_choices,
         workspace.review.business_outputs_table,
         workspace.review.business_output_delete_select,
     )
     workspace.review.business_outputs_apply.click(
-        controller.business_apply_outputs,
-        [workspace.review.editor_document, workspace.review.business_outputs_table],
-        [workspace.review.editor_document, workspace.review.business_rule_status],
+        controller.save_output_form,
+        [
+            workspace.review.editor_document,
+            workspace.review.output_editor_selector,
+            workspace.review.output_editor_name,
+            workspace.review.output_editor_source,
+            workspace.review.output_editor_kind,
+            workspace.review.output_editor_unit,
+            workspace.review.output_editor_evidence,
+            workspace.review.output_editor_save,
+            workspace.review.output_editor_show,
+        ],
+        [
+            workspace.review.editor_document,
+            workspace.review.business_rule_status,
+            workspace.review.output_editor_selector,
+        ],
     ).then(
-        controller.business_secondary_controls,
+        controller.pattern_secondary_controls,
         [workspace.review.editor_document, workspace.review.variant_choice],
         _business_secondary_outputs,
     )
+    bind_output_editor(controller, workspace)
     workspace.review.business_trigger_apply.click(
         controller.business_apply_trigger,
         [
@@ -1069,7 +1147,7 @@ def bind_business(
         ],
         [workspace.review.editor_document, workspace.review.business_rule_status],
     ).then(
-        controller.business_secondary_controls,
+        controller.pattern_secondary_controls,
         [workspace.review.editor_document, workspace.review.variant_choice],
         _business_secondary_outputs,
     )

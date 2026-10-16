@@ -39,6 +39,16 @@ class CompiledValue:
     track_node_id: str | None = None
     event_node_id: str | None = None
 
+    def result_node(self, projection: str) -> str:
+        """Resolve the exact typed node used by a business output projection."""
+        if projection in {"count", "value", "duration"} and self.measurement_node_id:
+            return self.measurement_node_id
+        return {
+            "entities": self.entity_node_id,
+            "tracks": self.track_node_id,
+            "events": self.event_node_id,
+        }.get(projection) or self.node_id
+
     def with_nodes(self, *node_ids: str) -> "CompiledValue":
         self.node_ids.update(node_ids)
         return self
@@ -209,7 +219,9 @@ class BusinessRuleCompiler:
         self.capabilities = capabilities
 
     def compile_document(
-        self, document: SkillEditorDocument
+        self, document: SkillEditorDocument,
+        *,
+        source_values: dict[str, dict[str, CompiledValue]] | None = None,
     ) -> SkillEditorDocument:
         result = document.model_copy(deep=True)
         self._document_for_builder = result
@@ -521,6 +533,19 @@ class BusinessRuleCompiler:
                 branch_values,
             )
             template.rule_graphs[media_type] = graph
+            if source_values is not None:
+                source_values[media_type] = {
+                    **{
+                        f"condition:{key}": value
+                        for key, value in compiled_expressions.items()
+                        if expression_index[key][0].media_type == media_type
+                    },
+                    **{
+                        f"branch:{key}": value
+                        for key, value in branch_values.items()
+                        if branch_index[key].media_type == media_type
+                    },
+                }
 
         result.atomic_plan = {
             "schema_version": "1.0",
@@ -1527,6 +1552,39 @@ class BusinessRuleCompiler:
         if capability == "temporal.persist":
             upstream = source()
             condition = self._as_condition(builder, branch, expression, upstream)
+            mode = p.get("mode", "continuous")
+            scope = p.get("identity_scope", "global")
+            if mode not in {"continuous", "cumulative", "ratio"}:
+                raise BusinessRuleCompileError("时间条件仅支持连续、累计或窗口占比。")
+            if mode in {"cumulative", "ratio"} or scope in {"object", "pair"}:
+                window = p.get("window")
+                if mode in {"cumulative", "ratio"} and (
+                    window is None or float(window) <= 0
+                ):
+                    raise BusinessRuleCompileError(
+                        f"条件“{expression.display_name}”需要大于 0 秒的观察窗口。"
+                    )
+                duration = _float_or_default(p.get("duration"), 1)
+                if mode == "cumulative" and duration > float(window):
+                    raise BusinessRuleCompileError("累计满足时间不能超过观察窗口。")
+                return builder.add(
+                    node_id=_safe_id(base, "persist"),
+                    operator="temporal.qualify@1.0",
+                    display_name=expression.display_name,
+                    inputs={"condition": condition},
+                    params={
+                        "mode": mode,
+                        "duration_seconds": duration if mode != "ratio" else 0,
+                        "window_seconds": window if mode in {"cumulative", "ratio"} else None,
+                        "required_ratio": p.get("required_ratio", 1),
+                        "allowed_gap_seconds": (
+                            float(p.get("allowed_gap", 0)) if mode == "continuous" else 0
+                        ),
+                        "identity_scope": scope,
+                        "trigger_mode": "once",
+                    },
+                    business_source_refs=[source_ref],
+                )
             return builder.add(
                 node_id=_safe_id(base, "persist"),
                 operator="temporal.persist@1.0",
@@ -1567,6 +1625,11 @@ class BusinessRuleCompiler:
             "PairSet",
             "ScopedSet",
         }:
+            identity_scope = (
+                expression.parameters.get("identity_scope", "global")
+                if expression.capability_id == "temporal.persist"
+                else self._branch_identity_scope(branch)
+            )
             return builder.add(
                 node_id=_safe_id(
                     branch.branch_id, expression.expression_id, value.node_id, "exists"
@@ -1574,7 +1637,7 @@ class BusinessRuleCompiler:
                 operator="reduce.exists@1.0",
                 display_name=f"{expression.display_name}存在",
                 inputs={"sets": value},
-                params={"scope": "entity"} if self._branch_identity_scope(branch) != "global" else {},
+                params={"scope": "entity"} if identity_scope != "global" else {},
                 business_source_refs=[f"condition:{expression.expression_id}"],
             )
         raise BusinessRuleCompileError(
@@ -1636,15 +1699,7 @@ class BusinessRuleCompiler:
                 continue
             if value is None:
                 continue
-            node_id = value.node_id
-            if spec.projection.kind in {"count", "value", "duration"} and value.measurement_node_id:
-                node_id = value.measurement_node_id
-            elif spec.projection.kind == "entities" and value.entity_node_id:
-                node_id = value.entity_node_id
-            elif spec.projection.kind == "tracks" and value.track_node_id:
-                node_id = value.track_node_id
-            elif spec.projection.kind == "events" and value.event_node_id:
-                node_id = value.event_node_id
+            node_id = value.result_node(spec.projection.kind)
             output_name = _safe_id("result", spec.result_id)
             builder.expose(node_id, output_name)
             spec.required_outputs = [output_name]

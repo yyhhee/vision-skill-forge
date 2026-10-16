@@ -1465,7 +1465,7 @@ class BusinessRuleController:
             result_rows.append(
                 [
                     row["display_name"],
-                    ref_to_label.get(row["source_ref"], row["source_ref"]),
+                    ref_to_label.get(row["source_ref"], f"已有结果来源 / {row['display_name']}"),
                     self._friendly_result_kind(row["result_kind"]),
                     row["unit"],
                     {

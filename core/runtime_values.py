@@ -121,9 +121,10 @@ def _items(value: Any) -> list[Any]:
     return list(items) if isinstance(items, list) else []
 
 
-def _type_and_shape(value: Any) -> tuple[ValueType, ValueShape]:
-    name = type(value).__name__
+def contract_type_and_shape(name: str) -> tuple[ValueType, ValueShape]:
+    """Map a registered operator contract to the runtime envelope vocabulary."""
     mapping: dict[str, tuple[ValueType, ValueShape]] = {
+        "EntitySet": ("entity_set", "list"),
         "ObjectSet": ("entity_set", "list"),
         "ResultItemSet": ("entity_set", "list"),
         "TrackSet": ("track_set", "list"),
@@ -138,8 +139,13 @@ def _type_and_shape(value: Any) -> tuple[ValueType, ValueShape]:
         "ScopedSet": ("resource", "grouped"),
         "RenderedMedia": ("media", "single"),
     }
-    if name in mapping:
-        return mapping[name]
+    return mapping.get(name, ("unknown", "single"))
+
+
+def _type_and_shape(value: Any) -> tuple[ValueType, ValueShape]:
+    contract = contract_type_and_shape(type(value).__name__)
+    if contract[0] != "unknown":
+        return contract
     if isinstance(value, bool):
         return "boolean", "single"
     if isinstance(value, (int, float, str)) or value is None:

@@ -23,6 +23,20 @@ def write_json(path: Path, value) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _write_new_json(path: Path, value: BaseModel) -> None:
+    """Create a version without overwriting an existing asset on collision."""
+    text = json.dumps(value.model_dump(mode="json"), ensure_ascii=False, indent=2)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    stream = path.open("x", encoding="utf-8")
+    try:
+        with stream:
+            stream.write(text)
+    except (OSError, ValueError):
+        # This invocation exclusively created this exact version file.
+        path.unlink(missing_ok=True)
+        raise
+
+
 class SkillStore:
     def __init__(self, root: Path):
         self.root = Path(root)
@@ -90,19 +104,22 @@ class PackageStore:
         *,
         skill_id: str | None = None,
         display_name: str | None = None,
+        version: int | None = None,
     ) -> Path:
         identity = SkillStore._validate_name((skill_id or package.skill_id).strip())
         directory = self.root / identity
         directory.mkdir(parents=True, exist_ok=True)
         versions = [int(path.stem) for path in directory.glob("*.json") if path.stem.isdigit()]
-        version = max(versions, default=0) + 1
+        version = version if version is not None else max(versions, default=0) + 1
+        if isinstance(version, bool) or not isinstance(version, int) or version < 1:
+            raise ValueError("技能版本必须是正整数")
         data = package.model_dump(mode="json")
         data["skill_id"] = identity
         data["display_name"] = (display_name or package.display_name).strip()
         data["version"] = version
         saved = SkillPackage.model_validate(data)
         path = directory / f"{version}.json"
-        write_json(path, saved)
+        _write_new_json(path, saved)
         return path
 
     def load(self, skill_id: str, version: int) -> SkillPackage:
@@ -147,6 +164,7 @@ class SkillDocumentStore:
         *,
         skill_id: str | None = None,
         display_name: str | None = None,
+        version: int | None = None,
     ) -> Path:
         from .editor_migrations import migrate_editor_document
 
@@ -157,7 +175,9 @@ class SkillDocumentStore:
         directory = self.root / identity
         directory.mkdir(parents=True, exist_ok=True)
         versions = [int(path.stem) for path in directory.glob("*.json") if path.stem.isdigit()]
-        version = max(versions, default=0) + 1
+        version = version if version is not None else max(versions, default=0) + 1
+        if isinstance(version, bool) or not isinstance(version, int) or version < 1:
+            raise ValueError("技能版本必须是正整数")
         template = document.skill_template.model_copy(
             update={
                 "skill_id": identity,
@@ -166,7 +186,7 @@ class SkillDocumentStore:
         )
         saved = document.model_copy(update={"version": version, "skill_template": template})
         path = directory / f"{version}.json"
-        write_json(path, saved)
+        _write_new_json(path, saved)
         return path
 
     def load(self, skill_id: str, version: int) -> SkillEditorDocument:

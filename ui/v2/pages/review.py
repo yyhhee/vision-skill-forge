@@ -17,6 +17,7 @@ from ui.event_rule_editor import (
     render_branch_pattern,
     render_condition_tree,
 )
+from ui.v2.controllers.output_editor import EVIDENCE_CHOICES, SAVE_CHOICES
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,9 @@ class ReviewPage:
     business_branch_time_apply: gr.Button
     business_branch_time_mode: gr.Dropdown
     business_branch_time_status: gr.Markdown
+    business_time_target: gr.Dropdown
+    business_time_inventory: gr.Markdown
+    business_time_confirm: gr.Checkbox
     business_branch_validity: gr.Dropdown
     business_branch_window: gr.Number
     business_capability: gr.Dropdown
@@ -95,6 +99,15 @@ class ReviewPage:
     business_output_delete_select: gr.Dropdown
     business_outputs_apply: gr.Button
     business_outputs_table: gr.Dataframe
+    output_editor_selector: gr.Dropdown
+    output_editor_name: gr.Textbox
+    output_editor_source: gr.Dropdown
+    output_editor_kind: gr.Dropdown
+    output_editor_unit: gr.Textbox
+    output_editor_evidence: gr.Dropdown
+    output_editor_save: gr.Dropdown
+    output_editor_show: gr.Checkbox
+    output_editor_status: gr.Markdown
     business_parameter_boolean: gr.Radio
     business_parameter_control_help: gr.Markdown
     business_parameter_help: gr.Markdown
@@ -114,6 +127,12 @@ class ReviewPage:
     business_pattern_required: gr.Number
     business_pattern_status: gr.Markdown
     business_pattern_window: gr.Number
+    pattern_editor_selector: gr.Dropdown
+    pattern_editor_name: gr.Textbox
+    pattern_editor_step: gr.Dropdown
+    pattern_editor_up: gr.Button
+    pattern_editor_down: gr.Button
+    pattern_editor_dependencies: gr.Markdown
     business_region_comparison: gr.Dropdown
     business_region_event: gr.Dropdown
     business_region_name: gr.Dropdown
@@ -656,35 +675,48 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                                 "新增这组逻辑", variant="primary"
                             )
                     with gr.Accordion(
-                        "分支时间与有效状态｜持续、累计、窗口占比",
+                        "时间设置｜选择条件或整个分支",
                         open=False,
                     ):
                         gr.Markdown(
-                            "时间约束独立作用于当前分支，不会误用到其它分支。"
-                            "图片只能立即判断；视频可按同一目标、轨迹、目标对或区域持续。"
+                            "先选择作用对象，再设置等待多久。修改已有计时条件不会新增步骤；"
+                            "整个分支的计时在分支内条件完成后开始。"
+                            "为单项条件新增计时，可添加“持续、累计或窗口占比”条件并选择输入来源。"
+                        )
+                        business_time_target = gr.Dropdown(
+                            [],
+                            label="本次修改哪个对象",
+                            elem_id="time-configuration-target",
+                        )
+                        business_time_inventory = gr.Markdown(
+                            "请先选择分支。", elem_id="time-configuration-inventory"
                         )
                         with gr.Row():
                             business_branch_time_mode = gr.Dropdown(
                                 [
-                                    ("立即判断", "immediate"),
-                                    ("连续满足", "continuous"),
-                                    ("窗口内累计满足", "cumulative"),
-                                    ("窗口内满足占比", "ratio"),
+                                    ("不额外等待", "immediate"),
+                                    ("连续满足一段时间", "continuous"),
+                                    ("观察窗口内累计满足", "cumulative"),
+                                    ("观察窗口内满足时间占比", "ratio"),
                                 ],
                                 value="immediate",
-                                label="时间约束",
+                                label="什么时候算满足",
                             )
                             business_branch_duration = gr.Number(
-                                None, minimum=0, label="持续/累计时间（秒）"
+                                None,
+                                minimum=0,
+                                label="持续/累计时间（秒）",
+                                visible=False,
                             )
                             business_branch_window = gr.Number(
-                                None, minimum=0, label="观察窗口（秒）"
+                                None, minimum=0, label="观察窗口（秒）", visible=False
                             )
                             business_branch_ratio = gr.Number(
                                 100,
                                 minimum=0,
                                 maximum=100,
                                 label="窗口满足比例（%）",
+                                visible=False,
                             )
                         with gr.Row():
                             business_branch_gap = gr.Number(
@@ -692,26 +724,29 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                                 minimum=0,
                                 label="允许短暂中断（秒）",
                                 info="用于容忍短时遮挡或漏检。",
+                                visible=False,
                             )
                             business_branch_identity = gr.Dropdown(
                                 [
-                                    ("当前媒体内全局", "global"),
+                                    ("所选对象整体（不区分实例）", "global"),
                                     ("同一目标", "object"),
                                     ("同一轨迹", "track"),
                                     ("同一目标对", "pair"),
                                     ("同一区域", "region"),
                                 ],
                                 value="global",
-                                label="按什么对象连续",
+                                label="按谁分别计时",
+                                info="目标、轨迹或区域 ID 来自所选条件的输入结果；不会把不同对象的时间相加。",
+                                visible=False,
                             )
                             business_branch_emission = gr.Dropdown(
                                 [
-                                    ("首次满足", "first"),
-                                    ("允许重复形成事件", "repeat"),
-                                    ("状态变化时", "on_change"),
+                                    ("每段连续成立只产生一次", "first"),
+                                    ("满足后每个采样时刻均可产生", "repeat"),
                                 ],
                                 value="first",
                                 label="分支结果产生方式",
+                                visible=False,
                             )
                         with gr.Row():
                             business_branch_validity = gr.Dropdown(
@@ -727,20 +762,36 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                                 None,
                                 minimum=0,
                                 label="成立后保持（秒）",
+                                visible=False,
                             )
                         business_branch_time_status = gr.Markdown(
-                            "当前分支立即判断，不附加持续约束。"
+                            "请先选择要修改的条件或整个分支。"
+                        )
+                        business_time_confirm = gr.Checkbox(
+                            False,
+                            label="我确认：已有条件完成计时后，整个分支还需要再计时一次",
+                            visible=False,
+                            elem_id="time-configuration-confirm",
                         )
                         business_branch_time_apply = gr.Button(
-                            "保存分支时间到草稿", variant="primary"
+                            "保存所选对象的时间设置到草稿", variant="primary"
                         )
 
                 with gr.Tab("分支编排"):
                     gr.Markdown(
-                        "把分支组合成可复用的编排组。先保存“顺序（A → B）”，再把该已编排组"
-                        "与分支 C 选择“并行”，即可得到“（A → B）AND C”；顺序关系只适用于视频。"
+                        "选中已有组即可修改；也可以选择“新建编排组”。添加成员后，选择步骤并上移／下移。"
+                        "这里只编辑所选组，其他组和最终判定的引用不会被替换。顺序关系仅适用于视频。"
+                    )
+                    pattern_editor_selector = gr.Dropdown(
+                        choices=[("新建编排组", "__new_group__")],
+                        label="选择要编辑的编排组",
+                        filterable=False,
+                        elem_id="pattern-editor-selector",
                     )
                     with gr.Group(visible=False) as business_pattern_panel:
+                        pattern_editor_name = gr.Textbox(
+                            label="编排组名称", elem_id="pattern-editor-name"
+                        )
                         business_pattern_status = gr.Markdown(
                             render_branch_pattern("none", [])
                         )
@@ -755,12 +806,26 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             ],
                             value="none",
                             label="基础关系",
+                            filterable=False,
                         )
                         business_pattern_branches = gr.Dropdown(
                             choices=[],
                             multiselect=True,
                             label="参与本组的分支或已编排组（顺序关系按选择先后）",
                         )
+                        with gr.Row(elem_id="pattern-editor-move-row"):
+                            pattern_editor_step = gr.Dropdown(
+                                choices=[],
+                                label="要移动的步骤",
+                                filterable=False,
+                                elem_id="pattern-editor-step",
+                            )
+                            pattern_editor_up = gr.Button(
+                                "上移一步", elem_id="pattern-editor-up"
+                            )
+                            pattern_editor_down = gr.Button(
+                                "下移一步", elem_id="pattern-editor-down"
+                            )
                         business_pattern_help = gr.Markdown(  # noqa: F841 — preserved V2 behavior
                             "顺序：A 完成后才接受 B；并行：所有所选分支完成；"
                             "互斥：只采用最先完成的分支；任意完成：任一分支完成；"
@@ -770,7 +835,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             business_pattern_window = gr.Number(
                                 None,
                                 minimum=0,
-                                label="相邻步骤最长间隔（秒，可不限制）",
+                                label="相邻步骤最长间隔（秒，0 为不限制）",
                                 visible=False,
                             )
                             business_pattern_required = gr.Number(
@@ -791,6 +856,9 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                                 value="global",
                                 label="这些分支属于同一个什么对象",
                             )
+                        pattern_editor_dependencies = gr.Markdown(
+                            "暂无依赖关系。", elem_id="pattern-editor-dependencies"
+                        )
                         business_pattern_apply = gr.Button(
                             "保存编排组到草稿", variant="primary"
                         )
@@ -869,26 +937,77 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                         datatype=["str"] * 7,
                         type="array",
                         value=[],
-                        interactive=True,
+                        interactive=False,
                         wrap=True,
                         label="业务输出规格",
                     )
                     gr.Markdown(
-                        "来源和“希望看到”必须类型兼容；展示方式属于 PresentationSpec，"
-                        "只改变布局时不会重新调用视觉模型。"
+                        "下表用于查看已保存到草稿的输出；在下面选择一项进行修改。"
+                        "结果来源按业务名称选择，结果类型只显示兼容选项。"
+                    )
+                    output_editor_selector = gr.Dropdown(
+                        choices=[("新增业务输出", "__new_output__")],
+                        value="__new_output__",
+                        label="编辑哪项输出",
+                        filterable=False,
+                        allow_custom_value=False,
+                        elem_id="output-editor-selector",
+                    )
+                    with gr.Row(elem_id="output-editor-main-row"):
+                        output_editor_name = gr.Textbox(
+                            label="输出名称", elem_id="output-editor-name"
+                        )
+                        output_editor_source = gr.Dropdown(
+                            choices=[],
+                            label="结果来源",
+                            allow_custom_value=False,
+                            filterable=False,
+                            elem_id="output-editor-source",
+                        )
+                        output_editor_kind = gr.Dropdown(
+                            choices=[],
+                            label="希望看到的结果",
+                            allow_custom_value=False,
+                            filterable=False,
+                            elem_id="output-editor-kind",
+                        )
+                    with gr.Row(elem_id="output-editor-policy-row"):
+                        output_editor_unit = gr.Textbox(
+                            label="单位（可不填）", elem_id="output-editor-unit"
+                        )
+                        output_editor_evidence = gr.Dropdown(
+                            EVIDENCE_CHOICES,
+                            value="optional",
+                            label="证据保存",
+                            filterable=False,
+                            elem_id="output-editor-evidence",
+                        )
+                        output_editor_save = gr.Dropdown(
+                            SAVE_CHOICES,
+                            value="always",
+                            label="结果保存",
+                            filterable=False,
+                            elem_id="output-editor-save",
+                        )
+                        output_editor_show = gr.Checkbox(
+                            True, label="在结果概览中显示", elem_id="output-editor-show"
+                        )
+                    output_editor_status = gr.Markdown(
+                        "先选择要编辑的输出，或点击新增。",
+                        elem_id="output-editor-status",
                     )
                     with gr.Row():
                         business_output_add = gr.Button(
                             "新增业务输出", variant="secondary"
                         )
                         business_output_delete_select = gr.Dropdown(
-                            choices=[], label="选择要删除的输出"
+                            choices=[], label="选择要删除的输出", visible=False
                         )
                         business_output_delete = gr.Button(
-                            "删除所选输出", variant="stop"
+                            "删除所选输出", variant="stop", interactive=False
                         )
                         business_outputs_apply = gr.Button(
-                            "保存业务输出到草稿", variant="primary"
+                            "保存业务输出到草稿", variant="primary", interactive=False
                         )
 
                 with gr.Tab("触发策略"):
@@ -1521,6 +1640,9 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
         business_branch_time_apply=business_branch_time_apply,
         business_branch_time_mode=business_branch_time_mode,
         business_branch_time_status=business_branch_time_status,
+        business_time_target=business_time_target,
+        business_time_inventory=business_time_inventory,
+        business_time_confirm=business_time_confirm,
         business_branch_validity=business_branch_validity,
         business_branch_window=business_branch_window,
         business_capability=business_capability,
@@ -1564,6 +1686,15 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
         business_output_delete_select=business_output_delete_select,
         business_outputs_apply=business_outputs_apply,
         business_outputs_table=business_outputs_table,
+        output_editor_selector=output_editor_selector,
+        output_editor_name=output_editor_name,
+        output_editor_source=output_editor_source,
+        output_editor_kind=output_editor_kind,
+        output_editor_unit=output_editor_unit,
+        output_editor_evidence=output_editor_evidence,
+        output_editor_save=output_editor_save,
+        output_editor_show=output_editor_show,
+        output_editor_status=output_editor_status,
         business_parameter_boolean=business_parameter_boolean,
         business_parameter_control_help=business_parameter_control_help,
         business_parameter_help=business_parameter_help,
@@ -1583,6 +1714,12 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
         business_pattern_required=business_pattern_required,
         business_pattern_status=business_pattern_status,
         business_pattern_window=business_pattern_window,
+        pattern_editor_selector=pattern_editor_selector,
+        pattern_editor_name=pattern_editor_name,
+        pattern_editor_step=pattern_editor_step,
+        pattern_editor_up=pattern_editor_up,
+        pattern_editor_down=pattern_editor_down,
+        pattern_editor_dependencies=pattern_editor_dependencies,
         business_region_comparison=business_region_comparison,
         business_region_event=business_region_event,
         business_region_name=business_region_name,

@@ -1,6 +1,62 @@
 {
   "schema_version": "1.0",
   "updated_date": "2026-10-16",
+  "latest_editor_checkpoint": {
+    "date": "2026-10-16",
+    "base_commit": "f08ab139c71a6fcc44d6dc9fb20b451cbe75b43c",
+    "commit_subject": "feat: complete event editor controls and lossless skill reload",
+    "status": "verified_for_checkpoint",
+    "tests": "714 passed; 429 existing Gradio deprecation warnings; data/validation/editor-checkpoint-20261016.xml",
+    "scope": "30 related code, test and implementation-document files covering targeted time controls, selected-group editing, controlled business outputs and complete editor/runtime asset restoration.",
+    "excluded": "Unrelated README edits and architecture drafts; screenshots, QA assets, runtime logs, local settings and credentials.",
+    "boundary": "No preset or model-prompt edits and no new real-model accuracy claim. Full saved-skill service API roundtrip was verified; browser-click acceptance for the complete flow remains outstanding."
+  },
+  "latest_complete_skill_save_load": {
+    "date": "2026-10-16",
+    "status": "passed_full_regression_and_public_service_api_roundtrip",
+    "tests": "714 passed, 429 Gradio warnings; data/validation/complete-skill-assets-final.xml",
+    "new_tests": 25,
+    "pre_fix": "15 focused failures reproduced before implementation",
+    "coverage": "Full editor trees/nested groups/time/outputs/scenes, fresh-controller reload, custom asset root and save-as metadata, divergent histories, version switching, package-only and schema legacy compatibility, historical embedded metadata, post-load edits, dirty/mismatched content protection, malformed selections, write-failure rollback and no overwrite.",
+    "documentation": "docs/COMPLETE_SKILL_SAVE_LOAD.md",
+    "service": "Original 6131 PID 39820; HTTP 200; independent public API save/load roundtrip passed for v1 and v2 with 3 branches and 2 nested groups.",
+    "service_artifact": "data/validation/assets-service-1s9fnd2z/summary.json",
+    "boundary": "No browser-click or new real-model/P01-P13 accuracy acceptance. Existing historical preset records remain unchanged; not committed or pushed."
+  },
+  "latest_business_output_editor": {
+    "date": "2026-10-16",
+    "status": "passed_deterministic_regression_and_live_configuration_check",
+    "tests": "689 passed, 429 Gradio warnings; data/validation/business-output-editor-final.xml",
+    "new_tests": 17,
+    "recheck": "40 passed, 33 Gradio warnings; data/validation/business-output-editor-recheck.xml",
+    "coverage": "Controlled source/kind compatibility from real lowering, measurement projections, final event projections, imported sources, immutable reads, stable rename/edit, hidden-policy preservation, missing/invalid/stale values, cycle/deletion protection and draft publication boundary.",
+    "documentation": "docs/BUSINESS_OUTPUT_EDITOR.md",
+    "service": "Original 6131 PID 28172; HTTP 200; source/kind allow_custom_value=false and read-only overview verified in live config.",
+    "browser": "Not accepted by real clicks; browser control was stopped when current URL could not be reliably determined.",
+    "boundary": "Existing preset acceptance records below are unchanged. No new model inference or P01-P13 accuracy acceptance; not committed or pushed."
+  },
+  "latest_pattern_group_editor": {
+    "date": "2026-10-16",
+    "status": "passed_deterministic_regression_and_browser_check",
+    "tests": "672 passed; 418 Gradio warnings; data/validation/pattern-group-editor-final.xml",
+    "new_tests": 17,
+    "coverage": "Explicit selection, ordered form moves, stable group/stage identity and references, same-member new groups, cycle checks, direct dependency readout, advanced-contract guards, duplicate-name disambiguation, atomic choice updates and zero/unlimited sequence gap.",
+    "documentation": "docs/PATTERN_GROUP_EDITOR.md",
+    "service": "Original 6131 PID 15588; HTTP 200; live configuration exposes non-filtering group/relation/step selectors.",
+    "browser": "Independent QA draft: sequence moves and save, parent group reuse, child selection and parent readback. No activation or detection inference. Screenshot docs/pattern-group-editor/edit-and-dependencies.png.",
+    "boundary": "No preset/model changes or new visual accuracy acceptance. Existing saved loader does not restore complete stored editor structure; end-to-end save/load group roundtrip remains a separate follow-up."
+  },
+  "latest_time_configuration": {
+    "date": "2026-10-16",
+    "status": "passed_deterministic_regression_and_browser_check",
+    "tests": "655 passed; 418 Gradio warnings; data/validation/time-configuration-final.xml",
+    "new_tests": 23,
+    "coverage": "Target ownership, original timer readback, mode-specific fields, idempotent replacement, explicit layering confirmation, no hidden hold, window-mode lowering, imported P06 scope/threshold, image and special-policy protection, common draft lifecycle.",
+    "documentation": "docs/TIME_CONFIGURATION.md",
+    "service": "Original 6131 restarted as PID 996; HTTP 200; no startup stderr errors.",
+    "browser": "Independent P06 session: actual 10 seconds/track scope read; edited to 7 seconds and saved as pending draft while R1 stayed unchanged. Screenshot docs/time-configuration/condition-timer.png.",
+    "boundary": "No changes to preset files or model prompts, no real-model inference, no new visual accuracy acceptance."
+  },
   "latest_event_editor_high_priority_fixes": {
     "date": "2026-10-16",
     "status": "passed_deterministic_regression",

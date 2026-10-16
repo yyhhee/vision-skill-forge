@@ -576,6 +576,8 @@ def build_business_capability_registry(
             parameters=[
                 source,
                 _p("mode", "时间约束", "select", "选择连续持续、累计持续或窗口占比。", default="continuous", choices=["continuous", "cumulative", "ratio"]),
+                _p("window", "观察窗口", "duration", "累计或占比模式需要的观察窗口。", unit="秒"),
+                _p("required_ratio", "窗口满足比例", "number", "占比模式下满足时间占观察窗口的比例，0 到 1。", default=1, minimum=0, maximum=1),
                 _p("duration", "持续时间", "duration", "达到该媒体时间后条件才成立。", default=1, unit="秒", maps_to=["temporal.persist@1.0.seconds"]),
                 _p("allowed_gap", "允许短暂中断", "duration", "用于容忍短暂遮挡或漏检。", default=0.5, unit="秒", level="tuning", maps_to=["temporal.persist@1.0.gap_tolerance_seconds"]),
                 _p("identity_scope", "按什么对象连续", "select", "选择全局、同一目标、同一轨迹、同一目标对或同一区域。", default="global", choices=["global", "object", "track", "pair", "region"]),

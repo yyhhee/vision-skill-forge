@@ -391,9 +391,12 @@ class EditorController:
             and cached.skill_template.original_instruction
             == package.original_instruction
         ):
-            synced = self._sync_editor_scene_resources(
-                cached.model_copy(deep=True), package
-            )
+            # A complete saved snapshot already owns its exact scene profiles.
+            # Do not create a new default profile or re-project an unchanged
+            # package merely because the user reopens the saved version.
+            synced = cached.model_copy(deep=True)
+            if synced.effective_skill_package != package:
+                synced = self._sync_editor_scene_resources(synced, package)
             synced.effective_skill_package = package
             return self._refresh_editor_validation(synced, active_media_type)
         built = build_editor_document(package, source_type=source_type)
