@@ -1,6 +1,16 @@
 {
   "schema_version": "1.0",
-  "updated_date": "2026-08-27",
+  "updated_date": "2026-10-16",
+  "latest_structure_refactor": {
+    "date": "2026-10-16",
+    "base_commit": "bf71b22",
+    "status": "passed_existing_tests_and_ui_contract",
+    "baseline": "597 passed; data/validation/original-refactor-baseline.xml",
+    "tests": "598 passed; 324 Gradio deprecation warnings; data/validation/original-refactor-final.xml",
+    "behavioral_checks": "650 components, 239 event bindings, complete layout, stylesheet and annotation JavaScript match original; each of six condition-delete callbacks retains its own index; 138 controller methods preserved; preset files and execution core unchanged",
+    "runtime": "Original 6131 service restarted successfully; HTTP 200; live component and dependency counts match",
+    "boundary": "No new real-model or P01-P13 semantic acceptance; existing historical acceptance records remain unchanged."
+  },
   "latest_homepage_title": {
     "date": "2026-08-26",
     "tests": "116 V2 UI tests passed; 6131 homepage includes “AI 一句话生成视觉技能”."

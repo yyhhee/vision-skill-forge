@@ -1,0 +1,9 @@
+{
+  "component_count": 650,
+  "dependency_count": 239,
+  "components": "85abdcb9dc2969978d485d27c6d810aba5f85ffd5e1e30a75d432bf1e07785f0",
+  "layout": "60f89c274e55a4ebfab758f54febe2b68860cb486db88323f5665f5fb739faad",
+  "dependencies": "9d2843b059be7589bd9585edbe4bfe5418bd82a05dbe07ec4df543a1b9e1f171",
+  "stylesheet": "c52508e977941665a8afd4661fa0af5242594c5f32ea1e60368cc383bac79cab",
+  "annotation_javascript": "e8e470fd30a0e3ebec7d4526a7efd7f2e6c0585115b87f07a2668ca72abfe3ce"
+}
