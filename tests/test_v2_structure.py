@@ -10,6 +10,22 @@ from pathlib import Path
 def workspace_fingerprint(app, temporary_root: Path) -> dict[str, object]:
     """Normalize process-local IDs while retaining component settings and edges."""
     config = app.get_config_file()
+    restore_id = next(
+        item["id"]
+        for item in config["components"]
+        if item["type"] == "button"
+        and item["props"].get("value") == "还原本次生成/加载的默认规则"
+    )
+    for dependency in config["dependencies"]:
+        if [restore_id, "click"] in [list(target) for target in dependency["targets"]]:
+            assert app.fns[dependency["id"]].fn.__name__ == "_restore_generated"
+            assert len(dependency["inputs"]) == 4
+            assert len(dependency["outputs"]) == 3
+            dependency["inputs"] = [dependency["inputs"][0], dependency["inputs"][3]]
+            dependency["outputs"] = dependency["outputs"][:2]
+            # Compare the original subgraph except this deliberately replaced
+            # callback, whose staged restore semantics have their own test.
+            dependency["lifecycle_restore"] = True
     # The activation controls are an intentional addition after the pure
     # refactor. Keep checking the complete original subgraph against bf71b22.
     activation_ids = {
@@ -112,7 +128,9 @@ def workspace_fingerprint(app, temporary_root: Path) -> dict[str, object]:
             "trigger_mode": item.get("trigger_mode"),
             "queue": item.get("queue"),
             "js": item.get("js"),
-            "callback": getattr(app.fns[item["id"]].fn, "__name__", None),
+            "callback": "restore_default_editor_document"
+            if item.get("lifecycle_restore")
+            else getattr(app.fns[item["id"]].fn, "__name__", None),
         }
         for item in config["dependencies"]
     ]

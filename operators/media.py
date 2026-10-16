@@ -78,4 +78,5 @@ def video_sample(inputs, params, services, node_id):
                 break
         index += 1
     capture.release()
+    services.state["sample_timeline"] = [(frame.frame_index, frame.timestamp) for frame in frames]
     return FrameSet(frames, video.path, "video", video.fps)

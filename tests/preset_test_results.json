@@ -1,6 +1,21 @@
 {
   "schema_version": "1.0",
   "updated_date": "2026-10-16",
+  "latest_event_editor_high_priority_fixes": {
+    "date": "2026-10-16",
+    "status": "passed_deterministic_regression",
+    "tests": "632 passed; 418 Gradio deprecation warnings; data/validation/event-editor-fixes-final.xml",
+    "new_regressions": "21 event-editor cases including protection against frame-local identity x video-frame expansion; original failure reproduction had 16 failures and 1 pass before implementation",
+    "coverage": [
+      "Normal adjacent sampling at zero gap tolerance, variable sampling schedule, missing samples and explicit false resets",
+      "Explicit temporal identity scope, typed identity preservation through entity projections and boolean logic, rejection of missing identities",
+      "Stable child-pattern identity, compilable parent/final references, single-group removal and dependency/cycle protection",
+      "Business and advanced restore share one staged callback with undo history and monotonically increasing run revision"
+    ],
+    "documentation": "docs/EVENT_EDITOR_HIGH_PRIORITY_FIXES.md",
+    "runtime": "Original 6131 restarted as PID 45604; HTTP 200; 654 components and 245 dependencies; live business restore uses _restore_generated with four inputs and three outputs",
+    "boundary": "Preset JSON and model detection configuration unchanged. No new real-model or P01-P13 visual accuracy acceptance."
+  },
   "latest_configuration_lifecycle": {
     "date": "2026-10-16",
     "status": "passed_regression_and_live_service_configuration",

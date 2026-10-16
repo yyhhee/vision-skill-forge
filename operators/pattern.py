@@ -5,10 +5,12 @@ from itertools import combinations, pairwise, product
 
 from core.context import Event, EventSet
 
+from .condition_identity import bind_condition_identity
 from .temporal import temporal_persist
 
 
 def temporal_qualify(inputs, params, services, node_id):
+    inputs = {**inputs, "condition": bind_condition_identity(inputs["condition"], params.get("identity_scope", "source"))}
     mode = params["mode"]
     if mode in {"immediate", "continuous"}:
         seconds = 0.0 if mode == "immediate" else float(params["duration_seconds"])
@@ -59,6 +61,7 @@ def temporal_qualify(inputs, params, services, node_id):
                         selected[0].timestamp,
                         item.timestamp,
                         {
+                            **item.metadata,
                             "qualification_mode": mode,
                             "true_duration_seconds": true_duration,
                             "window_seconds": window,

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from core.context import ConditionSet, TimedValue
+
+from .condition_identity import merge_condition_metadata
 from .geometry import lane_for_track, majority_lane_for_track
 
 
@@ -23,7 +25,7 @@ def logic_compare(inputs, params, services, node_id):
                 else cosine > threshold
             )
             output.append(TimedValue(
-                item.key, item.timestamp, matched, item.frame_index
+                item.key, item.timestamp, matched, item.frame_index, item.metadata
             ))
     else:
         key_filter = params.get("key_filter")
@@ -51,7 +53,7 @@ def logic_compare(inputs, params, services, node_id):
             item_operator = operator_overrides.get(item.key, operator)
             if item_operator not in predicates or other is None:
                 raise ValueError(f"unsupported comparison: {item_operator}")
-            output.append(TimedValue(item.key, item.timestamp, predicates[item_operator](item.value, other), item.frame_index))
+            output.append(TimedValue(item.key, item.timestamp, predicates[item_operator](item.value, other), item.frame_index, item.metadata))
     return ConditionSet(output)
 
 
@@ -82,7 +84,7 @@ def _combine(condition_sets, predicate, combine_scope="by_key"):
             for condition in condition_sets]
     keys = sorted(set().union(*(mapping.keys() for mapping in maps)))
     return ConditionSet([
-        TimedValue(key[0], key[2], predicate([mapping.get(key) is not None and mapping[key].value for mapping in maps]), key[1])
+        TimedValue(key[0], key[2], predicate([mapping.get(key) is not None and mapping[key].value for mapping in maps]), key[1], merge_condition_metadata([mapping[key] for mapping in maps if key in mapping]))
         for key in keys
     ])
 
@@ -103,7 +105,7 @@ def logic_any(inputs, params, services, node_id):
 
 def logic_not(inputs, params, services, node_id):
     return ConditionSet([
-        TimedValue(item.key, item.timestamp, not item.value, item.frame_index)
+        TimedValue(item.key, item.timestamp, not item.value, item.frame_index, item.metadata)
         for item in inputs["condition"].items
     ])
 
@@ -147,6 +149,6 @@ def logic_compare_heading_by_lane(inputs, params, services, node_id):
             item.timestamp,
             matched,
             item.frame_index,
-            {"region_id": lane.id, "direction_cosine": cosine},
+            {"region_id": lane.id, "direction_cosine": cosine, "track_id": item.key, "object_id": item.key},
         ))
     return ConditionSet(output)

@@ -4,7 +4,13 @@ import math
 import statistics
 
 from core.context import EventSet, ObjectSet, ScalarSet, TimedValue, TrackSet, VectorSet
-from .geometry import lane_for_track, majority_lane_for_track, object_center, point_in_polygon
+
+from .geometry import (
+    lane_for_track,
+    majority_lane_for_track,
+    object_center,
+    point_in_polygon,
+)
 
 
 def _center_pixels(obj):
@@ -42,7 +48,7 @@ def measure_heading(inputs, params, services, node_id):
                 )
             if length >= effective_minimum:
                 values.append(
-                    TimedValue(track.id, current.timestamp, (dx / length, dy / length), current.frame_index)
+                    TimedValue(track.id, current.timestamp, (dx / length, dy / length), current.frame_index, {"track_id": track.id, "object_id": track.id})
                 )
     return VectorSet(values)
 
@@ -188,7 +194,7 @@ def measure_region_count(inputs, params, services, node_id):
                 grouped[(region.id, item.frame_index, item.timestamp)] += 1
                 break
     return ScalarSet([
-        TimedValue(region_id, timestamp, count, frame_index)
+        TimedValue(region_id, timestamp, count, frame_index, {"region_id": region_id, "scope_type": "region"})
         for (region_id, frame_index, timestamp), count in sorted(
             grouped.items(), key=lambda entry: (entry[0][1], entry[0][0])
         )
@@ -210,7 +216,7 @@ def measure_speed(inputs, params, services, node_id):
             x0, y0 = _center_pixels(earlier)
             x1, y1 = _center_pixels(current)
             values.append(TimedValue(track.id, current.timestamp, math.hypot(x1 - x0, y1 - y0) / elapsed,
-                                     current.frame_index))
+                                     current.frame_index, {"track_id": track.id, "object_id": track.id}))
     aggregation = params.get("aggregation", "per_track")
     if aggregation == "per_track":
         return ScalarSet(values)
@@ -269,6 +275,7 @@ def measure_region_speed(inputs, params, services, node_id):
             if aggregation == "median"
             else sum(values) / len(values),
             frame_index,
+            {"region_id": region_id, "scope_type": "region"},
         )
         for (region_id, frame_index, timestamp), values in sorted(
             grouped.items(), key=lambda entry: (entry[0][1], entry[0][0])

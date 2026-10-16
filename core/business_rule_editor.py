@@ -1074,6 +1074,7 @@ class BusinessRuleEditor:
         required_count: int | None = None,
         correlation_scope: str = "global",
         display_name: str = "复杂事件",
+        pattern_id: str | None = None,
     ) -> SkillEditorDocument:
         result = self.prepare(document).model_copy(deep=True)
         branches = {
@@ -1105,14 +1106,44 @@ class BusinessRuleEditor:
             unknown.append(source_ref)
         if unknown:
             raise BusinessRuleEditError("分支编排引用了已不存在的分支或编排组，请重新选择。")
+        existing = patterns.get(pattern_id) if pattern_id else next(
+            (item for item in patterns.values() if [stage.source_ref for stage in item.stages] == selected), None
+        )
+        if pattern_id and existing is None:
+            raise BusinessRuleEditError("选择的编排组已不存在，请重新选择。")
         if mode == "none":
-            result.skill_template.event_patterns = [
-                pattern
-                for pattern in result.skill_template.event_patterns
-                if pattern.media_type != media_type
-            ]
+            if existing is None and not selected and len(patterns) == 1:
+                existing = next(iter(patterns.values()))
+            if existing is None and patterns:
+                raise BusinessRuleEditError("请先选择要取消的编排组；不会清空其它编排组。")
+            if existing is not None:
+                reference = f"event:{existing.pattern_id}"
+                consumers = [item.display_name for item in patterns.values() if any(stage.source_ref == reference for stage in item.stages)]
+                final = result.skill_template.final_decision
+                if final and reference in [final.source_ref, *final.source_refs, *(ref for refs in final.media_source_refs.values() for ref in refs)]:
+                    consumers.append(final.display_name)
+                consumers.extend(spec.display_name for spec in result.skill_template.result_specs if spec.source_ref == reference)
+                if consumers:
+                    raise BusinessRuleEditError("该编排组仍被引用，请先修改依赖：" + "、".join(consumers))
+                result.skill_template.event_patterns = [item for item in result.skill_template.event_patterns if item.pattern_id != existing.pattern_id]
             result.version += 1
             return refresh_document_hashes(result)
+        if existing and f"event:{existing.pattern_id}" in selected:
+            raise BusinessRuleEditError("编排组不能引用自身。")
+        if existing:
+            pending = list(selected)
+            visited = set()
+            while pending:
+                reference = pending.pop()
+                if reference == f"event:{existing.pattern_id}":
+                    raise BusinessRuleEditError("编排组修改会产生循环引用，请重新选择成员。")
+                if reference in visited:
+                    continue
+                visited.add(reference)
+                if reference.startswith("event:"):
+                    dependency = patterns.get(reference.split(":", 1)[1])
+                    if dependency:
+                        pending.extend(stage.source_ref for stage in dependency.stages if stage.source_ref)
         if media_type != "video" and mode == "sequence":
             raise BusinessRuleEditError("顺序关系需要视频流程；图片分支可使用并行、互斥、任意或部分汇聚。")
         minimum = 1 if mode == "repeat" else 2
@@ -1207,20 +1238,16 @@ class BusinessRuleEditor:
                     window_seconds=window,
                 )
             ]
-        # Saving the same ordered inputs edits that group; using a different
-        # set creates another reusable group.  This permits sequence(A,B) and
-        # sequence(C,D) to coexist and later participate in a parent join.
+        # Updates keep their stable identity: parent groups, final decisions
+        # and outputs must continue to reference the same published group.
         result.skill_template.event_patterns = [
             pattern
             for pattern in result.skill_template.event_patterns
-            if not (
-                pattern.media_type == media_type
-                and [stage.source_ref for stage in pattern.stages] == selected
-            )
+            if existing is None or pattern.pattern_id != existing.pattern_id
         ]
         result.skill_template.event_patterns.append(
             EventPattern(
-                pattern_id=_new_id("pattern"),
+                pattern_id=existing.pattern_id if existing else _new_id("pattern"),
                 display_name=display_name.strip() or "复杂事件",
                 media_type=media_type,  # type: ignore[arg-type]
                 pattern_type=pattern_type,
@@ -1228,8 +1255,9 @@ class BusinessRuleEditor:
                 transitions=transitions,
                 gateways=gateways,
                 correlation=CorrelationPolicy(scope=correlation_scope),  # type: ignore[arg-type]
-                instance_policy=InstancePolicy(),
+                instance_policy=existing.instance_policy.model_copy(deep=True) if existing else InstancePolicy(),
                 parameters=parameters,
+                trigger_policy=dict(existing.trigger_policy) if existing else {},
             )
         )
         result.version += 1

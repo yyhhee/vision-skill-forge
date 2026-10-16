@@ -826,9 +826,18 @@ def bind_business(
         _business_editor_outputs,
     )
     workspace.review.business_restore_button.click(
-        controller.restore_default_editor_document,
-        [workspace.review.effective, workspace.create.source_mode],
-        [workspace.review.editor_document, workspace.review.business_rule_status],
+        _restore_generated,
+        [
+            workspace.review.effective,
+            workspace.review.editor_document,
+            workspace.review.editor_history,
+            workspace.create.source_mode,
+        ],
+        [
+            workspace.review.editor_document,
+            workspace.review.business_rule_status,
+            workspace.review.editor_history,
+        ],
     ).then(
         _business_rule_updates,
         [

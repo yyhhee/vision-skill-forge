@@ -4,6 +4,8 @@ import statistics
 
 from core.context import ConditionSet, ScalarSet, ScopedSet, TimedValue
 
+from .condition_identity import entity_identity, merge_condition_metadata
+
 
 def reduce_count(inputs, params, services, node_id):
     source = inputs["sets"]
@@ -48,15 +50,16 @@ def reduce_exists(inputs, params, services, node_id):
             history = getattr(entity, "history", None)
             if history is not None:
                 values.extend(
-                    TimedValue(entity.id, item.timestamp, True, item.frame_index)
+                    TimedValue(entity.id, item.timestamp, True, item.frame_index, entity_identity(entity))
                     for item in history
                 )
             else:
                 values.append(TimedValue(
-                    getattr(entity, "track_id", None) or entity.id,
+                    getattr(entity, "track_id", None) or getattr(entity, "id", None) or f"{entity.subject_id}|{entity.object_id}",
                     getattr(entity, "timestamp", 0.0),
                     True,
                     getattr(entity, "frame_index", None),
+                    entity_identity(entity),
                 ))
         return ConditionSet(values)
     count = reduce_count(inputs, params, services, node_id)
@@ -137,7 +140,7 @@ def reduce_quantify(inputs, params, services, node_id):
             ])
         maps = [
             {
-                (item.key, item.frame_index, item.timestamp): bool(item.value)
+                (item.key, item.frame_index, item.timestamp): item
                 for item in condition_set.items
             }
             for condition_set in source
@@ -147,8 +150,9 @@ def reduce_quantify(inputs, params, services, node_id):
             TimedValue(
                 key,
                 timestamp,
-                predicate([mapping.get((key, frame_index, timestamp), False) for mapping in maps]),
+                predicate([bool(mapping[(key, frame_index, timestamp)].value) if (key, frame_index, timestamp) in mapping else False for mapping in maps]),
                 frame_index,
+                merge_condition_metadata([mapping[(key, frame_index, timestamp)] for mapping in maps if (key, frame_index, timestamp) in mapping]),
             )
             for key, frame_index, timestamp in keys
         ])

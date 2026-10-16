@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import statistics
+from itertools import pairwise
 
 from core.context import ConditionSet, Event, EventSet, TimedValue
 
@@ -57,6 +58,11 @@ def temporal_persist(inputs, params, services, node_id):
         )
         grouped.setdefault((item.key, scope_id), []).append(item)
     events = []
+    # The schedule is observation context, not a guessed per-target frame rate.
+    timeline = services.state.get("sample_timeline", []) if services else []
+    timestamps = sorted({time for _, time in timeline} or {item.timestamp for item in inputs["condition"].items})
+    next_sample = dict(pairwise(timestamps))
+    cadence = effective_gap_tolerance(inputs["condition"].items, 0.0, infer_when_zero=True)
 
     def append_qualified_run(
         key, scope_id, start, run_items, seconds, trigger_mode
@@ -75,6 +81,7 @@ def temporal_persist(inputs, params, services, node_id):
                     trigger.timestamp,
                     trigger.timestamp,
                     {
+                        **trigger.metadata,
                         "qualification_start_time": start,
                         "trigger_time": trigger.timestamp,
                         "required_duration_seconds": seconds,
@@ -98,6 +105,7 @@ def temporal_persist(inputs, params, services, node_id):
                 trigger.timestamp,
                 run_end,
                 {
+                    **trigger.metadata,
                     "qualification_start_time": start,
                     "trigger_time": trigger.timestamp,
                     "required_duration_seconds": seconds,
@@ -115,22 +123,19 @@ def temporal_persist(inputs, params, services, node_id):
             "gap_tolerance_seconds", params["gap_tolerance_seconds"]
         ))
         trigger_mode = overrides.get("trigger_mode", params["trigger_mode"])
-        # An immediate once event has no user-facing duration to absorb the
-        # sampling cadence. Treat regular samples as one run so a 1 FPS input
-        # does not create one duplicate event per frame. Explicitly timed
-        # rules retain their configured zero-tolerance semantics.
-        effective_tolerance = effective_gap_tolerance(
-            items,
-            tolerance,
-            infer_when_zero=seconds <= 0 and trigger_mode == "once",
-        )
+        # Zero tolerance forbids extra missing samples, not the normal time
+        # between adjacent samples. Prefer the actual shared frame schedule.
+        effective_tolerance = max(cadence, tolerance)
         start = None
         previous = None
         run_items = []
         for item in items:
             is_discontinuous = (
                 previous is not None
-                and item.timestamp - previous > effective_tolerance
+                and item.timestamp - previous > (
+                    max(tolerance, next_sample[previous] - previous)
+                    if previous in next_sample else effective_tolerance
+                ) + 1e-9
             )
             if not item.value or is_discontinuous:
                 append_qualified_run(

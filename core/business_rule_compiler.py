@@ -367,10 +367,10 @@ class BusinessRuleCompiler:
                             ]
                             if expression.operator == "AND":
                                 operator = "logic.all@1.0"
-                                params = {"combine_scope": "frame_any"}
+                                params = {"combine_scope": "by_key" if self._branch_identity_scope(branch) != "global" else "frame_any"}
                             elif expression.operator == "OR":
                                 operator = "logic.any@1.0"
-                                params = {"combine_scope": "frame_any"}
+                                params = {"combine_scope": "by_key" if self._branch_identity_scope(branch) != "global" else "frame_any"}
                             else:
                                 operator = "reduce.quantify@1.0"
                                 params = {
@@ -469,6 +469,7 @@ class BusinessRuleCompiler:
                             "allowed_gap_seconds": qualifier.allowed_gap_seconds,
                             "window_seconds": window,
                             "required_ratio": qualifier.required_ratio,
+                            "identity_scope": qualifier.identity_scope,
                             "trigger_mode": (
                                 "continuous"
                                 if qualifier.emission == "repeat"
@@ -1545,6 +1546,10 @@ class BusinessRuleCompiler:
             f"条件“{expression.display_name}”使用的能力尚未注册确定性编译 Recipe。"
         )
 
+    @staticmethod
+    def _branch_identity_scope(branch: BusinessBranch) -> str:
+        return next((item.identity_scope for item in branch.temporal_qualifiers if item.enabled and item.mode != "immediate"), "global")
+
     def _as_condition(
         self,
         builder: _GraphBuilder,
@@ -1569,6 +1574,7 @@ class BusinessRuleCompiler:
                 operator="reduce.exists@1.0",
                 display_name=f"{expression.display_name}存在",
                 inputs={"sets": value},
+                params={"scope": "entity"} if self._branch_identity_scope(branch) != "global" else {},
                 business_source_refs=[f"condition:{expression.expression_id}"],
             )
         raise BusinessRuleCompileError(

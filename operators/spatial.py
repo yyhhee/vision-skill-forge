@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import math
-
 from copy import deepcopy
 
 from core.context import ConditionSet, ObjectSet, TimedValue
+
+from .condition_identity import entity_identity
 from .objects import iter_object_samples
 
 
@@ -55,7 +56,12 @@ def spatial_inside(inputs, params, services, node_id):
         else:
             value = any(_overlap_fraction(item.bbox, _region_bounds(region)) >= float(params["overlap_threshold"])
                         for region in regions)
-        output.append(TimedValue(entity_key, item.timestamp, value, item.frame_index))
+        metadata = entity_identity(item)
+        if entity_key != item.id:
+            metadata.update(track_id=entity_key, object_id=entity_key)
+        if len(regions) == 1:
+            metadata["region_id"] = regions[0].id
+        output.append(TimedValue(entity_key, item.timestamp, value, item.frame_index, metadata))
     return ConditionSet(output)
 
 
@@ -200,5 +206,5 @@ def spatial_associate(inputs, params, services, node_id):
                     break
         else:
             raise ValueError(f"unsupported association relation: {params['relation']}")
-        output.append(TimedValue(_key(subject), subject.timestamp, value, subject.frame_index))
+        output.append(TimedValue(_key(subject), subject.timestamp, value, subject.frame_index, entity_identity(subject)))
     return ConditionSet(output)

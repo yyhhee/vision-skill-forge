@@ -807,6 +807,7 @@ def build_default_registry() -> OperatorRegistry:
                 "window_seconds": None,
                 "required_ratio": 1.0,
                 "trigger_mode": "once",
+                "identity_scope": "source",
             },
             "按同一身份支持立即、连续、累计和窗口占比持续资格。",
             {
@@ -816,6 +817,7 @@ def build_default_registry() -> OperatorRegistry:
                 "window_seconds": _p("number_or_null", minimum=0),
                 "required_ratio": _p("number", minimum=0, maximum=1),
                 "trigger_mode": _p("string", choices=("once", "continuous")),
+                "identity_scope": _p("string", choices=("source", "global", "object", "track", "pair", "region")),
             },
         ),
         OperatorDefinition(

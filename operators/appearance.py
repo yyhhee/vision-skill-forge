@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from core.context import ConditionSet, TimedValue
 
+from .condition_identity import entity_identity
+
 
 def _matches_color(
     h: int, s: int, v: int, color: str, *, tolerance: str = "strict"
@@ -58,7 +60,7 @@ def visual_color_fraction(inputs, params, services, node_id):
     for item in inputs["objects"].items:
         frame = frames_by_index.get(item.frame_index)
         if frame is None:
-            output.append(TimedValue(_entity_key(item), item.timestamp, False, item.frame_index))
+            output.append(TimedValue(_entity_key(item), item.timestamp, False, item.frame_index, entity_identity(item)))
             continue
         x0, y0, x1, y1 = item.bbox
         sx0 = x0 + rx0 * (x1 - x0)
@@ -99,7 +101,7 @@ def visual_color_fraction(inputs, params, services, node_id):
             )
         output.append(TimedValue(
             _entity_key(item), item.timestamp,
-            matched, item.frame_index,
+            matched, item.frame_index, entity_identity(item),
         ))
     return ConditionSet(output)
 
@@ -134,6 +136,7 @@ def visual_geometry(inputs, params, services, node_id):
                     observation.timestamp,
                     matched,
                     observation.frame_index,
+                    entity_identity(track),
                 ))
         return ConditionSet(output)
     relative_size_labels = {}
@@ -189,7 +192,7 @@ def visual_geometry(inputs, params, services, node_id):
                 raise ValueError(f"unsupported aspect-ratio value: {value}")
         else:
             raise ValueError(f"unsupported geometry dimension: {dimension}")
-        output.append(TimedValue(_entity_key(item), item.timestamp, matched, item.frame_index))
+        output.append(TimedValue(_entity_key(item), item.timestamp, matched, item.frame_index, entity_identity(item)))
     return ConditionSet(output)
 
 
