@@ -47,6 +47,7 @@ app_v2.py
 | 某页面的控件、布局和默认展示 | `ui/v2/pages/<页面>.py` |
 | 控件点击、输入同步、多个页面联动 | `ui/v2/bindings/<职责>.py` |
 | 条件/分支编辑与展示适配 | `ui/v2/controllers/business.py`、`editor.py` |
+| 整项技能总览与定位到现有编辑器 | `ui/v2/controllers/workbench.py`、`bindings/workbench.py`，详见 `SKILL_RULE_WORKBENCH.md` |
 | 事件卡、时间与关联参数适配 | `ui/v2/controllers/events.py` |
 | ROI、方向和标注操作 | `ui/v2/controllers/annotation.py` |
 | 技能生成、加载、保存流程 | `application/v2/skills.py` |

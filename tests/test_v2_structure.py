@@ -10,6 +10,29 @@ from pathlib import Path
 def workspace_fingerprint(app, temporary_root: Path) -> dict[str, object]:
     """Normalize process-local IDs while retaining component settings and edges."""
     config = app.get_config_file()
+    # The workbench is a read-only addition; compare every original editor
+    # component and callback against the immutable fixture, not a new baseline.
+    workbench_ids = {
+        c["id"]
+        for c in config["components"]
+        if str(c["props"].get("elem_id", "")).startswith("skill-workbench-")
+    }
+    assert len(workbench_ids) == 6
+    config["dependencies"] = [
+        d
+        for d in config["dependencies"]
+        if getattr(app.fns[d["id"]].fn, "__name__", None)
+        not in {"workbench_controls", "_workbench_navigate"}
+    ]
+    for component in config["components"]:
+        if component["type"] == "tabitem" and component["props"].get("id") in {
+            "conditions",
+            "groups",
+            "final",
+            "outputs",
+            "trigger",
+        }:
+            component["props"].pop("id")
     # Output forms intentionally replace free-text cells; their executable
     # contracts have focused tests. Project only these explicit changes onto
     # the original event graph instead of replacing its immutable baseline.
@@ -119,6 +142,7 @@ def workspace_fingerprint(app, temporary_root: Path) -> dict[str, object]:
     }
     time_ids |= pattern_ids
     time_ids |= output_ids
+    time_ids |= workbench_ids
     component_types = {c["id"]: c["type"] for c in config["components"]}
 
     def remove_time_forms(node):

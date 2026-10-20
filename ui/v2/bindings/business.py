@@ -18,6 +18,7 @@ from ui.event_rule_editor import (
 from ui.v2.bindings.creation import CreationBindings
 from ui.v2.bindings.output_editor import bind_output_editor, output_form_fields
 from ui.v2.bindings.pattern_editor import bind_pattern_editor
+from ui.v2.bindings.workbench import bind_workbench
 from ui.v2.controllers.configuration import runtime_edit
 from ui.v2.workspace import Workspace
 
@@ -1721,6 +1722,7 @@ def bind_business(
         _execution_outputs,
     ).then(_sync_field_visibility, _visibility_inputs, _visibility_outputs)
 
+    bind_workbench(controller, workspace)
     return BusinessBindings(
         _apply_feedback=_apply_feedback,
         _read_atomic_updates=_read_atomic_updates,

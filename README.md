@@ -1,104 +1,169 @@
 # Vision Skill Forge
 
-> Turn one sentence into an inspectable, editable, and executable visual skill.
-> 用一句自然语言，生成可审核、可编辑、可运行的视觉技能。
+Build inspectable, editable, and executable visual skills from one sentence.
 
-Vision Skill Forge builds explainable visual skills for images and videos. Describe targets, attributes, relationships, regions, counts, or events in natural language; the system compiles the request into an explicit workflow, runs visual inference, and returns evidence-backed results.
+[English](README.md) | [中文](README_zh.md)
 
-Vision Skill Forge 面向图片与视频，通过自然语言描述目标、属性、关系、区域、数量或事件，生成显式、可编辑的视觉工作流，并输出带证据的运行结果。
+---
 
-## Highlights / 核心能力
+## Overview
 
-- **One-sentence creation / 一句话创建** — for example, `Detect people without safety helmets.` / “识别未带安全帽的人。”
-- **Editable visual logic / 可编辑规则** — inspect and adjust targets, attributes, regions, relations, counts, Boolean conditions, events, and trigger policies. / 可审核和调整目标、属性、区域、关系、数量、AND / OR / NOT、事件及触发策略。
-- **Shared visual inference / 单次多类别推理** — compatible targets for one medium are grouped into one grounding request; evidence binding and instance deduplication happen downstream. / 同一媒体中兼容的目标合并为一次模型 Grounding 请求，后续再完成证据归属与实例去重。
-- **Evidence-first results / 证据可视化** — view labels, boxes, intermediate evidence, execution traces, and business results. / 查看标注框、中间证据、执行轨迹和最终业务结果。
-- **Image and video / 图片与视频通用** — share semantic intent while compiling media-specific workflows. / 共享语义意图，按媒体生成对应工作流。
-- **P01–P13 presets / 预置演示技能** — demonstrations for fire and smoke, traffic, PPE, debris, garbage, and bridge damage. / 覆盖烟火、交通、PPE、路面异物、垃圾、桥梁病害等示例。
+Vision Skill Forge is a visual-skill builder for images and videos. Describe targets, attributes, relationships, regions, counts, temporal behavior, or business events in natural language. The system turns that intent into a typed workflow that can be reviewed, edited, validated, and executed with visible evidence.
 
-## How it works / 工作方式
+The project combines LLM planning with deterministic compilation. The LLM selects from registered business capabilities and execution atoms; fixed code validates the plan, creates the runtime graph, runs visual inference, binds evidence to entities, and produces explainable results.
+
+## Why Vision Skill Forge?
+
+| Conventional visual demo | Vision Skill Forge |
+| --- | --- |
+| Detection logic is hidden in code | The generated workflow is visible and editable |
+| One prompt maps to one opaque result | Results retain boxes, evidence, decisions, and execution traces |
+| Complex tasks require custom coding | Targets, attributes, regions, relations, counts, logic, and events can be composed |
+| Similar model queries run repeatedly | Compatible categories for the same inference image/frame are grouped into one grounding request |
+| Model output is treated as the business answer | Visual evidence and business decisions are separated |
+
+## Core capabilities
+
+- **One-sentence skill creation** — turn a natural-language request into a complete visual skill.
+- **Typed visual workflows** — compile only registered, versioned operators with explicit inputs, outputs, and parameters.
+- **Editable business logic** — review and adjust branches, AND / OR / NOT groups, thresholds, regions, relations, events, and trigger policies.
+- **Shared multi-category inference** — detect compatible categories together, then perform evidence binding and instance deduplication downstream.
+- **Image and video support** — reuse semantic intent while compiling media-specific execution graphs.
+- **Explainable results** — inspect annotations, intermediate evidence, node traces, and final business outputs.
+- **P01–P13 demonstrations** — ready-made examples for traffic, safety, facility, and infrastructure scenarios.
+
+## How it works
 
 ```text
-Natural language / 一句自然语言
-  → Semantic IR / 语义 IR
-  → Fixed, typed workflow compiler / 固定类型工作流编译器
-  → Editable skill package / 可编辑技能包
-  → Visual inference + evidence binding / 视觉推理与证据绑定
-  → Explainable result / 可解释结果
+Natural-language request
+        ↓
+Canonical Semantic IR
+        ↓
+Business capabilities + execution atoms
+        ↓
+Deterministic typed compiler
+        ↓
+Editable SkillPackage
+        ↓
+Visual inference → evidence binding → logic/events
+        ↓
+Annotated and explainable result
 ```
 
-The LLM plans only with registered capabilities and fixed operators; it does not generate runtime code.
-大模型只在已注册的业务能力和执行原子范围内编排，不生成运行时代码。
+The LLM performs constrained planning. It does not generate runtime code or invent unregistered operators.
 
-## Example prompts / 示例输入
+## Example requests
 
 ```text
 Detect people without safety helmets.
 Detect yellow sofas and white chairs.
+Detect whether multiple lane regions are congested; more than three vehicles in one lane is congestion.
 Raise a regional alert when Region 1 contains a person in a red top and gray trousers,
 and Region 2 contains at least two people.
-
-识别未带安全帽的人。
-检测黄色的沙发和白色椅子。
-区域1有穿红色上衣、灰色裤子的人，区域2有至少2个人，则发出区域告警事件。
-识别桥梁病害露筋、裂纹、锈蚀、渗水、混凝土剥落。
+Detect bridge defects: exposed reinforcement, cracks, corrosion, seepage, and concrete spalling.
 ```
 
-## Current status / 当前状态
+## Quick start
 
-V2 Demo 已打通：自然语言经 DeepSeek Thinking 抽取为 Canonical Semantic IR，再由固定编译器生成可编辑的图片/视频 DAG；原始媒体、ROI/方向配置、前处理、真实执行结果与逐节点 Trace 均可在 Gradio 查看。
+### Prerequisites
 
-当前版本包含 P01～P13 预置演示技能及其默认图片/视频素材；启动后可直接在页面选择并运行。
+- Python environment with the dependencies from `requirements.txt`
+- Planner API settings configured in `.env`; see `.env.example`
+- Rex-Omni OpenAI-compatible service available at `http://127.0.0.1:8000/v1`
+- Original local media (`imgs/` and `data/acceptance_media/`) for the current preset defaults and media-dependent tests. These directories are not included in Git; the bundled `data/demo_media/` alone does not cover all current defaults.
 
-## Quick start / 快速启动
+Never commit real API keys. Keep them only in the local `.env` file.
+
+### Install and run
 
 ```powershell
+git clone https://github.com/yyhhee/vision-skill-forge.git
+cd vision-skill-forge
+conda env create -f environment.yml
 conda activate vision-skill
-cd C:\yhe_user\detection_project\vision_skill
+pip install -r requirements.txt
+$env:VISION_SKILL_PORT = "6131"
 python app_v2.py
 ```
 
-Open `http://127.0.0.1:6131` in a browser. A Rex vLLM service must be available at `http://127.0.0.1:8000/v1`.
-浏览器打开 `http://127.0.0.1:6131`。Rex vLLM 服务需在 `http://127.0.0.1:8000/v1` 可用。
+Open [http://127.0.0.1:6131](http://127.0.0.1:6131).
+If the `vision-skill` environment already exists, skip its creation. The explicit port above selects 6131; without `VISION_SKILL_PORT`, `app_v2.py` defaults to 6122.
+Restore the required local media before starting the preset catalog. A code-only clone can fail during default-media seeding (for example, the missing P01 image); this checkpoint is not a self-contained installer. See the checkpoint notes for the verified scope.
 
-五个页签分别用于：技能来源、Semantic IR 与 Effective SkillPackage、媒体与场景标注、运行与结果、技能与能力目录。
+## Workflow in the UI
 
-技能来源是互斥的：`自然语言生成`、`预置演示技能`、`已保存技能`。页面顶部始终显示当前实际执行来源，切换来源会清空旧配置。
+1. Describe the visual task in one sentence or select a preset skill.
+2. Review the generated semantic intent and editable conditions.
+3. Add only the scene resources the task needs, such as regions or direction references.
+4. Validate and generate the current runnable version.
+5. Run it on an image or video and inspect the evidence and result.
 
-## Test / 测试与复验
+## Preset demonstrations
 
-```powershell
-conda run -n vision-skill python -m pytest -q
-conda run -n vision-skill python scripts\run_preset_v2_acceptance.py
-conda run -n vision-skill python scripts\run_historical_v2_acceptance.py
+| ID | Skill |
+| --- | --- |
+| P01 | Fire and smoke detection |
+| P02 | Traffic accident detection |
+| P03 | Special vehicle detection |
+| P04 | Highway congestion |
+| P05 | Wrong-way driving |
+| P06 | Person dwelling in a lane |
+| P07 | Illegal parking |
+| P08 | Road debris |
+| P09 | Person without a safety helmet |
+| P10 | Work at height without a safety rope |
+| P11 | Service-area garbage |
+| P12 | Person fall detection |
+| P13 | Bridge damage |
+
+Preset packages are stored in `presets_v2/`. They demonstrate the same registered capabilities and runtime used by naturally generated skills.
+
+## Repository layout
+
+```text
+vision-skill-forge/
+├── app_v2.py          # Gradio application
+├── clients/           # Planner and Rex clients
+├── core/              # Semantic IR, compiler, editor, validation, and runtime
+├── operators/         # Registered typed execution operators
+├── presets_v2/        # P01–P13 preset skill packages
+├── scripts/           # Acceptance and maintenance scripts
+├── tests/             # Automated tests and reproduction fixtures
+├── data/              # Demo media and local runtime artifacts
+└── .env.example       # Environment configuration template
 ```
 
-- V2 预置技能：`presets_v2/P*.json`
-- 默认素材目录：`data/demo_media/`（13 个预置演示技能均有可直接使用的默认素材）
-- 真实运行产物：`data/runs/<run_id>/` 与 `data/runs_v2/<run_id>/`
-- V2 预置验收：`tests/preset_v2_acceptance_results.json`
-- 历史语句验收：`tests/historical_v2_acceptance_consolidated_20260814.json`
+## Testing and reproduction
 
-## Configuration / 配置
+```powershell
+python -m pytest -q
+python -m scripts.run_v2_semantic_acceptance
+python -m scripts.run_historical_v2_acceptance
+```
 
-- Planner：DeepSeek OpenAI-compatible API
-- Planner 模型：`deepseek-v4-flash`
-- Rex：现有 Rex-Omni vLLM OpenAI-compatible API
-- UI：Gradio
+Execution results must come from actual runs. Expected outputs must never be presented as successful runtime results.
+The acceptance commands call real model services and require their configured credentials and test media; they are separate from the deterministic test suite. Historical acceptance records do not certify changed presets or a new checkout automatically. Video sampling and optional tiling can create multiple inference requests; multi-category batching does not mean one request for an entire video.
 
-真实密钥仅保存在本地 `.env` 中，`.env.example` 不包含密钥。
+## Checkpoints and restoration
 
-## Project principles / 设计原则
+See [Version history and restoration](docs/VERSION_HISTORY.md) for the human-readable checkpoint record and safe restoration instructions. The separately developed frontend prototype is not included in this original Gradio application checkpoint.
 
-- LLM 只编译固定操作符，不生成运行代码。
-- 所有操作符规则、参数、版本和输入输出类型固定清晰。
-- 生成技能必须在 UI 中完整展示并允许手动修改。
-- 自定义技能默认使用显式 `image.resize(mode=identity)`；视频默认 `video.sample(mode=frame_step, frame_step=1)`，即保持原尺寸和原始 FPS。预置技能保留其已经验收的显式参数。
-- 自然语言语义层默认不读取 resize、抽帧、切片和去重参数；需要时只能读取只读媒体可行性上下文，且不能把它写入 Semantic IR。
-- 视频抽帧、resize、tile、Grounding、跟踪、逻辑和时序均为显式节点，可从 Effective 配置回读到界面。
-- `measure.count` 可统计图片当前帧对象或视频唯一轨迹，例如白色车辆数量；统计作用域写入节点参数。
-- 方向管线对人、车、动物等任意目标复用 `detect → track → heading → reference → compare`；参考可选图像轴、整段视频多数方向、逐命名车道多数方向或人工箭头。
-- ROI 不是必需项；自动区域、手工区域和全图都以显式技能节点表达。
-- 测试结果必须来自真实执行，禁止用预期结果冒充已通过结果。
-- 技能可显式选择仅图片、仅视频或同时支持图片和视频；同时支持时使用共享语义、分媒体工作流。
-- 视频 30 秒是 Demo 推荐上限而非硬限制；超过时只警告，不隐藏截断。
+## Design principles
+
+- Generated skills must remain inspectable and editable.
+- Visual evidence must remain separate from business decisions.
+- Operators must have explicit versions, parameters, and input/output types.
+- Media preprocessing, grounding, tracking, logic, and temporal behavior must remain explicit in the effective workflow.
+- Scene resources such as ROIs are required only when the task semantics require them.
+- Existing skills remain compatible unless an explicit migration is performed.
+
+## What this project does not do
+
+- It does not let the LLM generate arbitrary executable code.
+- It does not hide missing configuration behind fabricated defaults.
+- It does not use expected answers as model outputs.
+- It does not replace scenario-specific acceptance testing or human review for high-risk deployments.
+
+## Project status
+
+Vision Skill Forge is under active development. The repository currently provides the V2 application, typed workflow runtime, editable skill review, image and video execution, and P01–P13 demonstrations.

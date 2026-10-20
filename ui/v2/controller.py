@@ -23,6 +23,7 @@ from ui.v2.controllers.output_editor import OutputEditorController
 from ui.v2.controllers.pattern_editor import PatternEditorController
 from ui.v2.controllers.results import ResultController
 from ui.v2.controllers.time_configuration import TimeConfigurationController
+from ui.v2.controllers.workbench import WorkbenchController
 
 Parameters = ParamSpec("Parameters")
 ReturnValue = TypeVar("ReturnValue")
@@ -58,6 +59,7 @@ class V2AppController(
     TimeConfigurationController,
     PatternEditorController,
     OutputEditorController,
+    WorkbenchController,
 ):
     """One state owner; domain adapters never create independent skill copies."""
 

@@ -26,6 +26,11 @@ class ReviewPage:
 
     configuration_state: gr.HTML
     configuration_apply_button: gr.Button
+    workbench_summary: gr.HTML
+    workbench_selection: gr.Dropdown
+    workbench_edit: gr.Button
+    workbench_status: gr.Markdown
+    business_editor_tabs: gr.Tabs
 
     apply_variant_button: gr.Button
     atomic_apply_button: gr.Button
@@ -401,6 +406,36 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
             business_branch_overview = gr.HTML(
                 render_branch_overview([], None), padding=False
             )
+            with gr.Accordion(
+                "整项技能总览｜从这里找到要修改的规则",
+                open=True,
+                elem_id="skill-workbench-panel",
+            ):
+                gr.Markdown(
+                    "先看各部分如何组成技能，再选择项目进入原有编辑区。"
+                    "总览随草稿保存自动更新；运行是否生效以上方版本状态为准。",
+                    elem_id="skill-workbench-help",
+                )
+                workbench_summary = gr.HTML(
+                    "先在 01 生成或加载技能，再查看整项规则。",
+                    elem_id="skill-workbench-summary",
+                )
+                workbench_selection = gr.Dropdown(
+                    choices=[],
+                    label="要编辑哪一项",
+                    filterable=True,
+                    allow_custom_value=False,
+                    elem_id="skill-workbench-selection",
+                )
+                workbench_edit = gr.Button(
+                    "定位到编辑区",
+                    interactive=False,
+                    elem_id="skill-workbench-edit",
+                )
+                workbench_status = gr.Markdown(
+                    "切换前，请先保存当前表单；尚未保存到草稿的输入不会出现在总览中。",
+                    elem_id="skill-workbench-status",
+                )
             with gr.Row():
                 business_branch = gr.Dropdown(
                     choices=[],
@@ -424,8 +459,8 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                     "执行分支操作", variant="secondary"
                 )
 
-            with gr.Tabs():
-                with gr.Tab("条件分支"):
+            with gr.Tabs() as business_editor_tabs:
+                with gr.Tab("条件分支", id="conditions"):
                     gr.Markdown(
                         "每个分支使用递归条件树。基础逻辑保留 **AND / OR / NOT**；"
                         "条件能力和参数会根据当前媒体、已有来源及 02 场景资源动态收敛。"
@@ -777,7 +812,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             "保存所选对象的时间设置到草稿", variant="primary"
                         )
 
-                with gr.Tab("分支编排"):
+                with gr.Tab("分支编排", id="groups"):
                     gr.Markdown(
                         "选中已有组即可修改；也可以选择“新建编排组”。添加成员后，选择步骤并上移／下移。"
                         "这里只编辑所选组，其他组和最终判定的引用不会被替换。顺序关系仅适用于视频。"
@@ -863,7 +898,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             "保存编排组到草稿", variant="primary"
                         )
 
-                with gr.Tab("最终判定"):
+                with gr.Tab("最终判定", id="final"):
                     gr.Markdown(
                         "最终判定只回答“是否告警”。选择需要参与的业务分支及 AND / OR 关系即可；"
                         "结果类型由系统根据来源确定，不需要用户配置。"
@@ -919,7 +954,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                         "保存最终判定到草稿", variant="primary"
                     )
 
-                with gr.Tab("业务输出"):
+                with gr.Tab("业务输出", id="outputs"):
                     gr.Markdown(
                         "业务输出决定 04 第二层具体显示和保存什么。数量、状态、目标框、轨迹、"
                         "事件、持续时间和时间线均使用同一输出规格，不使用案例专用卡片。"
@@ -1010,7 +1045,7 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
                             "保存业务输出到草稿", variant="primary", interactive=False
                         )
 
-                with gr.Tab("触发策略"):
+                with gr.Tab("触发策略", id="trigger"):
                     gr.Markdown(
                         "仅事件、告警或通知任务需要。触发策略只决定何时发出和如何保存，"
                         "不改变条件含义或持续时间。"
@@ -1612,6 +1647,11 @@ def build_review_page(controller: V2AppController) -> ReviewPage:
             saved_path = gr.Textbox(label="保存路径")
 
     return ReviewPage(
+        workbench_summary=workbench_summary,
+        workbench_selection=workbench_selection,
+        workbench_edit=workbench_edit,
+        workbench_status=workbench_status,
+        business_editor_tabs=business_editor_tabs,
         configuration_state=configuration_state,
         configuration_apply_button=configuration_apply_button,
         apply_variant_button=apply_variant_button,

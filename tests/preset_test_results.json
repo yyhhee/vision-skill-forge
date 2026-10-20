@@ -1,6 +1,28 @@
 {
   "schema_version": "1.0",
-  "updated_date": "2026-10-16",
+  "updated_date": "2026-10-20",
+  "latest_original_checkpoint": {
+    "date": "2026-10-20",
+    "base_commit": "777d321f1dad607398472bd4e753f418d2ed4a09",
+    "checkpoint_tag": "checkpoint-original-20261020",
+    "status": "passed_deterministic_regression",
+    "tests": "Original workspace: 742 passed. Staged-files-only snapshot with short temporary path: 727 passed, 15 failures caused by excluded local media in imgs/ and data/acceptance_media/. The same snapshot with local media restored: 742 passed, 0 failures/errors/skips, 502 Gradio deprecation warnings, approximately 61 seconds. Code-only clone is not a self-contained runnable preset distribution.",
+    "scope": "Whole-skill read-through overview and controlled navigation, 28 workbench regressions, existing editor and complete skill persistence contracts; corrected bilingual startup and V2 acceptance documentation.",
+    "service": "Read-only HTTP 200 check on 6131; listener PID 7708 unchanged. No restart or real model calls.",
+    "documentation": "docs/VERSION_HISTORY.md",
+    "boundary": "No changes to preset packages, model prompts, compiler or executor. No new browser-click or real-model accuracy acceptance. Commit and remote push status are verified separately in the local human-readable version ledger. Historical milestone records below remain as recorded at their respective dates."
+  },
+  "latest_skill_workbench": {
+    "date": "2026-10-16",
+    "status": "passed_deterministic_regression_and_public_service_callbacks",
+    "tests": "742 passed, 502 Gradio deprecation warnings; data/validation/skill-workbench-final-20261016.xml",
+    "new_tests": 28,
+    "coverage": "Whole-skill projection, nested groups, exact and duplicate-name navigation, current-media isolation, stale address rejection, HTML escaping, immutable documents, legacy packages, P01-P13 structural navigation and real Gradio callback preprocessing/postprocessing.",
+    "service": "Original 6131 PID 7708; HTTP 200; six navigation kinds passed public service API verification using an isolated document without model inference or user asset writes.",
+    "service_artifact": "data/validation/workbench-service-sacq6tc2/summary.json",
+    "documentation": "docs/SKILL_RULE_WORKBENCH.md",
+    "boundary": "Existing preset accuracy records unchanged. No browser-click or new real-model/P01-P13 accuracy acceptance; not committed or pushed."
+  },
   "latest_editor_checkpoint": {
     "date": "2026-10-16",
     "base_commit": "f08ab139c71a6fcc44d6dc9fb20b451cbe75b43c",

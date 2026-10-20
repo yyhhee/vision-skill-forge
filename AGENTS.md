@@ -19,4 +19,5 @@ Project rules:
 - Preserve original-media normalized coordinates through resize and tiling.
 - Do not report a preset as passed until a real end-to-end run has produced saved media, events, trace, and effective skill artifacts.
 - After each implementation or test milestone, update `project_state.json` and `tests/preset_test_results.json`.
+- Maintain human-readable Chinese checkpoint notes in `docs/VERSION_HISTORY.md`. After each user-authorized Git commit, also update the user's local version ledger when its location is known: Beijing date/time, project/branch, commit and optional tag, changes, actual verification/evidence, limitations, push status, and restoration notes. Preserve history; never equate committed with fully verified. Verify the remote before marking uploaded. Do not auto-commit/push or create recursive commits just to record the local ledger; never include secrets.
 
