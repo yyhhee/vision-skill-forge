@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vite/
+*.log
+graphify-out/
+.env
+.env.*
+!.env.example
+qa/local-checks/
+qa/editor-flow/test-run/
+playwright-report/
+test-results/

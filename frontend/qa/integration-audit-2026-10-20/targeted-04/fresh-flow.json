@@ -1,0 +1,13 @@
+{
+  "id": "skill-9a42a2d9-3efd-4fa0-a49f-5a809ac495b1",
+  "runId": "demo-c85cefde-4ead-4be5-981f-b0b7df51f084",
+  "revision": 1,
+  "savedVersion": 2,
+  "roundTripEqual": true,
+  "historyUnchanged": true,
+  "resultAvailability": "not_provided",
+  "actualCountThreshold": 3,
+  "taskSummary": "本次任务要点\n分支A · 区域1：位于区域1、红色上衣、灰色裤子\n分支B · 区域2：位于区域2、人数 ≥ 2",
+  "taskSummaryConsistent": false,
+  "errors": []
+}

@@ -1,0 +1,13 @@
+{
+  "source": "public/assets/media/construction-clean.png",
+  "sourceSha256": "835c7aafd985be9c16ef3d01efe8343fe677ed166c614dec62aedd4d22418bc5",
+  "sourcePixels": [1448, 1086],
+  "method": "CSS viewport crops of the approved source; full crop shown in detail dialog, compact framing in thumbnail",
+  "provenance": "Manually selected UI demonstration rectangles, not model detections or measured color evidence",
+  "entityId": "person-1",
+  "cropsNormalizedXYWH": {
+    "evidence-upper": [0.17, 0.495, 0.09, 0.1],
+    "evidence-lower": [0.185, 0.605, 0.065, 0.1]
+  },
+  "note": "Original source never modified or resampled. Historic run records retain their stored crop coordinates. No generated screenshot is used as an interactive UI surface."
+}

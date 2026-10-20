@@ -1,5 +1,7 @@
 # Vision Skill Forge
 
+> **`next` development branch:** the original Gradio backend remains unchanged at the repository root. The new, independently running frontend prototype is in [`frontend/`](frontend/README.md). They are **not connected**. See [frontend checkpoint and known limitations](docs/NEXT_FRONTEND_CHECKPOINT.md). Stable original code remains on `main` and tag `checkpoint-original-20261020`.
+
 Build inspectable, editable, and executable visual skills from one sentence.
 
 [English](README.md) | [中文](README_zh.md)

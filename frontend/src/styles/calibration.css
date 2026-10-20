@@ -1,0 +1,95 @@
+/* Iteration03: native1513×1040 geometry, paired with immutable04 reference. */
+.instruction-bar {
+  margin-bottom: 13px;
+}
+.workspace-panels {
+  grid-template-columns: minmax(0, 0.4786fr) minmax(0, 0.5214fr);
+}
+.view-canvas,
+.view-scene {
+  grid-template-columns: minmax(0, 1fr);
+}
+.detector-card {
+  justify-content: flex-start;
+  padding-left: 24px;
+  gap: 16px;
+}
+.detector-card strong,
+.final-card strong,
+.output-card strong,
+.branch-card header strong {
+  font-weight: 700;
+}
+.branch-card {
+  padding: 12px 12px 12px 10px;
+}
+.branch-card > header {
+  height: 50px;
+}
+.branch-members {
+  gap: 9px;
+}
+.condition-row {
+  height: 41px;
+}
+.logic-bracket {
+  width: 9px;
+}
+.teal .condition-rows {
+  gap: 17px;
+}
+.teal .condition-row:last-child {
+  height: 50px;
+}
+.teal .logic-badge {
+  transform: translateY(8px);
+}
+.condition-row {
+  font-weight: 500;
+}
+.branch-card header small {
+  font-size: 14px;
+}
+.detector-card small,
+.final-card small,
+.output-card small {
+  font-weight: 500;
+}
+@media (min-width: 1100px) {
+  .scene-panel .panel-header {
+    padding-left: 16px;
+    padding-right: 32px;
+  }
+  .scene-tools {
+    width: 280px;
+    flex-shrink: 0;
+    justify-content: space-between;
+  }
+  .scene-tools .button {
+    font-size: 16px;
+  }
+  .scene-panel .panel-header:has([aria-label="重做"]) .media-pill {
+    display: none;
+  }
+}
+@media (min-width: 1191px) {
+  .workflow-steps {
+    gap: 0;
+  }
+  .workflow-steps > div:nth-child(1) {
+    width: 155px;
+  }
+  .workflow-steps > div:nth-child(2) {
+    width: 205px;
+  }
+  .workflow-steps > div:nth-child(3) {
+    width: 143px;
+  }
+  .workflow-steps > div > svg {
+    margin-left: auto;
+    margin-right: 27px;
+  }
+  .workflow-steps > div {
+    gap: 0;
+  }
+}

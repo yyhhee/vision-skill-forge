@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "vsf-unified-2026-10-17-spec-v1",
+  "createdDate": "2026-10-19",
+  "specificationStatus": "v1_locked",
+  "lockMeaning": "执行规格已定稿，不代表用户验收或改进区域图稿已获签字；后续变更须登记。",
+  "scope": "specification_only",
+  "sourceGallery": "../2026-10-17-unified/index.html",
+  "masterScreenId": "04",
+  "environment": {
+    "deviceScaleFactor": 1,
+    "zoom": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "browser": "pending_actual_capture",
+    "browserVersion": null,
+    "os": "Windows; actual capture version must be recorded",
+    "fontsBinaryStatus": "pending",
+    "canonicalFontFamily": "Noto Sans SC"
+  },
+  "referencePolicy": {
+    "immutable": true,
+    "stretch": false,
+    "crop": false,
+    "allowFullScreenshotAsUi": false
+  },
+  "implementationStatus": "not_started",
+  "normalizedBaselineStatus": "not_created_requires_paired_review",
+  "visualAcceptance": "not_executed",
+  "functionalAcceptance": "not_executed",
+  "references": [
+    {
+      "id": "01",
+      "title": "技能库",
+      "file": "01-skill-library.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "75b03e960ffc2cfda4362377cd8f1f5d7dc36fbd486d091150bbee082d909988",
+      "bytes": 1520489,
+      "path": "references/01-skill-library.png"
+    },
+    {
+      "id": "02",
+      "title": "一句话创建与理解预览",
+      "file": "02-natural-language-create.png",
+      "width": 1513,
+      "height": 1039,
+      "sha256": "11888006f4c0b3c128c65c10817406501dfc73800dad3b7cbc168bf5490a0cef",
+      "bytes": 1612611,
+      "path": "references/02-natural-language-create.png"
+    },
+    {
+      "id": "03",
+      "title": "场景标注",
+      "file": "03-scene-annotation.png",
+      "width": 1513,
+      "height": 1039,
+      "sha256": "6f3d068dc070f4c5b871eb68eec817271b7c6c83b4d6065fcf4043c774b28db1",
+      "bytes": 1811040,
+      "path": "references/03-scene-annotation.png"
+    },
+    {
+      "id": "04",
+      "title": "画面与画布联动工作台",
+      "file": "04-linked-workbench.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "26098014f082510395e27890f70959573ff5cb1757bcf9053069afa5f916c6cf",
+      "bytes": 1773087,
+      "path": "references/04-linked-workbench.png"
+    },
+    {
+      "id": "05",
+      "title": "条件与证据组合编辑",
+      "file": "05-condition-evidence-editor.png",
+      "width": 1513,
+      "height": 1039,
+      "sha256": "d0dcab0b9aba799f35c92905942aea4444546967b01883817efaa7a661261572",
+      "bytes": 1821344,
+      "path": "references/05-condition-evidence-editor.png"
+    },
+    {
+      "id": "06",
+      "title": "条件／分支时间要求",
+      "file": "06-time-configuration.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "0438d96fc573a6b9dc98b48eff97d671e0d5d10ecbb94d0d7a63a68dcda94874",
+      "bytes": 1870971,
+      "path": "references/06-time-configuration.png"
+    },
+    {
+      "id": "07",
+      "title": "跨分支编排与复用组",
+      "file": "07-orchestration-groups.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "2d294e9c07adb8da88e396ae15e3dbd4baed9fc2d16c64825befb9f5572a8d6d",
+      "bytes": 1543397,
+      "path": "references/07-orchestration-groups.png"
+    },
+    {
+      "id": "08",
+      "title": "最终判定、业务输出与触发",
+      "file": "08-outputs-and-trigger.png",
+      "width": 1512,
+      "height": 1040,
+      "sha256": "ade51d44374e189aa3a1ea4f59884b1392de163f70fc36d54d01ee9f7ba7f02a",
+      "bytes": 1517044,
+      "path": "references/08-outputs-and-trigger.png"
+    },
+    {
+      "id": "09",
+      "title": "验证前配置",
+      "file": "09-run-configuration.png",
+      "width": 1512,
+      "height": 1040,
+      "sha256": "9048e34172c74015b46ae4d8cdb32bb79a10892c39b5bc0658395272b1209adb",
+      "bytes": 1594990,
+      "path": "references/09-run-configuration.png"
+    },
+    {
+      "id": "10",
+      "title": "正在运行",
+      "file": "10-run-progress.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "a59fb15d37886b028a24daf0239691443a14b56227b6fb40186fdcc6b347cbd8",
+      "bytes": 1771403,
+      "path": "references/10-run-progress.png"
+    },
+    {
+      "id": "11",
+      "title": "结果、事件与证据",
+      "file": "11-results-and-evidence.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "84df6747b113c58df7711aec76f958104cb03e2bea06cf018c320f35c5f31efe",
+      "bytes": 1939859,
+      "path": "references/11-results-and-evidence.png"
+    },
+    {
+      "id": "12",
+      "title": "完整保存与版本管理",
+      "file": "12-save-and-versions.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "ab40b523942df9cb5cd74abc5fe6fa1b81a9ed7ff44626376cb70a0b53c3d3eb",
+      "bytes": 1403536,
+      "path": "references/12-save-and-versions.png"
+    },
+    {
+      "id": "13",
+      "title": "统一模型接入",
+      "file": "13-model-connections.png",
+      "width": 1513,
+      "height": 1039,
+      "sha256": "30098e578614848fbfbc6af20c771aff3813f7833b6a786abee3f9273b5bf2c6",
+      "bytes": 1246790,
+      "path": "references/13-model-connections.png"
+    },
+    {
+      "id": "14",
+      "title": "能力与插件管理",
+      "file": "14-capability-management.png",
+      "width": 1512,
+      "height": 1040,
+      "sha256": "5631bb50e4b81c616593b9420de681586f3d83e6da1f1577851d20079bc15f4a",
+      "bytes": 1442967,
+      "path": "references/14-capability-management.png"
+    },
+    {
+      "id": "15",
+      "title": "校验失败与定位修正",
+      "file": "15-validation-and-recovery.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "91d6497fbf3e594f688f98c058c0414b1a2d5407003c751e137ecc4765bf6fd3",
+      "bytes": 1736787,
+      "path": "references/15-validation-and-recovery.png"
+    },
+    {
+      "id": "16",
+      "title": "运行记录列表",
+      "file": "16-run-history.png",
+      "width": 1513,
+      "height": 1040,
+      "sha256": "7e16bd479931a0560d38aece5c833aa83b207565cdd18c0c8d2e34e8d4635663",
+      "bytes": 1415703,
+      "path": "references/16-run-history.png"
+    }
+  ],
+  "changeLedger": "DECISIONS.md",
+  "caseFile": "screen-states.json"
+}
+

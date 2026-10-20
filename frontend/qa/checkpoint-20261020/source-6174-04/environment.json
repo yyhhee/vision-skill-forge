@@ -1,0 +1,167 @@
+{
+  "purpose": "real browser capture; not visual acceptance",
+  "browserVersion": "151.0.7922.34",
+  "os": {
+    "platform": "win32",
+    "release": "10.0.26200"
+  },
+  "viewport": {
+    "width": 1513,
+    "height": 1040
+  },
+  "dpr": 1,
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+  "language": "zh-CN",
+  "timezone": "Asia/Shanghai",
+  "fontStatus": "loaded",
+  "weights": [
+    {
+      "weight": 400,
+      "loaded": true
+    },
+    {
+      "weight": 500,
+      "loaded": true
+    },
+    {
+      "weight": 600,
+      "loaded": true
+    },
+    {
+      "weight": 700,
+      "loaded": true
+    }
+  ],
+  "selectedRegion1": "true",
+  "openInspectorCount": 0,
+  "geometry": [
+    {
+      "selector": "topbar",
+      "x": 0,
+      "y": 0,
+      "width": 1513,
+      "height": 68
+    },
+    {
+      "selector": "sidebar",
+      "x": 0,
+      "y": 68,
+      "width": 190,
+      "height": 920
+    },
+    {
+      "selector": "instruction-bar",
+      "x": 202,
+      "y": 137,
+      "width": 1297,
+      "height": 60
+    },
+    {
+      "selector": "scene-panel panel  ",
+      "x": 202,
+      "y": 210,
+      "width": 615,
+      "height": 762
+    },
+    {
+      "selector": "scene-media ",
+      "x": 217,
+      "y": 275,
+      "width": 585,
+      "height": 440
+    },
+    {
+      "selector": "canvas-panel panel ",
+      "x": 829,
+      "y": 210,
+      "width": 669.984375,
+      "height": 762
+    },
+    {
+      "selector": "rule-flow",
+      "x": 842,
+      "y": 275,
+      "width": 643.984375,
+      "height": 682
+    },
+    {
+      "selector": "detector-card",
+      "x": 1027,
+      "y": 302,
+      "width": 246,
+      "height": 70
+    },
+    {
+      "selector": "branch-card orange selected",
+      "x": 860,
+      "y": 436,
+      "width": 294,
+      "height": 224
+    },
+    {
+      "selector": "branch-card teal ",
+      "x": 1175,
+      "y": 436,
+      "width": 292,
+      "height": 224
+    },
+    {
+      "selector": "final-card",
+      "x": 1040,
+      "y": 718,
+      "width": 220,
+      "height": 62
+    },
+    {
+      "selector": "output-card",
+      "x": 1040,
+      "y": 829,
+      "width": 220,
+      "height": 66
+    },
+    {
+      "selector": "app-footer",
+      "x": 0,
+      "y": 988,
+      "width": 1513,
+      "height": 52
+    }
+  ],
+  "fonts": [
+    {
+      "file": "noto-sans-sc-chinese-simplified-400-normal.woff2",
+      "sha256": "95e3633b6a98f764ba3adfb54504a0cd4799328c009adf9081d6c1850f9c4c78"
+    },
+    {
+      "file": "noto-sans-sc-chinese-simplified-500-normal.woff2",
+      "sha256": "885f52ca6a25fddde7641eaf9cf6d6fd9e8f1a454f99f77f0f1be1be0c6470a5"
+    },
+    {
+      "file": "noto-sans-sc-chinese-simplified-600-normal.woff2",
+      "sha256": "578fb41a3dc2817b703611ad94b5c27dac96a3907c9d6b843c513217b562e1a2"
+    },
+    {
+      "file": "noto-sans-sc-chinese-simplified-700-normal.woff2",
+      "sha256": "e1df51edc00bce27b58044e829fb8ec6accc8a5daece475413de90d52818845c"
+    },
+    {
+      "file": "noto-sans-sc-latin-400-normal.woff2",
+      "sha256": "2a75408e073f2d7e03e14c24f25fb093571b73a030f2f483ae256d6975e930d0"
+    },
+    {
+      "file": "noto-sans-sc-latin-500-normal.woff2",
+      "sha256": "7da09260d852c84bfe25e5be0e3a3193418d69eb55fb8763aef8553b1d9cea79"
+    },
+    {
+      "file": "noto-sans-sc-latin-600-normal.woff2",
+      "sha256": "d1fffa4c12444d2e1bc5f6534825258c3b9ba81e275abb02f4e6c05f6d03eaa6"
+    },
+    {
+      "file": "noto-sans-sc-latin-700-normal.woff2",
+      "sha256": "79a7c3f1ddff7c79ba3eff8556ee7acc7f3c95259f3982b34a711b6de5fbd6a7"
+    }
+  ],
+  "errors": [],
+  "networkPolicy": "only127.0.0.1:6174; fresh context; no login/profile",
+  "url": "http://127.0.0.1:6174/skills/regional-alert/editor?view=linked&fixture=04"
+}

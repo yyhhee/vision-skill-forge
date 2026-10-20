@@ -1,0 +1,58 @@
+[
+  {
+    "id": "final-NOT-with-two-members",
+    "issues": [],
+    "importAccepted": true,
+    "applyAccepted": true,
+    "importError": "",
+    "applyError": ""
+  },
+  {
+    "id": "group-unknown-correlation-source",
+    "issues": [],
+    "importAccepted": true,
+    "applyAccepted": true,
+    "importError": "",
+    "applyError": ""
+  },
+  {
+    "id": "image-hold-time",
+    "issues": [],
+    "importAccepted": true,
+    "applyAccepted": true,
+    "importError": "",
+    "applyError": ""
+  },
+  {
+    "id": "unknown-trigger-mode",
+    "issues": [],
+    "importAccepted": true,
+    "applyAccepted": true,
+    "importError": "",
+    "applyError": ""
+  },
+  {
+    "id": "nonfinite-duration",
+    "issues": [],
+    "importAccepted": false,
+    "applyAccepted": true,
+    "importError": "Error: 技能文件结构不完整或字段类型无效。请使用本前端导出的完整技能 JSON。",
+    "applyError": ""
+  },
+  {
+    "id": "condition-source-cycle",
+    "issues": [],
+    "importAccepted": false,
+    "applyAccepted": true,
+    "importError": "Error: 目标来源存在循环引用，未导入。",
+    "applyError": ""
+  },
+  {
+    "id": "branch-missing-source",
+    "issues": [],
+    "importAccepted": false,
+    "applyAccepted": true,
+    "importError": "Error: 分支A · 区域1的来源不存在。",
+    "applyError": ""
+  }
+]

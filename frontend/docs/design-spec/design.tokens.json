@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "layout": "04 人工像素定位，误差约±3px；不是精确设计源数据",
+    "type": "选择统一替代字库；原始生成图字库未知",
+    "color": "统一目标色；按原图视觉归纳，非所有像素的统计均值",
+    "scope": "后续基于实测差异调整，须在修改记录中注明"
+  },
+  "font": {
+    "family": [
+      "Noto Sans SC",
+      "sans-serif"
+    ],
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "body": {
+      "size": 16,
+      "lineHeight": 24
+    },
+    "meta": {
+      "size": 14,
+      "lineHeight": 20
+    },
+    "title": {
+      "size": 24,
+      "lineHeight": 32
+    },
+    "section": {
+      "size": 18,
+      "lineHeight": 28
+    }
+  },
+  "color": {
+    "background": "#F6F8FC",
+    "surface": "#FFFFFF",
+    "canvas": "#F8FAFC",
+    "text": "#1F2937",
+    "muted": "#667085",
+    "border": "#E2E8F0",
+    "primary": "#4F46E5",
+    "primaryTint": "#EEF2FF",
+    "focus": "#4338CA",
+    "roi1Stroke": "#F59E0B",
+    "roi1Text": "#92400E",
+    "roi1Tint": "#FFFBEB",
+    "roi2Stroke": "#14B8A6",
+    "roi2Text": "#115E59",
+    "roi2Tint": "#F0FDFA",
+    "successText": "#166534",
+    "successTint": "#F0FDF4",
+    "warningText": "#92400E",
+    "warningTint": "#FFFBEB",
+    "errorText": "#B91C1C",
+    "errorTint": "#FEF2F2"
+  },
+  "spacing": [
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    32
+  ],
+  "radius": {
+    "control": 8,
+    "panel": 12,
+    "pill": 999
+  },
+  "size": {
+    "topbar": 68,
+    "sidebar": 190,
+    "footer": 52,
+    "primaryButton": 44,
+    "input": 40,
+    "compactControl": 36,
+    "drawer": 416,
+    "contentGap": 12,
+    "contentPaddingLeft": 12,
+    "contentPaddingRight": 14
+  },
+  "geometry04": {
+    "viewport": [
+      1513,
+      1040
+    ],
+    "steps": [
+      202,
+      80,
+      1297,
+      46
+    ],
+    "description": [
+      202,
+      137,
+      1297,
+      60
+    ],
+    "previewPanel": [
+      202,
+      210,
+      615,
+      762
+    ],
+    "canvasPanel": [
+      829,
+      210,
+      670,
+      762
+    ],
+    "mediaRect": [
+      217,
+      275,
+      585,
+      440
+    ]
+  },
+  "icon": {
+    "family": "Phosphor",
+    "uiWeight": "regular",
+    "businessWeight": "duotone",
+    "sizes": [
+      16,
+      20,
+      24
+    ]
+  },
+  "breakpoints": {
+    "singleViewBelow": 1100
+  },
+  "canvas": {
+    "caseDefaultViewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 1
+    },
+    "minZoom": 0.25,
+    "maxZoom": 2
+  },
+  "motion": {
+    "interactiveDurationMs": 160,
+    "captureDisable": true
+  },
+  "focus": {
+    "width": 2,
+    "offset": 2
+  },
+  "contrast": {
+    "normalTextMinimum": 4.5,
+    "largeTextMinimum": 3,
+    "nonTextMinimum": 3,
+    "verification": "required_on_rendered_combinations_not_executed"
+  }
+}
+

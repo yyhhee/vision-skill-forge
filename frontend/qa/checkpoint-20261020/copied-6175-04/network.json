@@ -1,0 +1,198 @@
+[
+  {
+    "url": "http://127.0.0.1:6175/skills/regional-alert/editor?view=linked&fixture=04",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/main.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/@react-refresh",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/react.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/FrontendRoot.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/styles.css",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/chunk-WGQ442SR.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/react-dom_client.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/skillRepository.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/App.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/skillStorage.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/navigation.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/ui.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/@vite/client",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/chunk-XUUPLCX6.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/chunk-5OEL3WWE.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/document.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/editor.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/versions.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/validation.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/runs.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/AppShell.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/useWorkspace.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/InspectorDrawer.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/capabilityRequirements.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/vite/dist/client/env.mjs",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/SceneResources.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/IssuesPanel.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/evidenceBinding.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/fixtures/mock-fixtures.json?import",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/ruleSummary.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/editors/AdvancedFields.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/data/capabilities.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/@phosphor-icons_react.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/assets/brand/vision-forge-mark.png",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/SceneViewport.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/RuleCanvas.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/hooks/useElementSize.ts",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/react-konva.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/@xyflow/react/dist/style.css",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/@xyflow_react.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/src/components/OrchestrationCanvas.tsx",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/assets/media/construction-clean.png",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/node_modules/.vite/deps/chunk-FTX46J5Z.js?v=678c9fbe",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/assets/fonts/noto-sans-sc-chinese-simplified-700-normal.woff2",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/assets/fonts/noto-sans-sc-chinese-simplified-400-normal.woff2",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/assets/fonts/noto-sans-sc-chinese-simplified-600-normal.woff2",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6175/assets/fonts/noto-sans-sc-chinese-simplified-500-normal.woff2",
+    "status": 200
+  }
+]

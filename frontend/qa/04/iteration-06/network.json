@@ -1,0 +1,134 @@
+[
+  {
+    "url": "http://127.0.0.1:6174/skills/regional-alert/editor?view=linked&fixture=04",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/main.tsx?t=1792376516716",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/@vite/client",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/@react-refresh",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=467b6da5",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/react.js?v=467b6da5",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/styles.css?t=1792376346725",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/chunk-WGQ442SR.js?v=bac8c854",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/vite/dist/client/env.mjs",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/react-dom_client.js?v=467b6da5",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/App.tsx?t=1792376516716",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/chunk-XUUPLCX6.js?v=bac8c854",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/chunk-5OEL3WWE.js?v=bac8c854",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/components/AppShell.tsx?t=1792376171292",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/components/InspectorDrawer.tsx?t=1792376516716",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/data/useWorkspace.ts?t=1792376171352",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/data/document.ts?t=1792376171352",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/components/ui.tsx?t=1792376171292",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/fixtures/mock-fixtures.json?t=1792376171352&import",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/@phosphor-icons_react.js?v=8bc8ef7e",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/assets/brand/vision-forge-mark.png",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/components/SceneViewport.tsx?t=1792376346680",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/components/RuleCanvas.tsx?t=1792376171352",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/src/hooks/useElementSize.ts?t=1792376171355",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/@xyflow_react.js?v=85d3f4c3",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/@xyflow/react/dist/style.css",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/react-konva.js?v=b95b766d",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/node_modules/.vite/deps/chunk-FTX46J5Z.js?v=bac8c854",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/assets/media/construction-clean.png",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/assets/fonts/noto-sans-sc-chinese-simplified-700-normal.woff2",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/assets/fonts/noto-sans-sc-chinese-simplified-400-normal.woff2",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/assets/fonts/noto-sans-sc-chinese-simplified-600-normal.woff2",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:6174/assets/fonts/noto-sans-sc-chinese-simplified-500-normal.woff2",
+    "status": 200
+  }
+]

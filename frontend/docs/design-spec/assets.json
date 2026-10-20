@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "assetRoot": "future_frontend/public/assets",
+  "readyAssetCount": 0,
+  "referenceImagesAreNotUiAssets": true,
+  "items": [
+    {
+      "id": "AS-01",
+      "label": "品牌V标记",
+      "status": "reference_only",
+      "pages": [
+        "all"
+      ],
+      "sizeSpec": "30×30 display; >=120×120 transparent source",
+      "acquisition": "extract_or_generate_then_review",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-02",
+      "label": "干净施工主图",
+      "status": "missing",
+      "pages": [
+        "01",
+        "03",
+        "04",
+        "05",
+        "06",
+        "09",
+        "10",
+        "11",
+        "12",
+        "15",
+        "16"
+      ],
+      "sizeSpec": "585×440 visible in04; recommend long edge >=1600",
+      "acquisition": "recover_clean_source_or_image_edit_then_review",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-03",
+      "label": "真实视频",
+      "status": "missing",
+      "pages": [
+        "03",
+        "04",
+        "09",
+        "10",
+        "11"
+      ],
+      "sizeSpec": "actual width/height/fps/duration from file",
+      "acquisition": "user_video_or_explicitly_authorized_new_asset",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": false,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false,
+      "blocksRealPlaybackAcceptance": true
+    },
+    {
+      "id": "AS-04",
+      "label": "同源帧缩略条",
+      "status": "missing",
+      "pages": [
+        "03",
+        "04",
+        "05",
+        "06",
+        "09",
+        "10",
+        "11",
+        "15"
+      ],
+      "sizeSpec": "~60×46 display each",
+      "acquisition": "derive_from_AS-03_or_label_simulated_AS-02",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-05",
+      "label": "沙发椅子缩略图",
+      "status": "reference_only",
+      "pages": [
+        "01"
+      ],
+      "sizeSpec": "72×72 display; >=288×288 source",
+      "acquisition": "extract_or_generate_then_review",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-06",
+      "label": "车道缩略图",
+      "status": "reference_only",
+      "pages": [
+        "01",
+        "16"
+      ],
+      "sizeSpec": "72×72 display; >=288×288 source",
+      "acquisition": "extract_or_generate_then_review",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-07",
+      "label": "抛洒物缩略图",
+      "status": "reference_only",
+      "pages": [
+        "01",
+        "16"
+      ],
+      "sizeSpec": "72×72 display; >=288×288 source",
+      "acquisition": "extract_or_generate_then_review",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-08",
+      "label": "桥梁缩略图",
+      "status": "reference_only",
+      "pages": [
+        "01",
+        "16"
+      ],
+      "sizeSpec": "72×72 display; >=288×288 source",
+      "acquisition": "extract_or_generate_then_review",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-09",
+      "label": "上衣证据",
+      "status": "missing",
+      "pages": [
+        "11"
+      ],
+      "sizeSpec": "~190×62 display; real source crop recorded",
+      "acquisition": "derive_from_same_AS-02_or_AS-03_frame",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false,
+      "sourceMediaId": "construction-poster",
+      "sourceFrameSeconds": 12,
+      "entityId": "person-1",
+      "sourceRect": null
+    },
+    {
+      "id": "AS-10",
+      "label": "裤子证据",
+      "status": "missing",
+      "pages": [
+        "11"
+      ],
+      "sizeSpec": "~190×62 display; same entity asAS-09",
+      "acquisition": "derive_from_same_AS-02_or_AS-03_frame",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false,
+      "sourceMediaId": "construction-poster",
+      "sourceFrameSeconds": 12,
+      "entityId": "person-1",
+      "sourceRect": null
+    },
+    {
+      "id": "AS-11",
+      "label": "Noto Sans SC字体",
+      "status": "planned_library",
+      "pages": [
+        "all"
+      ],
+      "sizeSpec": "400/500/600/700 WOFF2; actual binaries pending",
+      "acquisition": "archive_from_official_distribution",
+      "sourceUrl": "https://github.com/notofonts/noto-cjk",
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-12",
+      "label": "Phosphor图标",
+      "status": "planned_library",
+      "pages": [
+        "all"
+      ],
+      "sizeSpec": "16/20/24; regular / duotone",
+      "acquisition": "install_and_lock_official_package",
+      "sourceUrl": "https://github.com/phosphor-icons/react",
+      "blocksVisualAcceptance": true,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    },
+    {
+      "id": "AS-13",
+      "label": "状态UI样式",
+      "status": "specified_ui_style",
+      "pages": [
+        "all"
+      ],
+      "sizeSpec": "tokens not bitmap",
+      "acquisition": "implement_from_design.tokens.json",
+      "sourceUrl": null,
+      "blocksVisualAcceptance": false,
+      "path": null,
+      "sha256": null,
+      "pixelSize": null,
+      "license": null,
+      "containsBakedUi": null,
+      "reviewed": false
+    }
+  ]
+}
+

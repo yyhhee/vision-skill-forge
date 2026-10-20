@@ -1,0 +1,905 @@
+{
+  "schemaVersion": 1,
+  "notice": "纯前端测试种子，不是原软件配置导出，不是实际模型/测色/视频结果。未列出语义不伪装支持。",
+  "clock": "2026-10-17T10:26:00+08:00",
+  "seed": 17,
+  "media": [
+    {
+      "id": "construction-poster",
+      "kind": "poster_with_simulated_timeline",
+      "intendedMediaMode": "video_demo",
+      "deliveryMode": "poster_only",
+      "temporalConfigurationAvailable": true,
+      "assetId": "AS-02",
+      "path": null,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "simulatedTimelineSeconds": 30,
+      "label": "施工场景海报 · 模拟时间轴",
+      "realVideoAssetId": "AS-03",
+      "realPlaybackAvailable": false
+    }
+  ],
+  "documents": {
+    "regional-draft": {
+      "id": "regional-alert",
+      "schemaVersion": 1,
+      "name": "区域联合告警",
+      "instruction": "区域1有穿红色上衣、灰色裤子的人，且区域2至少2人时告警。",
+      "mediaRef": "construction-poster",
+      "geometryProvenance": "04可见585×440图面人工定位，约±3px；独立底图补齐后须重新核对，不能声称来自原视频",
+      "regions": [
+        {
+          "id": "roi-1",
+          "name": "区域1",
+          "type": "polygon",
+          "colorIdentity": "orange",
+          "saved": true,
+          "points": [
+            [0.101, 0.393],
+            [0.274, 0.395],
+            [0.315, 0.627],
+            [0.145, 0.727]
+          ]
+        },
+        {
+          "id": "roi-2",
+          "name": "区域2",
+          "type": "polygon",
+          "colorIdentity": "teal",
+          "saved": true,
+          "points": [
+            [0.665, 0.409],
+            [0.891, 0.352],
+            [0.971, 0.475],
+            [0.909, 0.745],
+            [0.612, 0.602]
+          ]
+        }
+      ],
+      "entitySources": [
+        {
+          "id": "persons",
+          "label": "检测人员",
+          "type": "entity_set",
+          "category": "person",
+          "trackAvailable": false
+        }
+      ],
+      "conditions": [
+        {
+          "id": "a-inside",
+          "label": "位于区域1",
+          "kind": "inside",
+          "source": "persons",
+          "region": "roi-1"
+        },
+        {
+          "id": "a-red",
+          "label": "红色上衣",
+          "kind": "visible_color",
+          "source": "persons",
+          "part": "upper",
+          "color": "red",
+          "minimumFraction": 0.1,
+          "evidenceMode": "all",
+          "semanticQuery": "person wearing a red top",
+          "sameEntityRequired": true
+        },
+        {
+          "id": "a-gray",
+          "label": "灰色裤子",
+          "kind": "visible_color",
+          "source": "persons",
+          "part": "lower",
+          "color": "gray",
+          "minimumFraction": 0.1,
+          "evidenceMode": "all",
+          "semanticQuery": "person wearing gray trousers",
+          "sameEntityRequired": true
+        },
+        {
+          "id": "b-inside",
+          "label": "位于区域2",
+          "kind": "inside",
+          "source": "persons",
+          "region": "roi-2"
+        },
+        {
+          "id": "b-count",
+          "label": "人数 ≥ 2",
+          "kind": "count",
+          "source": "b-inside",
+          "comparison": "gte",
+          "value": 2
+        }
+      ],
+      "branches": [
+        {
+          "id": "branch-a",
+          "name": "分支A · 区域1",
+          "resultType": "entity_set",
+          "source": "persons",
+          "logic": {
+            "operator": "AND",
+            "members": ["a-inside", "a-red", "a-gray"]
+          },
+          "identity": "per_entity",
+          "time": {
+            "mode": "immediate"
+          },
+          "validity": {
+            "mode": "current_frame"
+          }
+        },
+        {
+          "id": "branch-b",
+          "name": "分支B · 区域2",
+          "resultType": "boolean",
+          "source": "b-inside",
+          "logic": {
+            "operator": "AND",
+            "members": ["b-inside", "b-count"]
+          },
+          "identity": "per_region",
+          "time": {
+            "mode": "immediate"
+          },
+          "validity": {
+            "mode": "current_frame"
+          }
+        }
+      ],
+      "groups": [],
+      "final": {
+        "id": "final-and",
+        "label": "全部同时满足",
+        "type": "boolean",
+        "operator": "AND",
+        "members": ["branch-a", "branch-b"]
+      },
+      "outputs": [
+        {
+          "id": "output-alert",
+          "name": "区域告警事件",
+          "source": "final-and",
+          "resultType": "event_list",
+          "trigger": {
+            "mode": "once_per_episode"
+          },
+          "delivery": "local_only"
+        }
+      ],
+      "runSettings": {
+        "sampleIntervalSeconds": 1,
+        "tiles": {
+          "enabled": true,
+          "includeFullFrame": true,
+          "width": 640,
+          "height": 640,
+          "overlapX": 0.2,
+          "overlapY": 0.2
+        },
+        "dedup": {
+          "metric": "instance",
+          "threshold": 0.45,
+          "keep": "best_localization"
+        }
+      }
+    },
+    "regional-applied": {
+      "id": "regional-alert",
+      "schemaVersion": 1,
+      "name": "区域联合告警",
+      "instruction": "区域1有穿红色上衣、灰色裤子的人，且区域2至少2人时告警。",
+      "mediaRef": "construction-poster",
+      "geometryProvenance": "04可见585×440图面人工定位，约±3px；独立底图补齐后须重新核对，不能声称来自原视频",
+      "regions": [
+        {
+          "id": "roi-1",
+          "name": "区域1",
+          "type": "polygon",
+          "colorIdentity": "orange",
+          "saved": true,
+          "points": [
+            [0.101, 0.393],
+            [0.274, 0.395],
+            [0.315, 0.627],
+            [0.145, 0.727]
+          ]
+        },
+        {
+          "id": "roi-2",
+          "name": "区域2",
+          "type": "polygon",
+          "colorIdentity": "teal",
+          "saved": true,
+          "points": [
+            [0.665, 0.409],
+            [0.891, 0.352],
+            [0.971, 0.475],
+            [0.909, 0.745],
+            [0.612, 0.602]
+          ]
+        }
+      ],
+      "entitySources": [
+        {
+          "id": "persons",
+          "label": "检测人员",
+          "type": "entity_set",
+          "category": "person",
+          "trackAvailable": false
+        }
+      ],
+      "conditions": [
+        {
+          "id": "a-inside",
+          "label": "位于区域1",
+          "kind": "inside",
+          "source": "persons",
+          "region": "roi-1"
+        },
+        {
+          "id": "a-red",
+          "label": "红色上衣",
+          "kind": "visible_color",
+          "source": "persons",
+          "part": "upper",
+          "color": "red",
+          "minimumFraction": 0.2,
+          "evidenceMode": "all",
+          "semanticQuery": "person wearing a red top",
+          "sameEntityRequired": true
+        },
+        {
+          "id": "a-gray",
+          "label": "灰色裤子",
+          "kind": "visible_color",
+          "source": "persons",
+          "part": "lower",
+          "color": "gray",
+          "minimumFraction": 0.2,
+          "evidenceMode": "all",
+          "semanticQuery": "person wearing gray trousers",
+          "sameEntityRequired": true
+        },
+        {
+          "id": "b-inside",
+          "label": "位于区域2",
+          "kind": "inside",
+          "source": "persons",
+          "region": "roi-2"
+        },
+        {
+          "id": "b-count",
+          "label": "人数 ≥ 2",
+          "kind": "count",
+          "source": "b-inside",
+          "comparison": "gte",
+          "value": 2
+        }
+      ],
+      "branches": [
+        {
+          "id": "branch-a",
+          "name": "分支A · 区域1",
+          "resultType": "entity_set",
+          "source": "persons",
+          "logic": {
+            "operator": "AND",
+            "members": ["a-inside", "a-red", "a-gray"]
+          },
+          "identity": "per_entity",
+          "time": {
+            "mode": "immediate"
+          },
+          "validity": {
+            "mode": "current_frame"
+          }
+        },
+        {
+          "id": "branch-b",
+          "name": "分支B · 区域2",
+          "resultType": "boolean",
+          "source": "b-inside",
+          "logic": {
+            "operator": "AND",
+            "members": ["b-inside", "b-count"]
+          },
+          "identity": "per_region",
+          "time": {
+            "mode": "immediate"
+          },
+          "validity": {
+            "mode": "current_frame"
+          }
+        }
+      ],
+      "groups": [],
+      "final": {
+        "id": "final-and",
+        "label": "全部同时满足",
+        "type": "boolean",
+        "operator": "AND",
+        "members": ["branch-a", "branch-b"]
+      },
+      "outputs": [
+        {
+          "id": "output-alert",
+          "name": "区域告警事件",
+          "source": "final-and",
+          "resultType": "event_list",
+          "trigger": {
+            "mode": "once_per_episode"
+          },
+          "delivery": "local_only"
+        }
+      ],
+      "runSettings": {
+        "sampleIntervalSeconds": 1,
+        "tiles": {
+          "enabled": true,
+          "includeFullFrame": true,
+          "width": 640,
+          "height": 640,
+          "overlapX": 0.2,
+          "overlapY": 0.2
+        },
+        "dedup": {
+          "metric": "instance",
+          "threshold": 0.45,
+          "keep": "best_localization"
+        }
+      }
+    },
+    "sequence-edit": {
+      "id": "sequence-demo",
+      "name": "顺序与并行演示",
+      "schemaVersion": 1,
+      "mediaRef": "construction-poster",
+      "source": {
+        "id": "scene",
+        "type": "scene",
+        "trackAvailable": false
+      },
+      "branches": [
+        {
+          "id": "seq-a",
+          "name": "分支A",
+          "resultType": "event_list"
+        },
+        {
+          "id": "seq-b",
+          "name": "分支B",
+          "resultType": "event_list"
+        },
+        {
+          "id": "seq-c",
+          "name": "分支C",
+          "resultType": "boolean"
+        }
+      ],
+      "groups": [
+        {
+          "id": "group-ab",
+          "name": "顺序组：A → B",
+          "operator": "SEQUENCE",
+          "members": ["seq-a", "seq-b"],
+          "correlation": {
+            "mode": "global_scene",
+            "source": "scene"
+          },
+          "transition": {
+            "from": "previous.end",
+            "to": "next.start",
+            "minGapSeconds": 0,
+            "maxGapSeconds": 10
+          },
+          "validity": {
+            "mode": "hold",
+            "seconds": 5
+          }
+        },
+        {
+          "id": "group-all",
+          "name": "（A → B）与C同时满足",
+          "operator": "AND",
+          "members": ["group-ab", "seq-c"]
+        }
+      ],
+      "final": {
+        "source": "group-all"
+      },
+      "semanticsNote": "明确前段结束→后段开始；AB完成后保持5秒，与C有效时间相交。只是配置演示，不实现视频推理。"
+    },
+    "regional-invalid": {
+      "id": "regional-alert",
+      "schemaVersion": 1,
+      "name": "区域联合告警",
+      "instruction": "区域1有穿红色上衣、灰色裤子的人，且区域2至少2人时告警。",
+      "mediaRef": "construction-poster",
+      "geometryProvenance": "04可见585×440图面人工定位，约±3px；独立底图补齐后须重新核对，不能声称来自原视频",
+      "regions": [
+        {
+          "id": "roi-1",
+          "name": "区域1",
+          "type": "polygon",
+          "colorIdentity": "orange",
+          "saved": true,
+          "points": [
+            [0.101, 0.393],
+            [0.274, 0.395],
+            [0.315, 0.627],
+            [0.145, 0.727]
+          ]
+        },
+        {
+          "id": "roi-2",
+          "name": "区域2",
+          "type": "polygon",
+          "colorIdentity": "teal",
+          "saved": false,
+          "points": []
+        }
+      ],
+      "entitySources": [
+        {
+          "id": "persons",
+          "label": "检测人员",
+          "type": "entity_set",
+          "category": "person",
+          "trackAvailable": false
+        }
+      ],
+      "conditions": [
+        {
+          "id": "a-inside",
+          "label": "位于区域1",
+          "kind": "inside",
+          "source": "persons",
+          "region": "roi-1"
+        },
+        {
+          "id": "a-red",
+          "label": "红色上衣",
+          "kind": "visible_color",
+          "source": "persons",
+          "part": "upper",
+          "color": "red",
+          "minimumFraction": 0.1,
+          "evidenceMode": "all",
+          "semanticQuery": "person wearing a red top",
+          "sameEntityRequired": true
+        },
+        {
+          "id": "a-gray",
+          "label": "灰色裤子",
+          "kind": "visible_color",
+          "source": "persons",
+          "part": "lower",
+          "color": "gray",
+          "minimumFraction": 0.1,
+          "evidenceMode": "all",
+          "semanticQuery": "person wearing gray trousers",
+          "sameEntityRequired": true
+        },
+        {
+          "id": "b-inside",
+          "label": "位于区域2",
+          "kind": "inside",
+          "source": "persons",
+          "region": "roi-2"
+        },
+        {
+          "id": "b-count",
+          "label": "人数 ≥ 2",
+          "kind": "count",
+          "source": "b-inside",
+          "comparison": "gte",
+          "value": 2
+        }
+      ],
+      "branches": [
+        {
+          "id": "branch-a",
+          "name": "分支A · 区域1",
+          "resultType": "entity_set",
+          "source": "persons",
+          "logic": {
+            "operator": "AND",
+            "members": ["a-inside", "a-red", "a-gray"]
+          },
+          "identity": "per_entity",
+          "time": {
+            "mode": "immediate"
+          },
+          "validity": {
+            "mode": "current_frame"
+          }
+        },
+        {
+          "id": "branch-b",
+          "name": "分支B · 区域2",
+          "resultType": "boolean",
+          "source": "b-inside",
+          "logic": {
+            "operator": "AND",
+            "members": ["b-inside", "b-count"]
+          },
+          "identity": "per_region",
+          "time": {
+            "mode": "immediate"
+          },
+          "validity": {
+            "mode": "current_frame"
+          }
+        }
+      ],
+      "groups": [],
+      "final": {
+        "id": "final-and",
+        "label": "全部同时满足",
+        "type": "boolean",
+        "operator": "AND",
+        "members": ["branch-a", "branch-b"]
+      },
+      "outputs": [
+        {
+          "id": "output-alert",
+          "name": "区域告警事件",
+          "source": null,
+          "resultType": "event_list",
+          "trigger": {
+            "mode": "once_per_episode"
+          },
+          "delivery": "local_only"
+        }
+      ],
+      "runSettings": {
+        "sampleIntervalSeconds": 1,
+        "tiles": {
+          "enabled": true,
+          "includeFullFrame": true,
+          "width": 640,
+          "height": 640,
+          "overlapX": 0.2,
+          "overlapY": 0.2
+        },
+        "dedup": {
+          "metric": "instance",
+          "threshold": 0.45,
+          "keep": "best_localization"
+        }
+      }
+    }
+  },
+  "revisions": [
+    {
+      "id": "R3",
+      "skillId": "regional-alert",
+      "immutable": true,
+      "documentRef": "regional-applied",
+      "createdAt": "2026-10-17T10:20:00+08:00"
+    }
+  ],
+  "archives": [
+    {
+      "id": "V3",
+      "skillId": "regional-alert",
+      "documentRef": "regional-applied",
+      "appliedRevision": "R3",
+      "createdAt": "2026-10-17T10:20:00+08:00",
+      "note": "完整保存的演示基准；加载不自动应用"
+    }
+  ],
+  "library": [
+    {
+      "id": "regional-alert",
+      "name": "区域联合告警",
+      "assetId": "AS-02",
+      "state": "draft_unapplied",
+      "appliedRevision": "R3"
+    },
+    {
+      "id": "furniture",
+      "name": "黄色沙发与白色椅子",
+      "assetId": "AS-05",
+      "state": "draft",
+      "appliedRevision": null
+    },
+    {
+      "id": "lane-traffic",
+      "name": "多车道拥堵",
+      "assetId": "AS-06",
+      "state": "draft",
+      "appliedRevision": null
+    },
+    {
+      "id": "road-debris",
+      "name": "道路抛洒物",
+      "assetId": "AS-07",
+      "state": "draft",
+      "appliedRevision": null
+    },
+    {
+      "id": "bridge-damage",
+      "name": "桥梁病害",
+      "assetId": "AS-08",
+      "state": "draft",
+      "appliedRevision": null
+    }
+  ],
+  "creation": {
+    "acceptedInputs": [
+      "区域1有穿红色上衣、灰色裤子的人，且区域2至少2人时告警。"
+    ],
+    "previewDocumentRef": "regional-draft",
+    "unsupportedBehavior": "提示未连接LLM；可选择演示示例，不返回伪造编排。"
+  },
+  "forms": {
+    "regional-time-edit": {
+      "documentRef": "regional-draft",
+      "target": "branch-b",
+      "dirty": true,
+      "patch": {
+        "time": {
+          "mode": "continuous",
+          "durationSeconds": 5,
+          "allowedGapSeconds": 0.5,
+          "scope": {
+            "mode": "per_region",
+            "source": "roi-2"
+          }
+        },
+        "validity": {
+          "mode": "current_frame"
+        }
+      }
+    }
+  },
+  "runs": [
+    {
+      "id": "run-regional-r3",
+      "skillId": "regional-alert",
+      "revision": "R3",
+      "fixtureDocument": "regional-applied",
+      "mode": "scripted_demo",
+      "startedAt": "2026-10-17T10:25:00+08:00",
+      "sampleTimesSeconds": [
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+        20, 21, 22, 23, 24, 25, 26, 27, 28, 29
+      ],
+      "progressSnapshot": {
+        "status": "running",
+        "completedFrames": 18,
+        "totalFrames": 30,
+        "nextSampleTime": 18
+      },
+      "resultSnapshot": {
+        "status": "completed",
+        "eventIds": ["event-1"],
+        "evidenceIds": ["evidence-upper", "evidence-lower"],
+        "frameTime": 12
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "event-1",
+      "runId": "run-regional-r3",
+      "revision": "R3",
+      "name": "区域告警事件",
+      "atSeconds": 12,
+      "endSeconds": 12,
+      "personId": "person-1",
+      "region1MatchedEntityCount": 1,
+      "region2EntityCount": 2,
+      "evidenceIds": ["evidence-upper", "evidence-lower"],
+      "demo": true
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence-upper",
+      "assetId": "AS-09",
+      "runId": "run-regional-r3",
+      "entityId": "person-1",
+      "atSeconds": 12,
+      "condition": "a-red",
+      "color": "red",
+      "demoFraction": 0.35,
+      "sourceCrop": null,
+      "measurementStatus": "scripted_not_measured"
+    },
+    {
+      "id": "evidence-lower",
+      "assetId": "AS-10",
+      "runId": "run-regional-r3",
+      "entityId": "person-1",
+      "atSeconds": 12,
+      "condition": "a-gray",
+      "color": "gray",
+      "demoFraction": 0.42,
+      "sourceCrop": null,
+      "measurementStatus": "scripted_not_measured"
+    }
+  ],
+  "models": [
+    {
+      "id": "visual-demo",
+      "name": "视觉识别模型（演示）",
+      "role": "vision",
+      "adapter": "rex-compatible-demo",
+      "endpoint": "",
+      "credentialValue": "",
+      "connection": "not_connected",
+      "supports": ["multi_category_detection"],
+      "networkAllowed": false
+    },
+    {
+      "id": "planner-demo",
+      "name": "编排模型（演示）",
+      "role": "planner",
+      "adapter": "openai-compatible-demo",
+      "endpoint": "",
+      "credentialValue": "",
+      "connection": "not_connected",
+      "networkAllowed": false
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "detect",
+      "name": "检测目标",
+      "origin": "builtin",
+      "enabled": true,
+      "deletable": false
+    },
+    {
+      "id": "visible-color",
+      "name": "可见属性颜色",
+      "origin": "builtin",
+      "enabled": true,
+      "deletable": false
+    },
+    {
+      "id": "instance-dedup",
+      "name": "统一实例去重",
+      "origin": "builtin",
+      "enabled": true,
+      "deletable": false
+    },
+    {
+      "id": "sequence",
+      "name": "顺序编排",
+      "origin": "builtin",
+      "enabled": true,
+      "deletable": false
+    },
+    {
+      "id": "custom-patrol",
+      "name": "自定义巡检组合",
+      "origin": "user",
+      "enabled": false,
+      "deletable": true,
+      "dependsOn": ["detect"],
+      "usageCount": 0
+    }
+  ],
+  "issues": [
+    {
+      "id": "issue-roi",
+      "path": "regions.roi-2",
+      "message": "区域2尚未绘制并保存",
+      "severity": "error"
+    },
+    {
+      "id": "issue-output",
+      "path": "outputs.output-alert.source",
+      "message": "请选择有效的业务结果来源",
+      "severity": "error"
+    }
+  ],
+  "history": [
+    {
+      "id": "run-regional-r3",
+      "skillId": "regional-alert",
+      "name": "区域联合告警",
+      "status": "completed",
+      "revision": "R3",
+      "eventCount": 1,
+      "at": "2026-10-17T10:25:00+08:00"
+    },
+    {
+      "id": "demo-history-2",
+      "skillId": "lane-traffic",
+      "name": "多车道拥堵",
+      "status": "completed",
+      "revision": null,
+      "eventCount": 2,
+      "at": "2026-10-17T09:30:00+08:00"
+    },
+    {
+      "id": "demo-history-3",
+      "skillId": "road-debris",
+      "name": "道路抛洒物",
+      "status": "cancelled",
+      "revision": null,
+      "eventCount": null,
+      "at": "2026-10-17T09:00:00+08:00"
+    },
+    {
+      "id": "demo-history-4",
+      "skillId": "bridge-damage",
+      "name": "桥梁病害",
+      "status": "failed",
+      "revision": null,
+      "eventCount": null,
+      "at": "2026-10-16T16:30:00+08:00"
+    },
+    {
+      "id": "demo-history-5",
+      "skillId": "furniture",
+      "name": "黄色沙发与白色椅子",
+      "status": "completed",
+      "revision": null,
+      "eventCount": 2,
+      "at": "2026-10-16T15:00:00+08:00"
+    }
+  ],
+  "fixtureAliases": {
+    "library": {
+      "collection": "library"
+    },
+    "creation": {
+      "collection": "creation"
+    },
+    "regional-draft": {
+      "documentRef": "regional-draft",
+      "appliedRevision": "R3",
+      "hasUnappliedChanges": true
+    },
+    "regional-time-edit": {
+      "documentRef": "regional-draft",
+      "formRef": "regional-time-edit",
+      "appliedRevision": "R3",
+      "hasUnappliedChanges": true
+    },
+    "sequence-edit": {
+      "documentRef": "sequence-edit",
+      "appliedRevision": null
+    },
+    "regional-applied": {
+      "documentRef": "regional-applied",
+      "appliedRevision": "R3",
+      "hasUnappliedChanges": false
+    },
+    "regional-run": {
+      "runId": "run-regional-r3",
+      "appliedRevision": "R3"
+    },
+    "regional-versions": {
+      "documentRef": "regional-draft",
+      "archiveId": "V3",
+      "appliedRevision": "R3"
+    },
+    "models": {
+      "collection": "models"
+    },
+    "capabilities": {
+      "collection": "capabilities"
+    },
+    "regional-invalid": {
+      "documentRef": "regional-invalid",
+      "appliedRevision": "R3",
+      "issueIds": ["issue-roi", "issue-output"]
+    },
+    "run-history": {
+      "collection": "history"
+    }
+  },
+  "historyDetailPolicy": "非主运行记录没有详细结果种子；点击显示演示数据未提供详情，不导向主运行冒充。"
+}

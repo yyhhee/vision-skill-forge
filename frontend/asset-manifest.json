@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "scope": "Shared04 assets reused by03/05/06/07/08/09/10/11/15; 11 evidence crop provenance is in asset-provenance/run-evidence-crops.json; no real video delivered",
+  "userApprovedBaseline": "qa/04/approved-baseline.json",
+  "reference": {
+    "path": "reference-images/04-linked-workbench.png",
+    "pixelSize": [
+      1513,
+      1040
+    ],
+    "sha256": "26098014f082510395e27890f70959573ff5cb1757bcf9053069afa5f916c6cf",
+    "immutable": true
+  },
+  "items": [
+    {
+      "id": "AS-01",
+      "label": "V brand mark",
+      "status": "available_reviewed_candidate",
+      "path": "public/assets/brand/vision-forge-mark.png",
+      "pixelSize": [
+        1254,
+        1254
+      ],
+      "alpha": true,
+      "origin": "built-in image generation; target04 top-left mark",
+      "license": "generated asset; no third-party source license asserted",
+      "provenance": "asset-provenance/brand-prompt.md",
+      "notes": "about7–9% transparent margin; rendered35px to obtain~30px colored mark; not pixel-identical original"
+    },
+    {
+      "id": "AS-02",
+      "label": "clean construction poster",
+      "status": "available_for_native_view_candidate",
+      "path": "public/assets/media/construction-clean.png",
+      "pixelSize": [
+        1448,
+        1086
+      ],
+      "origin": "built-in image editing/reconstruction from04",
+      "license": "generated asset; not represented as original photography",
+      "provenance": "asset-provenance/construction-prompt.md",
+      "containsBakedUi": false,
+      "nativeDisplay": [
+        585,
+        440
+      ],
+      "nativePixelCoverage": 2.47,
+      "recommendedLongEdge1600": "not_met; two attempts returned1448; never upscaled",
+      "notes": "texture and worker details differ from original; D-05 visual review pending"
+    },
+    {
+      "id": "AS-03",
+      "label": "real video",
+      "status": "missing",
+      "path": null,
+      "realPlaybackVerified": false
+    },
+    {
+      "id": "AS-04",
+      "label": "simulated frame-strip",
+      "status": "explicit_poster_derivative",
+      "sourceAssetId": "AS-02",
+      "path": "public/assets/media/construction-clean.png",
+      "simulatedTimesSeconds": [
+        0,
+        4,
+        8,
+        12,
+        16,
+        20,
+        24,
+        28
+      ],
+      "notes": "all thumbnails reuse one poster; not actual video frames"
+    },
+    {
+      "id": "AS-11",
+      "label": "Noto Sans SC",
+      "status": "available_local",
+      "version": "5.3.1",
+      "family": "Noto Sans SC",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ],
+      "path": "public/assets/fonts",
+      "source": "https://fontsource.org/fonts/noto-sans-sc",
+      "license": "SIL OFL1.1; licenses/Noto-Sans-SC-OFL.txt",
+      "unknown": "original generated-image font"
+    },
+    {
+      "id": "AS-12",
+      "label": "Phosphor React",
+      "status": "installed_locked_local_bundle",
+      "version": "2.1.10",
+      "path": "node_modules/@phosphor-icons/react",
+      "source": "https://github.com/phosphor-icons/react",
+      "license": "MIT; licenses/Phosphor-MIT.txt",
+      "notes": "compiled into local JS; no remote runtime icon requests"
+    }
+  ],
+  "iconMap": {
+    "skills": "CubeIcon",
+    "history": "PlayCircleIcon",
+    "models": "StackIcon",
+    "capabilities": "GearIcon",
+    "entities": "UsersIcon",
+    "branch": "ShareNetworkIcon",
+    "region": "MapPinIcon",
+    "upperClothing": "TShirtIcon",
+    "lowerClothing": "PantsIcon",
+    "final": "InfinityIcon",
+    "event": "BellIcon",
+    "edit": "PencilSimpleIcon",
+    "zoom": "ArrowsOutIcon"
+  },
+  "files": [
+    {
+      "path": "public/assets/brand/vision-forge-mark.png",
+      "bytes": 1076013,
+      "sha256": "47c7cdba0f30c06c9e78115167782363d15a6b4b17b3c182fd77967b27b5bcb4"
+    },
+    {
+      "path": "public/assets/fonts/noto-sans-sc-chinese-simplified-400-normal.woff2",
+      "bytes": 1142552,
+      "sha256": "95e3633b6a98f764ba3adfb54504a0cd4799328c009adf9081d6c1850f9c4c78"
+    },
+    {
+      "path": "public/assets/fonts/noto-sans-sc-chinese-simplified-500-normal.woff2",
+      "bytes": 1159128,
+      "sha256": "885f52ca6a25fddde7641eaf9cf6d6fd9e8f1a454f99f77f0f1be1be0c6470a5"
+    },
+    {
+      "path": "public/assets/fonts/noto-sans-sc-chinese-simplified-600-normal.woff2",
+      "bytes": 1162352,
+      "sha256": "578fb41a3dc2817b703611ad94b5c27dac96a3907c9d6b843c513217b562e1a2"
+    },
+    {
+      "path": "public/assets/fonts/noto-sans-sc-chinese-simplified-700-normal.woff2",
+      "bytes": 1172244,
+      "sha256": "e1df51edc00bce27b58044e829fb8ec6accc8a5daece475413de90d52818845c"
+    },
+    {
+      "path": "public/assets/fonts/noto-sans-sc-latin-400-normal.woff2",
+      "bytes": 13304,
+      "sha256": "2a75408e073f2d7e03e14c24f25fb093571b73a030f2f483ae256d6975e930d0"
+    },
+    {
+      "path": "public/assets/fonts/noto-sans-sc-latin-500-normal.woff2",
+      "bytes": 13324,
+      "sha256": "7da09260d852c84bfe25e5be0e3a3193418d69eb55fb8763aef8553b1d9cea79"
+    },
+    {
+      "path": "public/assets/fonts/noto-sans-sc-latin-600-normal.woff2",
+      "bytes": 13272,
+      "sha256": "d1fffa4c12444d2e1bc5f6534825258c3b9ba81e275abb02f4e6c05f6d03eaa6"
+    },
+    {
+      "path": "public/assets/fonts/noto-sans-sc-latin-700-normal.woff2",
+      "bytes": 13416,
+      "sha256": "79a7c3f1ddff7c79ba3eff8556ee7acc7f3c95259f3982b34a711b6de5fbd6a7"
+    },
+    {
+      "path": "public/assets/media/construction-clean.png",
+      "bytes": 3144826,
+      "sha256": "835c7aafd985be9c16ef3d01efe8343fe677ed166c614dec62aedd4d22418bc5"
+    },
+    {
+      "path": "licenses/Noto-Sans-SC-OFL.txt",
+      "bytes": 4314,
+      "sha256": "18aabf190848725e2576eefb5c29ba06aac1029d02132252a7f312eac2e50cf3"
+    },
+    {
+      "path": "licenses/Phosphor-MIT.txt",
+      "bytes": 1071,
+      "sha256": "6918b72504641180600cbbd4a86b0dfa9dfccf788775694325b71b9a029f6eb4"
+    }
+  ],
+  "remainingForOtherScreens": [
+    "AS-05 furniture thumbnail",
+    "AS-06 traffic thumbnail",
+    "AS-07 debris thumbnail",
+    "AS-08 bridge thumbnail",
+    "AS-09/AS-10 same-entity evidence crops"
+  ],
+  "originalSpecUpdated": false
+}

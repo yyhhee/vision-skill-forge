@@ -1,0 +1,25 @@
+{
+  "mediaMode": "image",
+  "revision": 1,
+  "branchTimes": [
+    {
+      "id": "branch-a",
+      "time": {
+        "mode": "immediate"
+      },
+      "validity": {
+        "mode": "current_frame"
+      }
+    },
+    {
+      "id": "branch-b",
+      "time": {
+        "mode": "immediate"
+      },
+      "validity": {
+        "mode": "hold",
+        "seconds": 5
+      }
+    }
+  ]
+}

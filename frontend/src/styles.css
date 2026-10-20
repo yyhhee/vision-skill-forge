@@ -1,0 +1,46 @@
+@import "./styles/shell.css";
+@import "./styles/workspace.css";
+@import "./styles/editor.css";
+@import "./styles/responsive.css";
+@import "./styles/calibration.css";
+@import "./styles/flow-editors.css";
+@import "./styles/runs.css";
+/* Complete skill archive page, sharing the existing desktop shell. */
+@import "./styles/versions.css";
+@import "./styles/library.css";
+@import "./styles/creation.css";
+@import "./styles/models.css";
+@import "./styles/capabilities.css";
+@import "./styles/history.css";
+@font-face {
+  font-family: "Noto Sans SC";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/assets/fonts/noto-sans-sc-chinese-simplified-400-normal.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans SC";
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url("/assets/fonts/noto-sans-sc-chinese-simplified-500-normal.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans SC";
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url("/assets/fonts/noto-sans-sc-chinese-simplified-600-normal.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans SC";
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url("/assets/fonts/noto-sans-sc-chinese-simplified-700-normal.woff2")
+    format("woff2");
+}

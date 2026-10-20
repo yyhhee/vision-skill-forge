@@ -1,0 +1,1984 @@
+{
+  "scope": "read_only_structural_and_artifact_presence; no live inference; no claim of current semantic accuracy",
+  "legacy_root": "C:\\yhe_user\\detection_project\\vision_skill",
+  "operators": 73,
+  "business_capabilities": 24,
+  "capabilities": [
+    {
+      "id": "attribute.color",
+      "name": "可见属性颜色",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "attribute.geometry",
+      "name": "尺寸、位置或宽高比",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "event.detect_or_compose",
+      "name": "业务事件",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "logic.group",
+      "name": "AND / OR / NOT / N-of-M 条件组",
+      "slot": "condition_operator",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "measure.count",
+      "name": "目标数量",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "measure.statistic",
+      "name": "数值统计与比较",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "motion.direction",
+      "name": "运动方向",
+      "slot": "condition",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "motion.speed",
+      "name": "速度、停留或静止",
+      "slot": "condition",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "motion.track",
+      "name": "创建并确认目标轨迹",
+      "slot": "condition",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "motion.wrong_way",
+      "name": "相对参考方向反向运动",
+      "slot": "condition",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "output.business_result",
+      "name": "业务结果与证据",
+      "slot": "result",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "spatial.association",
+      "name": "两个目标的空间关系",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "spatial.membership",
+      "name": "目标在区域内或外",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "state.current",
+      "name": "目标当前状态",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "state.transition",
+      "name": "同一目标状态转变",
+      "slot": "condition",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "subject.missing_equipment",
+      "name": "主体缺少关联物",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "subject.same_attributes",
+      "name": "同一主体的多证据归属",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "target.detect",
+      "name": "检测目标",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "target.filter_class",
+      "name": "按类别筛选或排除",
+      "slot": "condition",
+      "media": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "temporal.absence",
+      "name": "规定窗口内未发生",
+      "slot": "pattern",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "temporal.join",
+      "name": "多个分支汇合",
+      "slot": "pattern",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "temporal.persist",
+      "name": "持续、累计或窗口占比",
+      "slot": "branch_time",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "temporal.repeat",
+      "name": "事件重复发生",
+      "slot": "pattern",
+      "media": [
+        "video"
+      ]
+    },
+    {
+      "id": "temporal.sequence",
+      "name": "有时限的先后顺序",
+      "slot": "pattern",
+      "media": [
+        "video"
+      ]
+    }
+  ],
+  "editor_fields": [
+    "active_scene_profile_id",
+    "atomic_plan",
+    "compatibility",
+    "compiled_artifact_ref",
+    "effective_skill_package",
+    "hashes",
+    "readiness",
+    "scene_profiles",
+    "schema_version",
+    "skill_template",
+    "user_overrides",
+    "validation_report",
+    "version"
+  ],
+  "service": {
+    "url": "http://127.0.0.1:6131",
+    "config_http": 200,
+    "components": 690,
+    "dependencies": 270,
+    "named_endpoints": [
+      "_add_another_named_region",
+      "_add_event_card",
+      "_apply_event_rule",
+      "_apply_event_rule_cards",
+      "_apply_feedback",
+      "_apply_feedback_1",
+      "_apply_feedback_2",
+      "_apply_feedback_3",
+      "_apply_feedback_4",
+      "_apply_feedback_5",
+      "_apply_feedback_6",
+      "_apply_feedback_7",
+      "_apply_feedback_8",
+      "_apply_region_overrides",
+      "_association_card_updates",
+      "_association_card_updates_1",
+      "_association_card_updates_2",
+      "_association_card_updates_3",
+      "_association_card_updates_4",
+      "_association_card_updates_5",
+      "_bind_and_refresh",
+      "_business_condition_action_with_feedback",
+      "_business_parameter_updates",
+      "_business_parameter_updates_reset",
+      "_business_parameter_updates_reset_1",
+      "_business_parameter_updates_reset_2",
+      "_business_parameter_updates_reset_3",
+      "_business_pattern_parameter_visibility",
+      "_business_rule_updates",
+      "_business_rule_updates_1",
+      "_business_rule_updates_10",
+      "_business_rule_updates_11",
+      "_business_rule_updates_12",
+      "_business_rule_updates_2",
+      "_business_rule_updates_3",
+      "_business_rule_updates_4",
+      "_business_rule_updates_5",
+      "_business_rule_updates_6",
+      "_business_rule_updates_7",
+      "_business_rule_updates_8",
+      "_business_rule_updates_9",
+      "_business_rule_updates_without_document",
+      "_canvas_click",
+      "_change_annotation_tool",
+      "_configuration_guidance",
+      "_configuration_guidance_1",
+      "_configuration_guidance_2",
+      "_configuration_guidance_3",
+      "_configuration_guidance_4",
+      "_configuration_guidance_5",
+      "_delete_and_refresh",
+      "_event_card_updates",
+      "_event_card_updates_1",
+      "_event_card_updates_2",
+      "_event_card_updates_3",
+      "_event_card_updates_4",
+      "_event_card_updates_5",
+      "_event_card_updates_6",
+      "_filter_operator_assets",
+      "_ingest_task_media",
+      "_instruction_of",
+      "_load_asset",
+      "_load_variant_editor",
+      "_mirror_asset_root",
+      "_pattern_move_down",
+      "_pattern_move_up",
+      "_prepare_annotation",
+      "_prepare_annotation_1",
+      "_read_atomic_updates",
+      "_read_atomic_updates_1",
+      "_read_atomic_updates_10",
+      "_read_atomic_updates_2",
+      "_read_atomic_updates_3",
+      "_read_atomic_updates_4",
+      "_read_atomic_updates_5",
+      "_read_atomic_updates_6",
+      "_read_atomic_updates_7",
+      "_read_atomic_updates_8",
+      "_read_atomic_updates_9",
+      "_read_context_confirmation",
+      "_read_context_confirmation_1",
+      "_read_context_confirmation_2",
+      "_read_context_confirmation_3",
+      "_read_event_rule_updates",
+      "_read_event_rule_updates_1",
+      "_read_event_rule_updates_2",
+      "_read_event_rule_updates_3",
+      "_read_event_rule_updates_4",
+      "_read_event_rule_updates_5",
+      "_read_execution_updates",
+      "_read_execution_updates_1",
+      "_read_execution_updates_2",
+      "_read_grounding_prompt_updates",
+      "_read_grounding_prompt_updates_1",
+      "_read_grounding_prompt_updates_2",
+      "_read_grounding_prompt_updates_3",
+      "_read_grounding_prompt_updates_4",
+      "_read_selected_event_rule_values",
+      "_redo_editor",
+      "_refresh_configuration_state",
+      "_refresh_configuration_state_1",
+      "_refresh_generated_editor_document",
+      "_refresh_saved_choices",
+      "_refresh_saved_choices_1",
+      "_refresh_saved_choices_2",
+      "_region_event_updates",
+      "_region_override_updates",
+      "_region_override_updates_1",
+      "_region_override_updates_2",
+      "_region_value_updates",
+      "_region_value_updates_1",
+      "_required_count_visibility",
+      "_required_count_visibility_1",
+      "_required_count_visibility_2",
+      "_restore_generated",
+      "_restore_generated_1",
+      "_run_with_media_visibility",
+      "_select_annotation_slot",
+      "_slot_updates",
+      "_slot_updates_1",
+      "_slot_updates_2",
+      "_slot_updates_3",
+      "_slot_updates_4",
+      "_switch_source",
+      "_sync_field_visibility",
+      "_sync_field_visibility_1",
+      "_sync_field_visibility_2",
+      "_sync_run_variant",
+      "_sync_run_variant_1",
+      "_sync_run_variant_2",
+      "_sync_run_variant_3",
+      "_temporal_summary",
+      "_temporal_summary_1",
+      "_temporal_summary_2",
+      "_temporal_summary_3",
+      "_undo_editor",
+      "_unresolved_of",
+      "_unresolved_of_1",
+      "_unresolved_of_2",
+      "_unresolved_of_3",
+      "_workbench_navigate",
+      "apply_context_confirmation_control",
+      "apply_grounding_prompt_control",
+      "apply_output_configuration",
+      "apply_preprocessing",
+      "apply_preprocessing_1",
+      "apply_variant_json",
+      "apply_video_sampling",
+      "business_add_branch",
+      "business_add_condition",
+      "business_apply_final",
+      "business_apply_parameter",
+      "business_apply_trigger",
+      "business_branch_action",
+      "business_capability_detail",
+      "business_expression_logic_controls",
+      "business_expression_logic_controls_1",
+      "business_expression_logic_controls_2",
+      "business_expression_logic_controls_3",
+      "business_group_conditions",
+      "business_imported_logic_controls",
+      "business_imported_logic_controls_1",
+      "business_imported_logic_controls_2",
+      "business_imported_logic_controls_3",
+      "business_imported_logic_controls_4",
+      "business_output_delete_choices",
+      "business_output_delete_choices_1",
+      "business_output_delete_choices_2",
+      "business_update_expression_logic",
+      "business_update_imported_logic",
+      "clear_saved_annotations",
+      "compile_skill",
+      "delete_output_form",
+      "delete_saved_skill",
+      "delete_saved_skill_1",
+      "diff",
+      "editor_variant_for_media",
+      "editor_variant_for_media_1",
+      "editor_variant_for_media_2",
+      "editor_variant_for_media_3",
+      "effective_package_asset_view",
+      "inspect_media",
+      "lambda",
+      "lambda_1",
+      "lambda_10",
+      "lambda_11",
+      "lambda_12",
+      "lambda_13",
+      "lambda_14",
+      "lambda_15",
+      "lambda_16",
+      "lambda_17",
+      "lambda_18",
+      "lambda_19",
+      "lambda_2",
+      "lambda_20",
+      "lambda_21",
+      "lambda_22",
+      "lambda_23",
+      "lambda_24",
+      "lambda_25",
+      "lambda_26",
+      "lambda_27",
+      "lambda_28",
+      "lambda_3",
+      "lambda_4",
+      "lambda_5",
+      "lambda_6",
+      "lambda_7",
+      "lambda_8",
+      "lambda_9",
+      "load_editor_configuration",
+      "load_editor_configuration_1",
+      "load_editor_configuration_2",
+      "load_preset_bundle",
+      "load_saved_skill",
+      "operator_asset_detail",
+      "output_editor_choices",
+      "output_editor_controls",
+      "output_editor_controls_1",
+      "output_editor_controls_2",
+      "output_editor_kinds",
+      "output_editor_new",
+      "pattern_form_preview",
+      "pattern_form_preview_1",
+      "pattern_form_preview_2",
+      "pattern_form_preview_3",
+      "pattern_form_preview_4",
+      "pattern_group_choices",
+      "pattern_group_choices_1",
+      "pattern_group_controls",
+      "pattern_group_controls_1",
+      "pattern_group_controls_2",
+      "pattern_secondary_controls",
+      "pattern_secondary_controls_1",
+      "pattern_secondary_controls_2",
+      "pattern_secondary_controls_3",
+      "pattern_secondary_controls_4",
+      "pattern_secondary_controls_5",
+      "preferred_executable_variant",
+      "preferred_executable_variant_1",
+      "preferred_executable_variant_2",
+      "preferred_executable_variant_3",
+      "reset_grounding_prompt_control",
+      "reverse_annotation_direction",
+      "save_output_form",
+      "save_pattern_group",
+      "save_skill_bundle",
+      "save_skill_bundle_1",
+      "save_time_configuration",
+      "set_annotation_drag",
+      "set_preset_default_media",
+      "time_configuration_controls",
+      "time_configuration_controls_1",
+      "time_configuration_controls_2",
+      "time_configuration_controls_3",
+      "time_configuration_targets",
+      "time_configuration_targets_1",
+      "time_configuration_visibility",
+      "time_configuration_visibility_1",
+      "undo_annotation_point",
+      "unified_node_parameters",
+      "unified_node_parameters_1",
+      "unified_parameter_value",
+      "unified_validate_apply",
+      "unified_validate_apply_1",
+      "unified_validate_apply_2",
+      "validate_json",
+      "workbench_controls",
+      "workbench_controls_1"
+    ]
+  },
+  "presets": [
+    {
+      "file": "P01_fire_smoke.json",
+      "sha256": "6901230f362c1ce6a1205f0b5f763ae9e5f154bb4fe2a18a8095bffc5faceae5",
+      "canonical_package_sha256": "ee62b0435ebbe238390f88929b6e71a4be91cc083d33a3d781f486932452f92c",
+      "skill_id": "fire_smoke",
+      "display_name": "烟火检测",
+      "version": 2,
+      "instruction": "检测画面中的烟雾或明火。",
+      "accept": [
+        "image",
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 2,
+      "patterns": 0,
+      "variants": {
+        "image": {
+          "status": "executable",
+          "nodes": 14,
+          "ops": {
+            "media.image@1.0": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.filter_by_label@1.0": 2,
+            "objects.relabel@1.0": 2,
+            "reduce.exists@1.0": 2,
+            "logic.any@1.0": 1,
+            "objects.merge@1.0": 1,
+            "event.from_condition@1.0": 1,
+            "event.trigger@2.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "smoke",
+                "phrases": [
+                  "smoke"
+                ]
+              },
+              {
+                "label": "fire",
+                "phrases": [
+                  "fire"
+                ]
+              }
+            ]
+          ]
+        },
+        "video": {
+          "status": "executable",
+          "nodes": 15,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.filter_by_label@1.0": 2,
+            "objects.relabel@1.0": 2,
+            "reduce.exists@1.0": 2,
+            "logic.any@1.0": 1,
+            "objects.merge@1.0": 1,
+            "event.from_condition@1.0": 1,
+            "event.trigger@2.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "smoke",
+                "phrases": [
+                  "smoke"
+                ]
+              },
+              {
+                "label": "fire",
+                "phrases": [
+                  "fire"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P02_traffic_accident.json",
+      "sha256": "d7467592e5618f24043503f0e2bd3c81111046e95b8091b4b153122253b69900",
+      "canonical_package_sha256": "72f5b0ec074191a849cf15e146b852ba9c4862229f5a373ac9ba07046bbd83fd",
+      "skill_id": "traffic_accident",
+      "display_name": "交通事故检测",
+      "version": 1,
+      "instruction": "检测车辆碰撞、侧翻或受损车辆形成的可见事故外观。",
+      "accept": [
+        "image",
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 2,
+      "patterns": 0,
+      "variants": {
+        "image": {
+          "status": "executable",
+          "nodes": 5,
+          "ops": {
+            "media.image@1.0": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "交通事故",
+                "phrases": [
+                  "vehicle collision",
+                  "overturned vehicle",
+                  "crashed vehicle",
+                  "visible traffic accident scene"
+                ]
+              }
+            ]
+          ]
+        },
+        "video": {
+          "status": "executable",
+          "nodes": 10,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "measure.count@1.0": 1,
+            "logic.compare@1.0": 1,
+            "temporal.persist@1.0": 1,
+            "output.alert@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "交通事故",
+                "phrases": [
+                  "vehicle collision",
+                  "overturned vehicle",
+                  "crashed vehicle",
+                  "visible traffic accident scene"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P03_special_vehicles.json",
+      "sha256": "2340bcf34568db495da39722ef1cc32cb06c1bd8e3d612ee767cc84587bd1608",
+      "canonical_package_sha256": "2635b7439b3a7a5c4ca219041f14bd1d79fcc2e07a5fe22b35dd6cbab02fa1fc",
+      "skill_id": "special_vehicles",
+      "display_name": "特种车辆检测",
+      "version": 1,
+      "instruction": "检测画面中的特种车辆并标注具体类型。",
+      "accept": [
+        "image",
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 2,
+      "patterns": 0,
+      "variants": {
+        "image": {
+          "status": "executable",
+          "nodes": 5,
+          "ops": {
+            "media.image@1.0": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "消防车",
+                "phrases": [
+                  "fire truck",
+                  "fire engine"
+                ]
+              },
+              {
+                "label": "救护车",
+                "phrases": [
+                  "ambulance",
+                  "emergency medical vehicle"
+                ]
+              },
+              {
+                "label": "警车",
+                "phrases": [
+                  "police car",
+                  "police vehicle"
+                ]
+              },
+              {
+                "label": "工程抢险车",
+                "phrases": [
+                  "engineering rescue vehicle",
+                  "emergency repair truck"
+                ]
+              },
+              {
+                "label": "道路清障车",
+                "phrases": [
+                  "tow truck",
+                  "road recovery vehicle",
+                  "wrecker truck"
+                ]
+              },
+              {
+                "label": "环卫车",
+                "phrases": [
+                  "sanitation vehicle",
+                  "street sweeper",
+                  "garbage truck"
+                ]
+              },
+              {
+                "label": "油罐车",
+                "phrases": [
+                  "tanker truck",
+                  "fuel tanker truck"
+                ]
+              },
+              {
+                "label": "混凝土搅拌车",
+                "phrases": [
+                  "concrete mixer truck",
+                  "cement mixer truck"
+                ]
+              },
+              {
+                "label": "混凝土泵车",
+                "phrases": [
+                  "concrete pump truck"
+                ]
+              },
+              {
+                "label": "汽车吊",
+                "phrases": [
+                  "truck crane",
+                  "mobile crane truck"
+                ]
+              },
+              {
+                "label": "高空作业车",
+                "phrases": [
+                  "aerial work platform truck",
+                  "bucket truck"
+                ]
+              },
+              {
+                "label": "危险品运输车",
+                "phrases": [
+                  "hazardous materials truck",
+                  "hazmat transport vehicle"
+                ]
+              }
+            ]
+          ]
+        },
+        "video": {
+          "status": "executable",
+          "nodes": 6,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "消防车",
+                "phrases": [
+                  "fire truck",
+                  "fire engine"
+                ]
+              },
+              {
+                "label": "救护车",
+                "phrases": [
+                  "ambulance",
+                  "emergency medical vehicle"
+                ]
+              },
+              {
+                "label": "警车",
+                "phrases": [
+                  "police car",
+                  "police vehicle"
+                ]
+              },
+              {
+                "label": "工程抢险车",
+                "phrases": [
+                  "engineering rescue vehicle",
+                  "emergency repair truck"
+                ]
+              },
+              {
+                "label": "道路清障车",
+                "phrases": [
+                  "tow truck",
+                  "road recovery vehicle",
+                  "wrecker truck"
+                ]
+              },
+              {
+                "label": "环卫车",
+                "phrases": [
+                  "sanitation vehicle",
+                  "street sweeper",
+                  "garbage truck"
+                ]
+              },
+              {
+                "label": "油罐车",
+                "phrases": [
+                  "tanker truck",
+                  "fuel tanker truck"
+                ]
+              },
+              {
+                "label": "混凝土搅拌车",
+                "phrases": [
+                  "concrete mixer truck",
+                  "cement mixer truck"
+                ]
+              },
+              {
+                "label": "混凝土泵车",
+                "phrases": [
+                  "concrete pump truck"
+                ]
+              },
+              {
+                "label": "汽车吊",
+                "phrases": [
+                  "truck crane",
+                  "mobile crane truck"
+                ]
+              },
+              {
+                "label": "高空作业车",
+                "phrases": [
+                  "aerial work platform truck",
+                  "bucket truck"
+                ]
+              },
+              {
+                "label": "危险品运输车",
+                "phrases": [
+                  "hazardous materials truck",
+                  "hazmat transport vehicle"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P04_highway_congestion.json",
+      "sha256": "0920ec65ba1c8d129ffd7c5c5361e6d1c14c5553aca43eb36fac301678de7262",
+      "canonical_package_sha256": "7a0e975baa3d03a9722a7e2ee06666664e3d63fc7f02be9f496099fef7fa9591",
+      "skill_id": "highway_congestion",
+      "display_name": "高速车辆拥堵",
+      "version": 1,
+      "instruction": "按每条车道检测车辆数量不少于4辆且持续1秒的拥堵事件。",
+      "accept": [
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 1,
+      "patterns": 0,
+      "variants": {
+        "video": {
+          "status": "executable",
+          "nodes": 15,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "image.tile@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "visual.geometry@1.0": 1,
+            "filter.apply@1.0": 1,
+            "region.manual_set@1.0": 1,
+            "objects.filter_by_regions@1.0": 1,
+            "measure.region_count@1.0": 1,
+            "logic.compare@1.0": 1,
+            "temporal.persist@1.0": 1,
+            "output.alert@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [
+            {
+              "slot_id": "lane_regions",
+              "kind": "region_set",
+              "label": "命名车道区域",
+              "required": true,
+              "binding": {
+                "node_id": "lane_regions",
+                "parameter": "regions"
+              },
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ],
+              "minimum_items": 1,
+              "source_atom_ids": [
+                "atom_1"
+              ],
+              "help_text": "请按视频实际车道逐条绘制；初始为空，可添加任意多个区域。车辆统计和输出框统一限定在全部已标注车道区域内；拥堵按每个区域的车辆数量判断，不需要方向箭头。",
+              "active_when_op": null,
+              "key_source_slot_id": null
+            }
+          ],
+          "grounding_targets": [
+            [
+              {
+                "label": "车辆",
+                "phrases": [
+                  "vehicle",
+                  "car",
+                  "passenger car",
+                  "SUV",
+                  "van",
+                  "truck",
+                  "bus"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P05_highway_wrong_way.json",
+      "sha256": "48ba5ec5ddfd699b3ac9f51f6539d8e4f16e7e289f139d8aef9aafca6f03b2d6",
+      "canonical_package_sha256": "0db5783a63d7eeb6cae35d7cb07bbef53ffeb5d96ba7f8ec80b41482d4396e85",
+      "skill_id": "highway_wrong_way",
+      "display_name": "高速车辆逆行",
+      "version": 1,
+      "instruction": "按每条车道标注方向后检测与车流方向相反并持续1秒的车辆。",
+      "accept": [
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 1,
+      "patterns": 0,
+      "variants": {
+        "video": {
+          "status": "executable",
+          "nodes": 14,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "track.iou@1.0": 1,
+            "measure.heading@1.0": 1,
+            "region.manual_set@1.0": 1,
+            "direction.manual_set@1.0": 1,
+            "objects.filter_by_regions@1.0": 1,
+            "logic.heading_by_lane@1.0": 1,
+            "temporal.persist@1.0": 1,
+            "output.alert@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [
+            {
+              "slot_id": "lane_regions",
+              "kind": "region_set",
+              "label": "命名车道区域",
+              "required": true,
+              "binding": {
+                "node_id": "lane_regions",
+                "parameter": "regions"
+              },
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ],
+              "minimum_items": 1,
+              "source_atom_ids": [
+                "atom_1"
+              ],
+              "help_text": "请按视频实际车道逐条绘制；初始为空，可添加任意多个区域。",
+              "active_when_op": null,
+              "key_source_slot_id": null
+            },
+            {
+              "slot_id": "lane_references_manual",
+              "kind": "direction_set",
+              "label": "逐车道参考方向",
+              "required": true,
+              "binding": {
+                "node_id": "lane_references",
+                "parameter": "directions"
+              },
+              "allowed_shapes": [],
+              "minimum_items": 1,
+              "source_atom_ids": [
+                "atom_1"
+              ],
+              "help_text": "逆行判断需要为每个已保存车道绘制一条参考方向箭头；箭头 key 会自动绑定该车道。",
+              "active_when_op": null,
+              "key_source_slot_id": "lane_regions"
+            }
+          ],
+          "grounding_targets": [
+            [
+              {
+                "label": "车辆",
+                "phrases": [
+                  "vehicle",
+                  "car",
+                  "passenger car",
+                  "SUV",
+                  "van",
+                  "truck",
+                  "bus"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P06_highway_person_dwell.json",
+      "sha256": "8dbe834e11105422b62e23645a0f77cbcbd2545767bcf6083ddbb52bff3d58e8",
+      "canonical_package_sha256": "baa4c1ffda2d94a601af27a83e8232751673e4e01efc81b384d1ee9c00aaa777",
+      "skill_id": "highway_person_dwell",
+      "display_name": "车道人员逗留",
+      "version": 1,
+      "instruction": "检测在手工标注车道区域内持续逗留1秒的人员。",
+      "accept": [
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 1,
+      "patterns": 0,
+      "variants": {
+        "video": {
+          "status": "executable",
+          "nodes": 12,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "track.iou@1.0": 1,
+            "region.manual@1.0": 1,
+            "spatial.inside@1.0": 1,
+            "temporal.persist@1.0": 1,
+            "output.alert@1.0": 1,
+            "tracks.filter_by_events@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [
+            {
+              "slot_id": "lane_region",
+              "kind": "region",
+              "label": "车道区域",
+              "required": true,
+              "binding": {
+                "node_id": "lane_region",
+                "parameter": "points"
+              },
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ],
+              "minimum_items": 1,
+              "source_atom_ids": [
+                "atom_1"
+              ],
+              "help_text": "在原图或视频标注帧上修改车道矩形或多边形",
+              "active_when_op": null,
+              "key_source_slot_id": null
+            }
+          ],
+          "grounding_targets": [
+            [
+              {
+                "label": "人员",
+                "phrases": [
+                  "person"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P07_illegal_parking.json",
+      "sha256": "cce56b5e518f6e73f692c01806b975147c311744bc5327595b3f6672b65c3ebc",
+      "canonical_package_sha256": "213eca2f654dffafb6e82cc6b3d025344f895c334211782058fd2c0331f20c17",
+      "skill_id": "illegal_parking",
+      "display_name": "车辆违停",
+      "version": 1,
+      "instruction": "检测位于手工标注禁停区域内并持续停留10秒的车辆。",
+      "accept": [
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 1,
+      "patterns": 0,
+      "variants": {
+        "video": {
+          "status": "executable",
+          "nodes": 12,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "track.iou@1.0": 1,
+            "region.manual@1.0": 1,
+            "spatial.inside@1.0": 1,
+            "temporal.persist@1.0": 1,
+            "output.alert@1.0": 1,
+            "tracks.filter_by_events@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [
+            {
+              "slot_id": "no_parking_region",
+              "kind": "region",
+              "label": "禁停区域",
+              "required": true,
+              "binding": {
+                "node_id": "no_parking_region",
+                "parameter": "points"
+              },
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ],
+              "minimum_items": 1,
+              "source_atom_ids": [
+                "atom_1"
+              ],
+              "help_text": "在原图或视频标注帧上修改禁停矩形或多边形",
+              "active_when_op": null,
+              "key_source_slot_id": null
+            }
+          ],
+          "grounding_targets": [
+            [
+              {
+                "label": "车辆",
+                "phrases": [
+                  "vehicle",
+                  "passenger car",
+                  "truck"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P08_road_debris.json",
+      "sha256": "3c0b66f93ecce715d6ce9e036abbc002b1a85dec4b0a997b7ffec1a67e031e7f",
+      "canonical_package_sha256": "92c12d3d30bd4b0f8aa6eaad5cbfb92590d469b8098170163eea2617330a2969",
+      "skill_id": "road_debris",
+      "display_name": "道路抛洒物",
+      "version": 2,
+      "instruction": "检测 02 标注道路区域内的抛洒物、掉落货物或障碍物。",
+      "accept": [
+        "image",
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 2,
+      "patterns": 0,
+      "variants": {
+        "image": {
+          "status": "executable",
+          "nodes": 13,
+          "ops": {
+            "media.image@1.0": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.filter_by_label@1.0": 1,
+            "objects.relabel@1.0": 2,
+            "region.manual_set@1.0": 1,
+            "spatial.inside@1.0": 1,
+            "filter.apply@1.0": 1,
+            "reduce.exists@1.0": 2,
+            "logic.all@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [
+            {
+              "slot_id": "slot_resource_road_area",
+              "kind": "region_set",
+              "label": "02 标注道路区域",
+              "required": true,
+              "binding": {
+                "node_id": "resource_resource_road_area_regions",
+                "parameter": "regions"
+              },
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ],
+              "minimum_items": 1,
+              "source_atom_ids": [],
+              "help_text": "在 02 标注中绘制实际区域；区域数量可按媒体动态增加。",
+              "active_when_op": null,
+              "key_source_slot_id": null
+            }
+          ],
+          "grounding_targets": [
+            [
+              {
+                "label": "道路抛洒物",
+                "phrases": [
+                  "road debris",
+                  "fallen cargo",
+                  "road obstacle"
+                ]
+              }
+            ]
+          ]
+        },
+        "video": {
+          "status": "executable",
+          "nodes": 14,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.filter_by_label@1.0": 1,
+            "objects.relabel@1.0": 2,
+            "region.manual_set@1.0": 1,
+            "spatial.inside@1.0": 1,
+            "filter.apply@1.0": 1,
+            "reduce.exists@1.0": 2,
+            "logic.all@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [
+            {
+              "slot_id": "slot_resource_road_area",
+              "kind": "region_set",
+              "label": "02 标注道路区域",
+              "required": true,
+              "binding": {
+                "node_id": "resource_resource_road_area_regions",
+                "parameter": "regions"
+              },
+              "allowed_shapes": [
+                "rectangle",
+                "polygon"
+              ],
+              "minimum_items": 1,
+              "source_atom_ids": [],
+              "help_text": "在 02 标注中绘制实际区域；区域数量可按媒体动态增加。",
+              "active_when_op": null,
+              "key_source_slot_id": null
+            }
+          ],
+          "grounding_targets": [
+            [
+              {
+                "label": "道路抛洒物",
+                "phrases": [
+                  "road debris",
+                  "fallen cargo",
+                  "road obstacle"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P09_no_helmet.json",
+      "sha256": "7a2d49d560941d0fc2ced815c988e637fdf722a59ebc9d83c936830bc65b6f5c",
+      "canonical_package_sha256": "a918e20665a803d58abee8c2ee9dbe75f2e1c5232e2fe9f4de032ab1de59a06d",
+      "skill_id": "no_helmet",
+      "display_name": "施工未戴安全帽",
+      "version": 6,
+      "instruction": "识别未带安全帽的人。",
+      "accept": [
+        "image",
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 2,
+      "patterns": 0,
+      "variants": {
+        "image": {
+          "status": "executable",
+          "nodes": 20,
+          "ops": {
+            "media.image@1.0": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "objects.filter_by_label@1.0": 3,
+            "objects.relabel@1.0": 4,
+            "spatial.associate@1.0": 2,
+            "logic.all@1.0": 2,
+            "logic.not@1.0": 1,
+            "filter.apply@1.0": 1,
+            "reduce.exists@1.0": 2,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "安全帽",
+                "phrases": [
+                  "safety helmet"
+                ]
+              },
+              {
+                "label": "person wearing safety helmet",
+                "phrases": [
+                  "person wearing safety helmet"
+                ]
+              },
+              {
+                "label": "人员",
+                "phrases": [
+                  "person"
+                ]
+              }
+            ]
+          ]
+        },
+        "video": {
+          "status": "executable",
+          "nodes": 21,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "objects.filter_by_label@1.0": 3,
+            "objects.relabel@1.0": 4,
+            "spatial.associate@1.0": 2,
+            "logic.all@1.0": 2,
+            "logic.not@1.0": 1,
+            "filter.apply@1.0": 1,
+            "reduce.exists@1.0": 2,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "安全帽",
+                "phrases": [
+                  "safety helmet"
+                ]
+              },
+              {
+                "label": "person wearing safety helmet",
+                "phrases": [
+                  "person wearing safety helmet"
+                ]
+              },
+              {
+                "label": "人员",
+                "phrases": [
+                  "person"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P10_no_safety_rope.json",
+      "sha256": "d301e7673261715919b54de38c21eccb007495f706fac17cd20d18d739856d1b",
+      "canonical_package_sha256": "aef50d85b2a31bcc0f2602d157fcca6f38999a36ce3fe2ec962b30b6a4d5ef6c",
+      "skill_id": "no_safety_rope",
+      "display_name": "高处作业未系安全绳",
+      "version": 5,
+      "instruction": "检测高处作业人员中没有连接安全绳或安全带的人。",
+      "accept": [
+        "image",
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 2,
+      "patterns": 0,
+      "variants": {
+        "image": {
+          "status": "executable",
+          "nodes": 16,
+          "ops": {
+            "media.image@1.0": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "objects.filter_by_label@1.0": 2,
+            "objects.relabel@1.0": 3,
+            "spatial.associate@1.0": 1,
+            "logic.not@1.0": 1,
+            "filter.apply@1.0": 1,
+            "reduce.exists@1.0": 2,
+            "logic.all@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "高处作业人员",
+                "phrases": [
+                  "worker at height"
+                ]
+              },
+              {
+                "label": "worker at height with safety rope or safety belt connected",
+                "phrases": [
+                  "worker at height with safety rope or safety belt connected"
+                ]
+              }
+            ]
+          ]
+        },
+        "video": {
+          "status": "executable",
+          "nodes": 17,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "objects.filter_by_label@1.0": 2,
+            "objects.relabel@1.0": 3,
+            "spatial.associate@1.0": 1,
+            "logic.not@1.0": 1,
+            "filter.apply@1.0": 1,
+            "reduce.exists@1.0": 2,
+            "logic.all@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "高处作业人员",
+                "phrases": [
+                  "worker at height"
+                ]
+              },
+              {
+                "label": "worker at height with safety rope or safety belt connected",
+                "phrases": [
+                  "worker at height with safety rope or safety belt connected"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P11_service_area_garbage.json",
+      "sha256": "4b7e9a4dca2fa2b3389bc84d2a2a354e1c01588d9f6fa662889138dac8ee5459",
+      "canonical_package_sha256": "4e5dcf2c4de91a43d0d3425ffefa2bbe48858b218d59e8aa6d25bbfbbd4dc2f0",
+      "skill_id": "service_area_garbage",
+      "display_name": "服务区垃圾",
+      "version": 2,
+      "instruction": "检测服务区画面中的垃圾堆、散落垃圾、垃圾容器及溢出垃圾，分别标注类别并输出数量。",
+      "accept": [
+        "image",
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 2,
+      "patterns": 0,
+      "variants": {
+        "image": {
+          "status": "executable",
+          "nodes": 10,
+          "ops": {
+            "media.image@1.0": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "objects.filter_by_label@1.0": 1,
+            "measure.count@1.0": 1,
+            "logic.compare@1.0": 1,
+            "reduce.exists@1.0": 1,
+            "logic.all@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "垃圾堆",
+                "phrases": [
+                  "garbage pile"
+                ]
+              },
+              {
+                "label": "散落垃圾",
+                "phrases": [
+                  "scattered garbage"
+                ]
+              },
+              {
+                "label": "垃圾容器",
+                "phrases": [
+                  "garbage container"
+                ]
+              },
+              {
+                "label": "溢出垃圾",
+                "phrases": [
+                  "overflowing garbage"
+                ]
+              }
+            ]
+          ]
+        },
+        "video": {
+          "status": "executable",
+          "nodes": 11,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "objects.filter_by_label@1.0": 1,
+            "measure.count@1.0": 1,
+            "logic.compare@1.0": 1,
+            "reduce.exists@1.0": 1,
+            "logic.all@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "垃圾堆",
+                "phrases": [
+                  "garbage pile"
+                ]
+              },
+              {
+                "label": "散落垃圾",
+                "phrases": [
+                  "scattered garbage"
+                ]
+              },
+              {
+                "label": "垃圾容器",
+                "phrases": [
+                  "garbage container"
+                ]
+              },
+              {
+                "label": "溢出垃圾",
+                "phrases": [
+                  "overflowing garbage"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P12_person_fall.json",
+      "sha256": "e5ccef750a9ad2e463211c71024158692b5d6bcaa1e9ddc07c809c92e5e2c75f",
+      "canonical_package_sha256": "c3d8a2d86f6bc5b2120d62458b8037dcce4f61ecaef37e9f8f900a6c6354e5b2",
+      "skill_id": "person_fall",
+      "display_name": "人员摔倒",
+      "version": 1,
+      "instruction": "检测出现摔倒或躺在地面上的可见姿态并持续1秒的人员。",
+      "accept": [
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 1,
+      "patterns": 0,
+      "variants": {
+        "video": {
+          "status": "executable",
+          "nodes": 10,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "track.iou@1.0": 1,
+            "reduce.exists@1.0": 1,
+            "temporal.persist@1.0": 1,
+            "output.alert@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "摔倒人员",
+                "phrases": [
+                  "person actively falling toward the ground",
+                  "person losing balance and collapsing",
+                  "person bent low while falling",
+                  "person lying on the ground"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "P13_bridge_damage.json",
+      "sha256": "ef032041bc4ff72a409b9cb580357d54b53ccd38fc31005863e4ba7207133873",
+      "canonical_package_sha256": "50ad9372d38fa451b31fa0ab5ba84db2a1b43c659c539efb4f64d02a2e6a16cf",
+      "skill_id": "bridge_damage",
+      "display_name": "桥梁病害",
+      "version": 1,
+      "instruction": "识别桥梁病害露筋、裂纹、锈蚀、渗水、混凝土剥落。",
+      "accept": [
+        "image",
+        "video"
+      ],
+      "validation_errors": [],
+      "editor_schema": "3.2",
+      "business_branches": 2,
+      "patterns": 0,
+      "variants": {
+        "image": {
+          "status": "executable",
+          "nodes": 5,
+          "ops": {
+            "media.image@1.0": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "裂纹",
+                "phrases": [
+                  "thin irregular crack line on a concrete bridge surface",
+                  "localized visible concrete crack"
+                ]
+              },
+              {
+                "label": "锈蚀",
+                "phrases": [
+                  "brown orange rust streak on a concrete bridge pier",
+                  "localized rusty corrosion stain below exposed metal"
+                ]
+              },
+              {
+                "label": "渗水",
+                "phrases": [
+                  "dark vertical water seepage stain on concrete",
+                  "wet leakage mark on a bridge pier surface"
+                ]
+              },
+              {
+                "label": "混凝土剥落",
+                "phrases": [
+                  "broken concrete surface with missing cover",
+                  "localized concrete spalling patch"
+                ]
+              },
+              {
+                "label": "露筋",
+                "phrases": [
+                  "exposed steel reinforcement in damaged bridge concrete",
+                  "visible reinforcing bar protruding from a concrete bridge pier",
+                  "small dark exposed reinforcing steel ends in concrete"
+                ]
+              }
+            ]
+          ]
+        },
+        "video": {
+          "status": "executable",
+          "nodes": 6,
+          "ops": {
+            "media.video@1.0": 1,
+            "video.sample@1.1": 1,
+            "image.resize@1.1": 1,
+            "rex.ground@1.1": 1,
+            "objects.deduplicate@1.0": 1,
+            "output.draw@1.0": 1
+          },
+          "slots": [],
+          "grounding_targets": [
+            [
+              {
+                "label": "裂纹",
+                "phrases": [
+                  "thin irregular crack line on a concrete bridge surface",
+                  "localized visible concrete crack"
+                ]
+              },
+              {
+                "label": "锈蚀",
+                "phrases": [
+                  "brown orange rust streak on a concrete bridge pier",
+                  "localized rusty corrosion stain below exposed metal"
+                ]
+              },
+              {
+                "label": "渗水",
+                "phrases": [
+                  "dark vertical water seepage stain on concrete",
+                  "wet leakage mark on a bridge pier surface"
+                ]
+              },
+              {
+                "label": "混凝土剥落",
+                "phrases": [
+                  "broken concrete surface with missing cover",
+                  "localized concrete spalling patch"
+                ]
+              },
+              {
+                "label": "露筋",
+                "phrases": [
+                  "exposed steel reinforcement in damaged bridge concrete",
+                  "visible reinforcing bar protruding from a concrete bridge pier",
+                  "small dark exposed reinforcing steel ends in concrete"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "historical_artifact_checks": [
+    {
+      "preset": "P01",
+      "case_id": "P01_image_positive",
+      "run_id": "20260813_131527_45ebbd38",
+      "recorded_semantic_status": "semantic_passed",
+      "recorded_package_hash": "a35b885c4c052ef9fae04ae674116761e12f2c47c2f0db23e83a3db9ad6b6d61",
+      "current_package_hash": "ee62b0435ebbe238390f88929b6e71a4be91cc083d33a3d781f486932452f92c",
+      "hash_matches_current": false,
+      "artifacts": {
+        "effective_skill.json": true,
+        "events.json": true,
+        "trace.json": true,
+        "result.json": true
+      },
+      "annotated_media_exists": true
+    },
+    {
+      "preset": "P04",
+      "case_id": "P04_video_positive",
+      "run_id": "20260813_131703_e4d0c76d",
+      "recorded_semantic_status": "semantic_passed",
+      "recorded_package_hash": "2106703f14c69dc20ef0b6ff51670c0eaac40b39f7301b1726af7074c5f23110",
+      "current_package_hash": "7a0e975baa3d03a9722a7e2ee06666664e3d63fc7f02be9f496099fef7fa9591",
+      "hash_matches_current": false,
+      "artifacts": {
+        "effective_skill.json": true,
+        "events.json": true,
+        "trace.json": true,
+        "result.json": true
+      },
+      "annotated_media_exists": true
+    },
+    {
+      "preset": "P07",
+      "case_id": "P07_video_positive",
+      "run_id": "20260813_190024_da0e8311",
+      "recorded_semantic_status": "semantic_passed",
+      "recorded_package_hash": "75e5cca91856732ad10853e2fac46d3cb2daacde8e15930f98b530befc6a55e0",
+      "current_package_hash": "213eca2f654dffafb6e82cc6b3d025344f895c334211782058fd2c0331f20c17",
+      "hash_matches_current": false,
+      "artifacts": {
+        "effective_skill.json": true,
+        "events.json": true,
+        "trace.json": true,
+        "result.json": true
+      },
+      "annotated_media_exists": true
+    },
+    {
+      "preset": "P08",
+      "case_id": "P08_image_positive",
+      "run_id": "20260813_222054_fd617841",
+      "recorded_semantic_status": "semantic_passed",
+      "recorded_package_hash": "b2b89ab0465ae7eba21accf661d533aae6f94095254f7abbc82b0ad9f816f56f",
+      "current_package_hash": "92c12d3d30bd4b0f8aa6eaad5cbfb92590d469b8098170163eea2617330a2969",
+      "hash_matches_current": false,
+      "artifacts": {
+        "effective_skill.json": true,
+        "events.json": true,
+        "trace.json": true,
+        "result.json": true
+      },
+      "annotated_media_exists": true
+    },
+    {
+      "preset": "P09",
+      "case_id": "P09_image_positive",
+      "run_id": "20260814_001850_6306f1ca",
+      "recorded_semantic_status": "semantic_passed",
+      "recorded_package_hash": "51257c48ec28048b8e0936fa936c50c824f8819003c33f2ec1e4be5dd5c80231",
+      "current_package_hash": "a918e20665a803d58abee8c2ee9dbe75f2e1c5232e2fe9f4de032ab1de59a06d",
+      "hash_matches_current": false,
+      "artifacts": {
+        "effective_skill.json": true,
+        "events.json": true,
+        "trace.json": true,
+        "result.json": true
+      },
+      "annotated_media_exists": true
+    },
+    {
+      "preset": "P10",
+      "case_id": "P10_image_positive",
+      "run_id": "20260813_210039_4262b72a",
+      "recorded_semantic_status": "semantic_passed",
+      "recorded_package_hash": "f03ac1274556f3aa086822b6d9998dd7e36c0e79d3654912f4c228e849ac0480",
+      "current_package_hash": "aef50d85b2a31bcc0f2602d157fcca6f38999a36ce3fe2ec962b30b6a4d5ef6c",
+      "hash_matches_current": false,
+      "artifacts": {
+        "effective_skill.json": true,
+        "events.json": true,
+        "trace.json": true,
+        "result.json": true
+      },
+      "annotated_media_exists": true
+    },
+    {
+      "preset": "P11",
+      "case_id": "P11_image_positive",
+      "run_id": "20260826_130222_142a0c83",
+      "recorded_semantic_status": "semantic_passed",
+      "recorded_package_hash": "7c02e33791f0b2a84aae74a21a59c95bf1b1572e6ba6e372ab144ffbaf450fd8",
+      "current_package_hash": "4e5dcf2c4de91a43d0d3425ffefa2bbe48858b218d59e8aa6d25bbfbbd4dc2f0",
+      "hash_matches_current": false,
+      "artifacts": {
+        "effective_skill.json": true,
+        "events.json": true,
+        "trace.json": true,
+        "result.json": true
+      },
+      "annotated_media_exists": true
+    },
+    {
+      "preset": "P13",
+      "case_id": "P13_image_positive",
+      "run_id": "20260814_002942_33a6accf",
+      "recorded_semantic_status": "semantic_passed",
+      "recorded_package_hash": "f6680edc3d17eba333ed312452f47643ff3f54a24972c95164a50e0d7d6b85e3",
+      "current_package_hash": "50ad9372d38fa451b31fa0ab5ba84db2a1b43c659c539efb4f64d02a2e6a16cf",
+      "hash_matches_current": false,
+      "artifacts": {
+        "effective_skill.json": true,
+        "events.json": true,
+        "trace.json": true,
+        "result.json": true
+      },
+      "annotated_media_exists": true
+    }
+  ],
+  "historical_case_hash_summary": {
+    "P01": {
+      "cases": 6,
+      "matches_current": 0
+    },
+    "P02": {
+      "cases": 6,
+      "matches_current": 0
+    },
+    "P03": {
+      "cases": 6,
+      "matches_current": 0
+    },
+    "P04": {
+      "cases": 3,
+      "matches_current": 0
+    },
+    "P05": {
+      "cases": 3,
+      "matches_current": 0
+    },
+    "P06": {
+      "cases": 3,
+      "matches_current": 0
+    },
+    "P07": {
+      "cases": 3,
+      "matches_current": 0
+    },
+    "P08": {
+      "cases": 6,
+      "matches_current": 0
+    },
+    "P09": {
+      "cases": 6,
+      "matches_current": 0
+    },
+    "P10": {
+      "cases": 6,
+      "matches_current": 0
+    },
+    "P11": {
+      "cases": 6,
+      "matches_current": 0
+    },
+    "P12": {
+      "cases": 3,
+      "matches_current": 0
+    },
+    "P13": {
+      "cases": 6,
+      "matches_current": 0
+    }
+  }
+}

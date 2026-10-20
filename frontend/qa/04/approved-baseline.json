@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "screen": "04-linked-workbench",
+  "status": "user-approved-visual-baseline",
+  "approvedOn": "2026-10-19",
+  "timezone": "Asia/Shanghai",
+  "approvalSource": "explicit user message in this conversation",
+  "approvalQuote": "确认好了04的主图与整体效果，效果可以",
+  "scope": "04 reconstructed main image and overall visual appearance; shared visual direction for subsequent screens",
+  "baseline": {
+    "path": "iteration-06/implementation.png",
+    "sha256": "56e17b550753e48e896378a0a41ae7207a0eb5d66f0da67a8da7bb1636eb2fd1",
+    "width": 1513,
+    "height": 1040,
+    "dpr": 1,
+    "environment": "iteration-06/environment.json",
+    "fixtureUrl": "http://127.0.0.1:6174/skills/regional-alert/editor?view=linked&fixture=04"
+  },
+  "immutableOriginal": {
+    "path": "../../reference-images/04-linked-workbench.png",
+    "sha256": "26098014f082510395e27890f70959573ff5cb1757bcf9053069afa5f916c6cf"
+  },
+  "acceptedDifferences": [
+    "Generated clean main image is a reconstruction, not the original photograph",
+    "Original typeface is unknown; use the current locked local Noto Sans SC typography",
+    "Keep current real icon library and registered implementation deviations"
+  ],
+  "excludedFromApproval": [
+    "Pixel identity with the original generated mock",
+    "Other screens and uncaptured interaction states",
+    "Actual 200 percent browser zoom acceptance",
+    "Real video, model inference, backend integration or production regression"
+  ],
+  "historyPolicy": "Reference the reviewed existing capture without replacing originals or deleting difference evidence; this approval is not a new automated regression pass."
+}

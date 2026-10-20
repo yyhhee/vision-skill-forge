@@ -1,0 +1,5350 @@
+{
+  "config": {
+    "argv": [
+      "C:\\yhe_user\\software\\nodejs\\node.exe",
+      "C:\\yhe_user\\detection_project\\vision-skill-forge-next\\frontend\\node_modules\\@playwright\\test\\cli.js",
+      "test"
+    ],
+    "configFile": "C:\\yhe_user\\detection_project\\vision-skill-forge-next\\frontend\\playwright.config.ts",
+    "rootDir": "C:/yhe_user/detection_project/vision-skill-forge-next/frontend/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/83915/Vision Skill Forge Local Backups/2026-10-20-frontend-checkpoint/browser/test-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "isolated-chromium",
+        "name": "isolated-chromium",
+        "testDir": "C:/yhe_user/detection_project/vision-skill-forge-next/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\Users\\83915\\Vision Skill Forge Local Backups\\2026-10-20-frontend-checkpoint\\browser\\test-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "name": "isolated-chromium",
+        "testDir": "C:\\yhe_user\\detection_project\\vision-skill-forge-next\\frontend\\tests\\e2e",
+        "snapshotDir": "C:\\yhe_user\\detection_project\\vision-skill-forge-next\\frontend\\tests\\e2e",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 30000,
+        "use": {
+          "baseURL": "http://127.0.0.1:6175",
+          "viewport": {
+            "width": 1513,
+            "height": 1040
+          },
+          "deviceScaleFactor": 1,
+          "locale": "zh-CN",
+          "timezoneId": "Asia/Shanghai",
+          "colorScheme": "light",
+          "reducedMotion": "reduce",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "executablePath": "C:\\Users\\83915\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1234\\chrome-headless-shell-win64\\chrome-headless-shell.exe"
+          },
+          "browserName": "chromium"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "isolated-chromium"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:/Users/83915/Vision Skill Forge Local Backups/2026-10-20-frontend-checkpoint/browser/functional-results.json"
+        }
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "C:/Users/83915/Vision Skill Forge Local Backups/2026-10-20-frontend-checkpoint/browser/playwright-report",
+          "open": "never"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 2,
+    "webServer": {
+      "command": "npm run dev -- --host 127.0.0.1 --port 6175 --strictPort",
+      "url": "http://127.0.0.1:6175",
+      "reuseExistingServer": false,
+      "timeout": 30000
+    }
+  },
+  "suites": [
+    {
+      "title": "capabilities.spec.ts",
+      "file": "capabilities.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "14 list, controlled filters, actual usage and dependency selection work without initial writes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1793,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:15.175Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-c2894534ec95182ab515",
+          "file": "capabilities.spec.ts",
+          "line": 27,
+          "column": 1
+        },
+        {
+          "title": "14 builtin delete is disabled and referenced disabling is explicit and persists without rewriting skills",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3105,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:15.160Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-2e36417dc15fe3d91100",
+          "file": "capabilities.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "14 imported metadata is previewed then installed disabled; enabling is not execution and deletion persists",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3018,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:17.260Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-b0f2073ed0cd2ee76f80",
+          "file": "capabilities.spec.ts",
+          "line": 82,
+          "column": 1
+        },
+        {
+          "title": "14 unsafe and duplicate imports do not mutate any stored configuration or execute scripts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1805,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:18.522Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-2490d7fe2b30b7c863c0",
+          "file": "capabilities.spec.ts",
+          "line": 112,
+          "column": 1
+        },
+        {
+          "title": "14 dependencies cannot be enabled implicitly, and dependent manifests block deletion even when disabled",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2085,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:20.287Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-0dc488680572d77195a4",
+          "file": "capabilities.spec.ts",
+          "line": 132,
+          "column": 1
+        },
+        {
+          "title": "14 saved-version references prevent custom deletion without touching archive bytes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2843,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:20.334Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-d5887d9ca40d3a090b1a",
+          "file": "capabilities.spec.ts",
+          "line": 159,
+          "column": 1
+        },
+        {
+          "title": "14 unavailable capabilities block editor application and new simulation, reenable restores availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7702,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:22.379Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-87b40d9ff5f81a5278cd",
+          "file": "capabilities.spec.ts",
+          "line": 196,
+          "column": 1
+        },
+        {
+          "title": "14 stopping capability pauses active advancement and resume without cancelling or rewriting its snapshot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3247,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:23.186Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-0261f71c5038e10b2c8a",
+          "file": "capabilities.spec.ts",
+          "line": 240,
+          "column": 1
+        },
+        {
+          "title": "14 applying run settings also checks dependencies and keeps applied R3 unchanged",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3001,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:26.440Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-762656508f3f7c7c8646",
+          "file": "capabilities.spec.ts",
+          "line": 269,
+          "column": 1
+        },
+        {
+          "title": "14 corrupt and quota-failed writes preserve data and report no false success",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2744,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:29.450Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-e610c1d0aa79697b3881",
+          "file": "capabilities.spec.ts",
+          "line": 292,
+          "column": 1
+        },
+        {
+          "title": "14 cross-tab changes preserve pending import and require explicit reload",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2901,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:30.088Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-84eaad46eaca2aae308c",
+          "file": "capabilities.spec.ts",
+          "line": 330,
+          "column": 1
+        },
+        {
+          "title": "14 damaged dependency audit blocks deletion and disabling without mutating registry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1644,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:32.202Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-33f3f4fdb3778d253cb9",
+          "file": "capabilities.spec.ts",
+          "line": 355,
+          "column": 1
+        },
+        {
+          "title": "14 editor unsaved navigation saves the actual new condition before opening capabilities",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1844,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:32.997Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-bd770cecff51d3b3f7f4",
+          "file": "capabilities.spec.ts",
+          "line": 375,
+          "column": 1
+        },
+        {
+          "title": "14 navigation reaches models and preserves their unsaved configuration guard",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1871,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:33.854Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-6c7f0e603af9f0149bd8",
+          "file": "capabilities.spec.ts",
+          "line": 394,
+          "column": 1
+        },
+        {
+          "title": "14 pending manifest guards browser back and fixture interactions never write normal storage",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2145,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:34.847Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-836079dabd4939298073",
+          "file": "capabilities.spec.ts",
+          "line": 410,
+          "column": 1
+        },
+        {
+          "title": "14 disabled capabilities do not make archived versions unreadable or change historical content",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 4031,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:35.733Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-9de3ab2408eef926f656",
+          "file": "capabilities.spec.ts",
+          "line": 432,
+          "column": 1
+        },
+        {
+          "title": "14 enabled custom metadata cannot be applied or run merely because its declared dependencies exist",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4128,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:37.000Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-09705a206b7936acf885",
+          "file": "capabilities.spec.ts",
+          "line": 453,
+          "column": 1
+        },
+        {
+          "title": "14 automatic advancement also pauses on capability disable in another tab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3055,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:39.772Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-bc074d2d0e3fe4dd7d87",
+          "file": "capabilities.spec.ts",
+          "line": 483,
+          "column": 1
+        },
+        {
+          "title": "14 version and runtime navigation use their original save guards before opening capabilities",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3563,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:41.138Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-29781c82ea0946435109",
+          "file": "capabilities.spec.ts",
+          "line": 510,
+          "column": 1
+        },
+        {
+          "title": "14 controls remain usable at 1366",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1652,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:42.837Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-836e0902f21cabc7072c",
+          "file": "capabilities.spec.ts",
+          "line": 539,
+          "column": 3
+        },
+        {
+          "title": "14 controls remain usable at 760",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1572,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:44.497Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bcb5a9b4e27408c434c-d2c3992b39700f3e0ae5",
+          "file": "capabilities.spec.ts",
+          "line": 539,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "consistency.spec.ts",
+      "file": "consistency.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "description editing is explicitly non-executable and exposes an honest unconnected replan action",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1622,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:44.727Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6840b52c7d845d21bbec-513697ce24e92a115a45",
+          "file": "consistency.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "linked input changes preserve custom phrases, persist pending review and block apply until acknowledged",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3076,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:46.093Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6840b52c7d845d21bbec-fa4bb888745136c4e95a",
+          "file": "consistency.spec.ts",
+          "line": 43,
+          "column": 1
+        },
+        {
+          "title": "generated phrases follow the selected inputs while custom phrases are never silently replaced",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1666,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:46.356Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6840b52c7d845d21bbec-20c9175ef81754efa619",
+          "file": "consistency.spec.ts",
+          "line": 84,
+          "column": 1
+        },
+        {
+          "title": "cancelling a revision conflict creates or cancels no task, and continuing explicitly keeps R3",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2787,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:48.029Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6840b52c7d845d21bbec-908345f37da8efa32884",
+          "file": "consistency.spec.ts",
+          "line": 112,
+          "column": 1
+        },
+        {
+          "title": "starting R4 explicitly cancels the old R3 in the same update without rewriting its snapshot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2626,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:49.176Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6840b52c7d845d21bbec-438bd3e907b1a2c1ed08",
+          "file": "consistency.spec.ts",
+          "line": 137,
+          "column": 1
+        },
+        {
+          "title": "identical revision numbers in different skills still require a deliberate task choice",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2927,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:50.823Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6840b52c7d845d21bbec-3941516734e9939d5092",
+          "file": "consistency.spec.ts",
+          "line": 163,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "creation.spec.ts",
+      "file": "creation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "library create reaches02, starts empty and cannot continue without preview",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1989,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:51.818Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-706d1f5b90f54f97682f",
+          "file": "creation.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "example creates a full preview; any input change invalidates it and real count updates",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1960,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:53.768Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-6b8ea4abf3eb7ab53535",
+          "file": "creation.spec.ts",
+          "line": 28,
+          "column": 1
+        },
+        {
+          "title": "save once then continue opens the same full identity, pending geometry, R0 and V1",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2777,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:53.815Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-f532b5ccf084275e5e31",
+          "file": "creation.spec.ts",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "continue directly saves once and uses shared editor validation, not auto-apply",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1888,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:55.735Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-50cdf3067d707bbbc933",
+          "file": "creation.spec.ts",
+          "line": 97,
+          "column": 1
+        },
+        {
+          "title": "leaving requires explicit discard or saving, including browser history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2269,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:56.600Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-ed27bb4d2e9bfd0665f1",
+          "file": "creation.spec.ts",
+          "line": 119,
+          "column": 1
+        },
+        {
+          "title": "unsupported text cannot be saved; discard exits without writes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2124,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:57.631Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-1ef182f3917eac98fb73",
+          "file": "creation.spec.ts",
+          "line": 144,
+          "column": 1
+        },
+        {
+          "title": "quota failure keeps input and preview, never navigates or claims success",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1663,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:58.875Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-c1ae64d4bca2b9a75bcc",
+          "file": "creation.spec.ts",
+          "line": 160,
+          "column": 1
+        },
+        {
+          "title": "fixture02 preview never creates normal workspace or archive",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1483,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:43:59.762Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-b1db10723cca1d24de5c",
+          "file": "creation.spec.ts",
+          "line": 179,
+          "column": 1
+        },
+        {
+          "title": "02 to03 to15 draws required regions then explicitly applies R1 without changing rule sources",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2360,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:00.553Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-9debd945395460927f7b",
+          "file": "creation.spec.ts",
+          "line": 189,
+          "column": 1
+        },
+        {
+          "title": "creation is reachable without horizontal overflow at 1366",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1450,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:01.253Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-56c5295ddcfc0aea26cc",
+          "file": "creation.spec.ts",
+          "line": 242,
+          "column": 3
+        },
+        {
+          "title": "creation is reachable without horizontal overflow at 760",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1498,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:02.710Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1c32b4a3a2ad83297ea5-4029c1975faec9af31d1",
+          "file": "creation.spec.ts",
+          "line": 242,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "edge-cases.spec.ts",
+      "file": "edge-cases.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "invalid stored configuration is preserved, not silently overwritten by seed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1554,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:02.926Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "db200a91ff2226597e25-51d2e36b6e61c3079393",
+          "file": "edge-cases.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "keyboard Escape opens unsaved guard, cancellation preserves the current form",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1618,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:04.236Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "db200a91ff2226597e25-4846acd776388258494f",
+          "file": "edge-cases.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "export contains full draft and the separate applied snapshot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1687,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:04.488Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "db200a91ff2226597e25-19a4f3b0a56b34b6b55e",
+          "file": "edge-cases.spec.ts",
+          "line": 45,
+          "column": 1
+        },
+        {
+          "title": "native reference anchor geometry stays within2px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1417,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:05.860Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "db200a91ff2226597e25-c75d1966b3ff00df96d7",
+          "file": "edge-cases.spec.ts",
+          "line": 67,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "editor-flow.spec.ts",
+      "file": "editor-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "03 resource selection, controlled rename and dependency-protected delete",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1480,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:06.198Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-961ed130ea8cd1b95cf8",
+          "file": "editor-flow.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "03 rectangle and direction resources remain genuinely editable and undoable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1747,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:07.304Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-8b15bfc34f2b6e467e70",
+          "file": "editor-flow.spec.ts",
+          "line": 28,
+          "column": 1
+        },
+        {
+          "title": "05 color, part and semantic evidence save together into the same draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1665,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:07.686Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-5e5fa6723a78b093450a",
+          "file": "editor-flow.spec.ts",
+          "line": 50,
+          "column": 1
+        },
+        {
+          "title": "06 switches field sets and persists only the chosen branch time",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1655,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:09.059Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-08f00ec9e66962570456",
+          "file": "editor-flow.spec.ts",
+          "line": 67,
+          "column": 1
+        },
+        {
+          "title": "06 supports condition-level time with explicit source and duplicate-timing notice",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1837,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:09.358Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-fc916bb66ff0921135e8",
+          "file": "editor-flow.spec.ts",
+          "line": 83,
+          "column": 1
+        },
+        {
+          "title": "07 reorder persists stable members, nested groups and anchor configuration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1590,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:10.723Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-43511560a45de509b0c3",
+          "file": "editor-flow.spec.ts",
+          "line": 100,
+          "column": 1
+        },
+        {
+          "title": "07 invalid gap is blocked without silently rewriting the user form",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1457,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:11.205Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-d4a1dde43259842d27c7",
+          "file": "editor-flow.spec.ts",
+          "line": 123,
+          "column": 1
+        },
+        {
+          "title": "08 controlled source/type and trigger changes persist; no external notification",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1579,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:12.322Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-d717a2e8d84a988e265f",
+          "file": "editor-flow.spec.ts",
+          "line": 134,
+          "column": 1
+        },
+        {
+          "title": "15 locate two real issues, repair individually, recheck and applyR4",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1981,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:12.675Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-704c30e1b7eef2c0a6e0",
+          "file": "editor-flow.spec.ts",
+          "line": 159,
+          "column": 1
+        },
+        {
+          "title": "incomplete draft persists across reload without corrupting applied R3",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2414,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:13.909Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-cc5ee3acb243286737bb",
+          "file": "editor-flow.spec.ts",
+          "line": 187,
+          "column": 1
+        },
+        {
+          "title": "time-target switching protects unsaved values and continues with the chosen target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1735,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:14.663Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-d59a8c5f14ddef9dcab0",
+          "file": "editor-flow.spec.ts",
+          "line": 202,
+          "column": 1
+        },
+        {
+          "title": "combined unsaved name and geometry are protected in two steps without losing either",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1755,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:16.334Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-e6732ab746be1f582d0d",
+          "file": "editor-flow.spec.ts",
+          "line": 218,
+          "column": 1
+        },
+        {
+          "title": "output dependency edges follow the selected business source, not a fixed final node",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1454,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:16.406Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-62ea21495f325eda8151",
+          "file": "editor-flow.spec.ts",
+          "line": 245,
+          "column": 1
+        },
+        {
+          "title": "new editors stay operable at 1366x768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 7382,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:17.868Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-4cd06cb20f6fe8c0ac8a",
+          "file": "editor-flow.spec.ts",
+          "line": 269,
+          "column": 3
+        },
+        {
+          "title": "new editors stay operable at 760x900",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7244,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:18.100Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "571bc6d618fd274067f2-22adb1395be6807f5be2",
+          "file": "editor-flow.spec.ts",
+          "line": 269,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "history.spec.ts",
+      "file": "history.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "16 normal history is empty and read-only; fixture contains five honest summaries with only one complete run",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2784,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:25.283Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-1457025293cc9f7b1fba",
+          "file": "history.spec.ts",
+          "line": 15,
+          "column": 1
+        },
+        {
+          "title": "16 status, media and search intersect; hidden selections cannot open an unrelated record",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1765,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:25.375Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-96dc1e83ba573d47b2ed",
+          "file": "history.spec.ts",
+          "line": 37,
+          "column": 1
+        },
+        {
+          "title": "16 date filters are inclusive in Beijing time and invalid or reversed dates are blocked",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1770,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:27.149Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-4dba9c54550a19e8c97e",
+          "file": "history.spec.ts",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "16 summary-only rows explain missing details and export only marked summaries, never the regional snapshot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1735,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:28.075Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-a6b3e34244d44b8022dd",
+          "file": "history.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "16 main fixture opens its own completed result, and browser back restores filters and selection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2018,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:28.928Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-13b9d0312b66039d1ad6",
+          "file": "history.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "16 actual archive viewing and exporting preserve its immutable full snapshot and current draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3168,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:29.817Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-8fe76bf0cbff2181ee60",
+          "file": "history.spec.ts",
+          "line": 123,
+          "column": 1
+        },
+        {
+          "title": "16 checkbox selection and pagination are real, bulk export contains only selected identities",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2966,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:30.952Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-f14050b928497e477b33",
+          "file": "history.spec.ts",
+          "line": 144,
+          "column": 1
+        },
+        {
+          "title": "16 corrupt cache stays untouched, can be backed up and explicitly re-read after repair",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2606,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:32.992Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-8ec4d28807de34747340",
+          "file": "history.spec.ts",
+          "line": 171,
+          "column": 1
+        },
+        {
+          "title": "16 updates from other tabs remove stale details and never overwrite either archive",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3457,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:33.925Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-cd5db9ae790842803529",
+          "file": "history.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "16 read-only export still works when browser storage writes fail",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2626,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:35.607Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-57a4710a53754c228a32",
+          "file": "history.spec.ts",
+          "line": 219,
+          "column": 1
+        },
+        {
+          "title": "16 unknown media is not replaced with the construction poster or a fabricated viewer",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2589,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:37.389Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-bb54178a433445426af8",
+          "file": "history.spec.ts",
+          "line": 235,
+          "column": 1
+        },
+        {
+          "title": "16 unfinished tasks open paused and do not duplicate, advance or restart automatically",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2025,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:38.240Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-6d76b4049213eacdd38b",
+          "file": "history.spec.ts",
+          "line": 262,
+          "column": 1
+        },
+        {
+          "title": "16 skill library scoped history does not borrow other skills and can clear its scope",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4400,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:39.985Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-cb113770335a72570d36",
+          "file": "history.spec.ts",
+          "line": 284,
+          "column": 1
+        },
+        {
+          "title": "16 editor and version navigation preserve newly saved configuration without applying",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3532,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:40.275Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-c0103e5427f30a7b01d3",
+          "file": "history.spec.ts",
+          "line": 301,
+          "column": 1
+        },
+        {
+          "title": "16 model settings navigation still prompts before discarding unsaved inputs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1750,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:43.815Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-2bd8675dd4a64fed9f0e",
+          "file": "history.spec.ts",
+          "line": 327,
+          "column": 1
+        },
+        {
+          "title": "16 historical viewing works after the source skill is deleted and a capability is disabled",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2962,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:44.392Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-4a1505c2d6ca25a44b55",
+          "file": "history.spec.ts",
+          "line": 341,
+          "column": 1
+        },
+        {
+          "title": "16 missing normal history IDs cannot silently reconstruct the known regional example",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1392,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:45.572Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-570a9dcda1c759f10cc8",
+          "file": "history.spec.ts",
+          "line": 373,
+          "column": 1
+        },
+        {
+          "title": "16 running settings guard saves only the draft before navigating to history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1908,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:46.972Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-06705560d0f4ef56e7fa",
+          "file": "history.spec.ts",
+          "line": 380,
+          "column": 1
+        },
+        {
+          "title": "16 capability import preview still guards navigation before opening history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1921,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:47.361Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-cdc789a580f404a24f75",
+          "file": "history.spec.ts",
+          "line": 395,
+          "column": 1
+        },
+        {
+          "title": "16 controls and detail remain reachable at 1366",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1678,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:48.889Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-420550ce8eeb8eef05dd",
+          "file": "history.spec.ts",
+          "line": 433,
+          "column": 3
+        },
+        {
+          "title": "16 controls and detail remain reachable at 760",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1608,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:49.290Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "61dfc145f2d790550676-bc4f476c890cf0a8c723",
+          "file": "history.spec.ts",
+          "line": 433,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "library.spec.ts",
+      "file": "library.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "01 fixture shows five real-state entries, filtering and layout toggle without normal writes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1814,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:50.585Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-0d3c05ef5b6e43fb8f4a",
+          "file": "library.spec.ts",
+          "line": 39,
+          "column": 1
+        },
+        {
+          "title": "unknown skills and unimplemented page addresses never substitute a regional workspace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3062,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:50.923Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-cdc0bffcb59c71e69d1c",
+          "file": "library.spec.ts",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "template creation, nested editing and library re-open share a complete independent document",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3693,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:52.406Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-bc5568e3db9ea817f17a",
+          "file": "library.spec.ts",
+          "line": 75,
+          "column": 1
+        },
+        {
+          "title": "save-before-leaving to library persists the newly saved form rather than stale draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2287,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:53.992Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-1f77f9f7d96c0dbacada",
+          "file": "library.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "import preserves full structure, conflicts require explicit independent copy and cancel changes nothing",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2503,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:56.107Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-b898caebadd5e8344c8c",
+          "file": "library.spec.ts",
+          "line": 131,
+          "column": 1
+        },
+        {
+          "title": "malformed imports and quota failure do not leave partial workspaces or versions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1760,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:56.287Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-03a3b88ca850928935dc",
+          "file": "library.spec.ts",
+          "line": 163,
+          "column": 1
+        },
+        {
+          "title": "browser back protects unsaved conditions and forward reopens the saved complete document",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2451,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:58.054Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-02cfcf666964300d6e66",
+          "file": "library.spec.ts",
+          "line": 190,
+          "column": 1
+        },
+        {
+          "title": "browser back from unsaved version metadata uses the same save guard as page navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2365,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:44:58.618Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-299fa822d50610551def",
+          "file": "library.spec.ts",
+          "line": 225,
+          "column": 1
+        },
+        {
+          "title": "version metadata save before returning to library persists the new name and keeps R3",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2399,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:00.514Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-9f8b464b9204b402d801",
+          "file": "library.spec.ts",
+          "line": 248,
+          "column": 1
+        },
+        {
+          "title": "runtime navigation to library guards discard and save without applying settings",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 4074,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:00.990Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-0dbaaa44d8cff2fa1794",
+          "file": "library.spec.ts",
+          "line": 268,
+          "column": 1
+        },
+        {
+          "title": "unknown media remains exportable but never opens the unrelated construction poster",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1763,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:02.920Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-0226b50ba3ef1b0bf10f",
+          "file": "library.spec.ts",
+          "line": 296,
+          "column": 1
+        },
+        {
+          "title": "delete confirmation preserves other skills and historic runs; deleted links never resurrect data",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6601,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:04.691Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-ea24aca0c0f9d3856ed0",
+          "file": "library.spec.ts",
+          "line": 312,
+          "column": 1
+        },
+        {
+          "title": "active tasks block deleting a skill and corrupted directory bytes are preserved",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2996,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:05.072Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-fe9c54ed542c0d89bba0",
+          "file": "library.spec.ts",
+          "line": 373,
+          "column": 1
+        },
+        {
+          "title": "library remains operable at 1366x768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1697,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:08.076Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-fc358f9ac3da3f2f0106",
+          "file": "library.spec.ts",
+          "line": 415,
+          "column": 3
+        },
+        {
+          "title": "library remains operable at 760x900",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1626,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:09.781Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ad0ae3d52ea8a2949ca9-0c1831d3aa7e0330f793",
+          "file": "library.spec.ts",
+          "line": 415,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "models.spec.ts",
+      "file": "models.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "13 library entry, model purpose tabs and credential prohibition work without writes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1958,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:11.311Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-136a3884395c10bc591a",
+          "file": "models.spec.ts",
+          "line": 15,
+          "column": 1
+        },
+        {
+          "title": "13 add, save, enable, choose and refresh preserve one independent disconnected configuration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2919,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:11.437Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-3397cfe546b1e4d55687",
+          "file": "models.spec.ts",
+          "line": 38,
+          "column": 1
+        },
+        {
+          "title": "13 local checks never contact the user URL or claim connection success",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1579,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:13.276Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-7a51fc707325ee9349b0",
+          "file": "models.spec.ts",
+          "line": 68,
+          "column": 1
+        },
+        {
+          "title": "13 pending saved edits are used by the subsequent enable action instead of stale state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1686,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:14.366Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-d8b010eb9d94b1e6808d",
+          "file": "models.spec.ts",
+          "line": 90,
+          "column": 1
+        },
+        {
+          "title": "13 same-row configure after save keeps the newly saved form instead of the previous label",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1609,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:14.863Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-c5f7be98fd0c3dfa8f04",
+          "file": "models.spec.ts",
+          "line": 110,
+          "column": 1
+        },
+        {
+          "title": "13 disabling the selected config requires confirmation and never auto-selects another model",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1692,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:16.060Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-41c7ba4de96b9e34ec3f",
+          "file": "models.spec.ts",
+          "line": 124,
+          "column": 1
+        },
+        {
+          "title": "13 mappings are controlled declarations, can be disabled, and cannot contain executable expressions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1747,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:16.479Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-4d9141ff69c9bb7a0406",
+          "file": "models.spec.ts",
+          "line": 146,
+          "column": 1
+        },
+        {
+          "title": "13 dirty form is protected when switching tabs, sidebar and browser history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2151,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:17.764Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-1cb42952943472e6ba8a",
+          "file": "models.spec.ts",
+          "line": 172,
+          "column": 1
+        },
+        {
+          "title": "13 corrupted cache and quota failure preserve original bytes and the unsaved form",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3962,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:18.235Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-6709dec00ee3da289111",
+          "file": "models.spec.ts",
+          "line": 195,
+          "column": 1
+        },
+        {
+          "title": "13 another tab cannot silently replace dirty edits; reload is explicit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2932,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:19.923Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-8a720257e84e21b572ec",
+          "file": "models.spec.ts",
+          "line": 227,
+          "column": 1
+        },
+        {
+          "title": "13 navigation from editor preserves saved conditions and applied R3",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1911,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:22.210Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-5c01d4e800ccae8bb163",
+          "file": "models.spec.ts",
+          "line": 255,
+          "column": 1
+        },
+        {
+          "title": "13 opening settings from version metadata saves the new document before navigation, not the old closure",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1928,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:22.862Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-a2df89f2f2c99823c796",
+          "file": "models.spec.ts",
+          "line": 278,
+          "column": 1
+        },
+        {
+          "title": "13 opening settings from pending runtime setup preserves new settings in draft without applying",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1979,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:24.129Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-9ae46febc5092bb40c55",
+          "file": "models.spec.ts",
+          "line": 294,
+          "column": 1
+        },
+        {
+          "title": "13 settings remain editable at 1366",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1650,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:24.797Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-bf1a1c3e742cc9b93ceb",
+          "file": "models.spec.ts",
+          "line": 314,
+          "column": 3
+        },
+        {
+          "title": "13 settings remain editable at 760",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1571,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:26.116Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af584f329435f7cf0183-1150ba837b76b62f1d6f",
+          "file": "models.spec.ts",
+          "line": 314,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "run-flow.spec.ts",
+      "file": "run-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "saving unsaved runtime form before start still runs applied settings, not draft settings",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1756,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:26.460Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-251d75805c30cf680085",
+          "file": "run-flow.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "paused task refreshes with the same identity and does not duplicate on a second start",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4510,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:27.705Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-ee22c7c713970b125848",
+          "file": "run-flow.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "empty numeric runtime input reports validation without React console errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1538,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:28.224Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-c79dd4ca6b10e72df563",
+          "file": "run-flow.spec.ts",
+          "line": 63,
+          "column": 1
+        },
+        {
+          "title": "editor validation step and run snapshot dialog both reach setup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1792,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:29.768Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-8b38d2514dc53f2d2f14",
+          "file": "run-flow.spec.ts",
+          "line": 77,
+          "column": 1
+        },
+        {
+          "title": "09 controlled settings save only draft; applying whole draft explicitly creates R4",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1739,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:31.568Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-30656f849ea1e316a0a6",
+          "file": "run-flow.spec.ts",
+          "line": 95,
+          "column": 1
+        },
+        {
+          "title": "09 guards unsaved settings and validates overlap separately from dedup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1768,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:32.223Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-0821292eeccbc83de55a",
+          "file": "run-flow.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "10 fixture frozen at 18/30; cancel is not completed and never writes normal storage",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1632,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:33.314Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-517559c40f84d663fd16",
+          "file": "run-flow.spec.ts",
+          "line": 146,
+          "column": 1
+        },
+        {
+          "title": "10 start takes R3, cancel persists, next start does not reuse a cancelled task",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3153,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:33.999Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-38a24ab2e054e97a3d36",
+          "file": "run-flow.spec.ts",
+          "line": 166,
+          "column": 1
+        },
+        {
+          "title": "10 simulated failure shows failure without generated business events",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1646,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:34.955Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-8701a0db39a51ad0842b",
+          "file": "run-flow.spec.ts",
+          "line": 192,
+          "column": 1
+        },
+        {
+          "title": "11 event, time, same-entity evidence, snapshot and filters work",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1837,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:36.608Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-7813fbebdf852e431a16",
+          "file": "run-flow.spec.ts",
+          "line": 204,
+          "column": 1
+        },
+        {
+          "title": "11 JSON export includes immutable run snapshot and honest demo provenance",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1631,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:37.158Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-06f38dc5c6fb6ff83bd1",
+          "file": "run-flow.spec.ts",
+          "line": 242,
+          "column": 1
+        },
+        {
+          "title": "run completion, refresh and edits never rewrite historic snapshot or invent R4 results",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 26323,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:38.454Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-74292cd3c085a5217c4c",
+          "file": "run-flow.spec.ts",
+          "line": 258,
+          "column": 1
+        },
+        {
+          "title": "unknown run and corrupted storage do not silently substitute or overwrite records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1427,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:38.796Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-86d2505fa798765a8862",
+          "file": "run-flow.spec.ts",
+          "line": 292,
+          "column": 1
+        },
+        {
+          "title": "run pages keep primary actions reachable at 1366x768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3928,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:40.231Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-63816693d69b21024bd0",
+          "file": "run-flow.spec.ts",
+          "line": 311,
+          "column": 3
+        },
+        {
+          "title": "run pages keep primary actions reachable at 760x900",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3885,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:44.166Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cb4cd3e6d72689683ca-c46a821c1aa0d89db9b7",
+          "file": "run-flow.spec.ts",
+          "line": 311,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "versions.spec.ts",
+      "file": "versions.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "12 fixture displays complete V3 and proposes V4 without touching normal storage",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1658,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:48.079Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-6782c7a458b0fa4f7fd3",
+          "file": "versions.spec.ts",
+          "line": 15,
+          "column": 1
+        },
+        {
+          "title": "save, edit, cancel load and backup-before-load preserve complete versions and applied R3",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3799,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:49.745Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-47d9106936984260d39e",
+          "file": "versions.spec.ts",
+          "line": 47,
+          "column": 1
+        },
+        {
+          "title": "nested sequence round trips through export and empty storage, and remains editable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3439,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:53.550Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-10c554237919a3dc8f68",
+          "file": "versions.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "invalid JSON, schema, credentials and references cannot replace current draft or versions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1627,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:56.997Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-ffd395190806ced170bf",
+          "file": "versions.spec.ts",
+          "line": 123,
+          "column": 1
+        },
+        {
+          "title": "pending evidence review is archived and loaded without being automatically confirmed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2115,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:45:58.631Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-97eda56be51c096ddcc3",
+          "file": "versions.spec.ts",
+          "line": 159,
+          "column": 1
+        },
+        {
+          "title": "returning from versions preserves scene editing context",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1767,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:00.753Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-b64067387ef6b7e3dc0a",
+          "file": "versions.spec.ts",
+          "line": 185,
+          "column": 1
+        },
+        {
+          "title": "unavailable media is staged but never replaced with the current poster",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1486,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:02.526Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-4bfd7dd2b003bfa73431",
+          "file": "versions.spec.ts",
+          "line": 197,
+          "column": 1
+        },
+        {
+          "title": "old workspace import and duplicate version import never restore an applied snapshot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1517,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:04.019Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-4b8976989039f411780f",
+          "file": "versions.spec.ts",
+          "line": 218,
+          "column": 1
+        },
+        {
+          "title": "loading a version cannot rewrite active or historic run snapshots",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 2433,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:04.803Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-56d0ce087e4d4f904768",
+          "file": "versions.spec.ts",
+          "line": 237,
+          "column": 1
+        },
+        {
+          "title": "archive persistence failure is not reported as success and preserves existing workspace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1470,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:05.542Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-aa44d6efc29e6f919b7c",
+          "file": "versions.spec.ts",
+          "line": 263,
+          "column": 1
+        },
+        {
+          "title": "unsaved version metadata protects return and corrupted cache is preserved",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1608,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:07.019Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-bcfbe1251ab7086207a4",
+          "file": "versions.spec.ts",
+          "line": 286,
+          "column": 1
+        },
+        {
+          "title": "12 actions remain reachable at 1366x768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1469,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:07.243Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-3929aff5cd9361694545",
+          "file": "versions.spec.ts",
+          "line": 315,
+          "column": 3
+        },
+        {
+          "title": "12 actions remain reachable at 760x900",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1424,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:08.635Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2a73ee0ef3dc2dd27b8-e7eb033b9bda8960ceff",
+          "file": "versions.spec.ts",
+          "line": 315,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "workspace.spec.ts",
+      "file": "workspace.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "fixed state uses native viewport, real local assets, no console failures or external requests",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1355,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:08.738Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-76ac8e11ac92be7f694b",
+          "file": "workspace.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "ROI and branch selection link both directions without changing revision",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1442,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:10.072Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-8bbdc10b054ec8eb545f",
+          "file": "workspace.spec.ts",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "saving color changes draft only; explicit apply createsR4 and snapshot matches",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1797,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:10.099Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-5fad19c202a3c27142bd",
+          "file": "workspace.spec.ts",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "unsaved form protects switching, supports cancel and discard",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1736,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:11.520Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-8f4dbc8f8f8a082accda",
+          "file": "workspace.spec.ts",
+          "line": 83,
+          "column": 1
+        },
+        {
+          "title": "save-before-apply guard applies the newly saved values rather than stale draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1609,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:11.904Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-c8ac09a8569dcc12a982",
+          "file": "workspace.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "undo and redo restore draft without mutatingR3",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1682,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:13.264Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-54a42ce67bb48bd0a3b7",
+          "file": "workspace.spec.ts",
+          "line": 116,
+          "column": 1
+        },
+        {
+          "title": "evidence combination and custom condition name remain editable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1632,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:13.520Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-eb7e394829e5ca762516",
+          "file": "workspace.spec.ts",
+          "line": 134,
+          "column": 1
+        },
+        {
+          "title": "branch scope is explicit; immediate hides time inputs; continuous values persist",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1637,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:14.953Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-c6758e1298a83940b143",
+          "file": "workspace.spec.ts",
+          "line": 151,
+          "column": 1
+        },
+        {
+          "title": "finalAND/OR and output naming update the shared diagram",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1711,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:15.158Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-3603d25a1eeafe2124bf",
+          "file": "workspace.spec.ts",
+          "line": 172,
+          "column": 1
+        },
+        {
+          "title": "three views, simulated timeline and evidence expansion are functional",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1728,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:16.597Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-116eff37258d43143a34",
+          "file": "workspace.spec.ts",
+          "line": 194,
+          "column": 1
+        },
+        {
+          "title": "unsaved polygon points cannot disappear when switching view",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1634,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:16.877Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-2b279f0838144d3f186f",
+          "file": "workspace.spec.ts",
+          "line": 215,
+          "column": 1
+        },
+        {
+          "title": "normal demo refresh preserves draft; fixture mode never overwrites user demo data",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5083,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:18.332Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-46249980569460d6c8b4",
+          "file": "workspace.spec.ts",
+          "line": 235,
+          "column": 1
+        },
+        {
+          "title": "primary controls and drawer remain reachable at1366×768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1489,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:18.517Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-7446bb75e051cb454c3e",
+          "file": "workspace.spec.ts",
+          "line": 262,
+          "column": 3
+        },
+        {
+          "title": "primary controls and drawer remain reachable at1920×1080",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1507,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:20.014Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-e714b8b1264611e5ecda",
+          "file": "workspace.spec.ts",
+          "line": 262,
+          "column": 3
+        },
+        {
+          "title": "primary controls and drawer remain reachable at760×900",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "isolated-chromium",
+              "projectName": "isolated-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1741,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T08:46:21.529Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b163ed09f68681248ada-5d233c4736b32540f808",
+          "file": "workspace.spec.ts",
+          "line": 262,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-20T08:43:13.344Z",
+    "duration": 190811.55,
+    "expected": 151,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "revision": 1,
+  "groups": [
+    {
+      "id": "group-ab",
+      "name": "先A后B",
+      "operator": "SEQUENCE",
+      "members": [
+        "seq-b",
+        "seq-a"
+      ],
+      "correlation": {
+        "mode": "global_scene",
+        "source": "scene"
+      },
+      "transition": {
+        "from": "previous.qualified",
+        "to": "next.start",
+        "minGapSeconds": 0,
+        "maxGapSeconds": 15
+      },
+      "validity": {
+        "mode": "hold",
+        "seconds": 5
+      }
+    },
+    {
+      "id": "group-all",
+      "name": "（A → B）与C同时满足",
+      "operator": "AND",
+      "members": [
+        "group-ab",
+        "seq-c"
+      ]
+    }
+  ],
+  "roundTripEqual": true,
+  "runSnapshotEqual": true,
+  "resultAvailability": "not_provided"
+}

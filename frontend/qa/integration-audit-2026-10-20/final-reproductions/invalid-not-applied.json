@@ -1,0 +1,13 @@
+{
+  "revision": 1,
+  "final": {
+    "id": "final-and",
+    "label": "全部同时满足",
+    "type": "boolean",
+    "operator": "NOT",
+    "members": [
+      "branch-a",
+      "branch-b"
+    ]
+  }
+}

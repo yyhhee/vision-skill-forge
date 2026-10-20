@@ -1,0 +1,382 @@
+@media (max-width: 1450px) {
+  .brand-name {
+    font-size: 22px;
+    padding-right: 15px;
+  }
+  .breadcrumb {
+    font-size: 15px;
+    gap: 11px;
+    margin-left: 15px;
+  }
+  .revision-pill {
+    margin-left: 17px;
+    font-size: 12px;
+  }
+  .scene-panel .media-pill {
+    display: none;
+  }
+  .scene-panel .panel-header {
+    gap: 9px;
+  }
+  .scene-tools {
+    gap: 10px;
+  }
+  .instruction-edit {
+    font-size: 15px;
+    gap: 10px;
+  }
+  .view-switch {
+    gap: 7px;
+  }
+  .view-switch .button {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .selection-hint {
+    display: none;
+  }
+  .canvas-hint {
+    font-size: 12px;
+    gap: 5px;
+  }
+  .panel-header h2 {
+    font-size: 22px;
+  }
+  .topbar-actions {
+    gap: 8px;
+  }
+}
+@media (max-width: 1190px) {
+  .brand-name {
+    font-size: 20px;
+  }
+  .breadcrumb {
+    display: none;
+  }
+  .topbar .button {
+    font-size: 15px;
+  }
+  .topbar-actions {
+    padding-right: 10px;
+  }
+  .revision-pill {
+    margin-left: 15px;
+  }
+  .app-shell {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+  .sidebar {
+    padding-left: 6px;
+  }
+  .nav-item {
+    font-size: 16px;
+    gap: 10px;
+  }
+  .workflow-steps {
+    gap: 12px;
+    padding-left: 0;
+  }
+  .workflow-steps > div {
+    gap: 13px;
+  }
+  .workflow-steps button {
+    gap: 10px;
+    font-size: 15px;
+  }
+  .instruction-bar {
+    padding-left: 13px;
+  }
+  .view-switch .button span {
+    display: none;
+  }
+  .view-switch .button {
+    width: 39px;
+  }
+  .workspace-panels {
+    min-height: 620px;
+  }
+  .inspector {
+    top: 210px;
+  }
+  .selection-message strong {
+    font-size: 14px;
+  }
+}
+@media (max-height: 900px) and (min-width: 1100px) {
+  .workspace-panels {
+    min-height: 620px;
+  }
+  .workspace {
+    padding-bottom: 16px;
+  }
+  .inspector {
+    top: 160px;
+    bottom: 65px;
+  }
+}
+@media (max-width: 1099px) {
+  .workspace-panels {
+    min-height: 700px;
+  }
+  .scene-panel .media-pill {
+    display: inline-flex;
+  }
+  .scene-panel .panel-header {
+    justify-content: space-between;
+  }
+  .scene-body {
+    max-width: 760px;
+    margin: auto;
+  }
+  .view-scene .scene-media {
+    max-height: none;
+    min-height: 0;
+  }
+  .scene-panel .panel-header {
+    gap: 8px;
+  }
+  .scene-tools {
+    margin-left: auto;
+  }
+  .canvas-panel {
+    min-height: 760px;
+  }
+  .inspector {
+    top: 140px;
+    bottom: 65px;
+  }
+  .brand-name {
+    border: 0;
+  }
+  .revision-pill {
+    margin-left: auto;
+  }
+  .topbar-actions {
+    margin-left: 12px;
+  }
+  .topbar-actions > .button:first-child {
+    display: none;
+  }
+  .instruction-edit {
+    font-size: 14px;
+  }
+  .instruction-edit strong {
+    white-space: normal;
+    max-height: 44px;
+    overflow: hidden;
+  }
+  .workflow-steps {
+    gap: 18px;
+  }
+  .selection-hint {
+    display: flex;
+  }
+  .media-expanded {
+    inset: 80px 20px;
+  }
+  .view-canvas .rule-flow {
+    min-height: 680px;
+  }
+}
+@media (max-width: 760px) {
+  .app-shell {
+    grid-template-columns: 60px minmax(0, 1fr);
+    grid-template-rows: 60px minmax(0, 1fr) 42px;
+  }
+  .brand-mark {
+    width: 60px;
+    height: 60px;
+    border: 0;
+  }
+  .brand-name {
+    font-size: 18px;
+    padding-left: 0;
+    padding-right: 8px;
+  }
+  .revision-pill {
+    display: none;
+  }
+  .topbar-actions {
+    padding-right: 5px;
+    margin-left: auto;
+  }
+  .topbar-actions .button {
+    font-size: 13px;
+    min-height: 36px;
+    padding: 5px 10px;
+  }
+  .topbar-actions > .icon-button {
+    width: 24px;
+  }
+  .sidebar {
+    padding: 10px 5px;
+  }
+  .nav-item {
+    padding: 0;
+    justify-content: center;
+    height: 46px;
+  }
+  .nav-item span {
+    display: none;
+  }
+  .sidebar nav {
+    gap: 10px;
+  }
+  .nav-item svg {
+    width: 23px;
+  }
+  .workspace {
+    padding: 10px 10px 14px;
+  }
+  .workflow-steps {
+    gap: 5px;
+    height: 38px;
+    margin-bottom: 10px;
+    justify-content: space-between;
+  }
+  .workflow-steps > div {
+    gap: 5px;
+  }
+  .workflow-steps > div > svg {
+    display: none;
+  }
+  .workflow-steps button {
+    gap: 6px;
+    font-size: 12px;
+  }
+  .step-number {
+    width: 25px;
+    height: 25px;
+    font-size: 12px;
+  }
+  .instruction-bar {
+    height: auto;
+    min-height: 84px;
+    padding: 10px;
+    gap: 8px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .view-switch {
+    align-self: flex-end;
+  }
+  .view-switch .button {
+    height: 30px;
+    min-height: 30px;
+    width: auto;
+    padding: 3px 8px;
+  }
+  .view-switch .button span {
+    display: inline;
+    font-size: 12px;
+  }
+  .view-switch .button svg {
+    display: none;
+  }
+  .workspace-panels {
+    min-height: 560px;
+  }
+  .panel-header {
+    height: 56px;
+    padding: 10px;
+  }
+  .scene-panel .panel-header h2 {
+    font-size: 19px;
+  }
+  .scene-panel .media-pill {
+    display: none;
+  }
+  .scene-tools {
+    gap: 6px;
+  }
+  .scene-tools .button {
+    padding: 4px 7px;
+    font-size: 12px;
+    min-height: 32px;
+    height: 32px;
+  }
+  .scene-tools .button svg {
+    width: 16px;
+  }
+  .text-tool {
+    font-size: 12px;
+    gap: 4px;
+  }
+  .scene-body {
+    padding: 0 10px 16px;
+  }
+  .selection-hint {
+    display: none;
+  }
+  .selection-message {
+    height: 36px;
+    margin-top: 12px;
+    font-size: 12px;
+    gap: 6px;
+  }
+  .selection-message strong {
+    font-size: 12px;
+  }
+  .playback {
+    gap: 4px;
+  }
+  .playback > .icon-button {
+    width: 26px;
+  }
+  .playback .timecode {
+    font-size: 11px;
+  }
+  .filmstrip {
+    gap: 3px;
+    height: 40px;
+  }
+  .evidence-toggle {
+    font-size: 13px;
+    height: 44px;
+    margin-top: 6px;
+    padding: 0 9px;
+  }
+  .evidence-toggle small {
+    font-size: 13px;
+  }
+  .canvas-hint {
+    display: none;
+  }
+  .canvas-panel .panel-header .icon-button {
+    margin-left: auto;
+  }
+  .app-footer {
+    font-size: 11px;
+    padding: 0 10px;
+  }
+  .inspector {
+    top: 60px;
+    right: 0;
+    bottom: 42px;
+    border-radius: 0;
+    width: min(416px, calc(100vw - 25px));
+  }
+  .storage-warning {
+    left: 60px;
+    bottom: 43px;
+  }
+  .modal > footer {
+    flex-wrap: wrap;
+  }
+  .modal > footer > .button {
+    font-size: 14px;
+  }
+  .toast {
+    font-size: 12px;
+    bottom: 52px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "reference": "C:\\Users\\83915\\Vision Skill Forge Local Backups\\2026-10-20-frontend-checkpoint\\source-6174-04\\implementation.png",
+  "actual": "C:\\Users\\83915\\Vision Skill Forge Local Backups\\2026-10-20-frontend-checkpoint\\copied-6175-04\\implementation.png",
+  "pixelSize": [
+    1513,
+    1040
+  ],
+  "referenceSha256": "d0bb627d84157a6c0f6b55de9f5be75a9e3784c722ccb7f1740afaf2baa46de9",
+  "actualSha256": "d0bb627d84157a6c0f6b55de9f5be75a9e3784c722ccb7f1740afaf2baa46de9",
+  "resized": false,
+  "masked": false,
+  "purpose": "difference localization only; not an acceptance score",
+  "metrics": {
+    "whole": {
+      "mean_absolute_channel_difference": 0.0,
+      "changed_fraction_at_channel_tolerance_12": 0.0
+    },
+    "topbar": {
+      "mean_absolute_channel_difference": 0.0,
+      "changed_fraction_at_channel_tolerance_12": 0.0
+    },
+    "canvas": {
+      "mean_absolute_channel_difference": 0.0,
+      "changed_fraction_at_channel_tolerance_12": 0.0
+    },
+    "scene": {
+      "mean_absolute_channel_difference": 0.0,
+      "changed_fraction_at_channel_tolerance_12": 0.0
+    }
+  }
+}

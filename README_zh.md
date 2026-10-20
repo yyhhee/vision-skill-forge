@@ -1,5 +1,7 @@
 # Vision Skill Forge — 视觉技能铸造厂
 
+> **`next` 开发分支**：原版 Gradio 后端保留在根目录；新前端原型位于 [`frontend/`](frontend/README.md)，独立运行，**尚未与后端连接**。见[前端回退点与已知限制](docs/NEXT_FRONTEND_CHECKPOINT.md)。稳定原版仍在 `main` 和标签 `checkpoint-original-20261020`，不能将合仓误认为完成集成或正式发布。
+
 用一句自然语言，生成可审核、可编辑、可运行的视觉技能。
 
 [English](README.md) | [中文](README_zh.md)

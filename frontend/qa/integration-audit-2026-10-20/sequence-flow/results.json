@@ -1,0 +1,165 @@
+{
+  "config": {
+    "argv": [
+      "C:\\yhe_user\\software\\nodejs\\node.exe",
+      "C:\\Users\\83915\\Vision Skill Forge Frontend\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "-c",
+      "qa/integration-audit-2026-10-20/audit.config.ts",
+      "--grep",
+      "nested sequential"
+    ],
+    "configFile": "C:\\Users\\83915\\Vision Skill Forge Frontend\\qa\\integration-audit-2026-10-20\\audit.config.ts",
+    "rootDir": "C:/Users/83915/Vision Skill Forge Frontend/qa/integration-audit-2026-10-20",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/83915/Vision Skill Forge Frontend/qa/integration-audit-2026-10-20/sequence-flow/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/83915/Vision Skill Forge Frontend/qa/integration-audit-2026-10-20",
+        "testIgnore": [],
+        "testMatch": [
+          "flow-audit.spec.ts"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\Users\\83915\\Vision Skill Forge Frontend\\qa\\integration-audit-2026-10-20\\sequence-flow\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "C:\\Users\\83915\\Vision Skill Forge Frontend\\qa\\integration-audit-2026-10-20",
+        "snapshotDir": "C:\\Users\\83915\\Vision Skill Forge Frontend\\qa\\integration-audit-2026-10-20",
+        "testIgnore": [],
+        "testMatch": "flow-audit.spec.ts",
+        "timeout": 90000,
+        "use": {
+          "baseURL": "http://127.0.0.1:6174",
+          "viewport": {
+            "width": 1513,
+            "height": 1040
+          },
+          "deviceScaleFactor": 1,
+          "locale": "zh-CN",
+          "timezoneId": "Asia/Shanghai",
+          "trace": "on",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "executablePath": "C:/Users/83915/AppData/Local/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-win64/chrome-headless-shell.exe"
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\Users\\83915\\Vision Skill Forge Frontend\\qa\\integration-audit-2026-10-20\\sequence-flow/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "flow-audit.spec.ts",
+      "file": "flow-audit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "audit nested sequential group through apply, version reload, execution snapshot and history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14678,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T06:54:40.631Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\Users\\83915\\Vision Skill Forge Frontend\\qa\\integration-audit-2026-10-20\\sequence-flow\\artifacts\\flow-audit-audit-nested-se-bd54a-cution-snapshot-and-history\\trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4cf2558b94c9c9c9ff83-72a4fc4204bd38e5f49e",
+          "file": "flow-audit.spec.ts",
+          "line": 184,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-20T06:54:40.188Z",
+    "duration": 15743.977,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

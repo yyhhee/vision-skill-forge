@@ -1,0 +1,33 @@
+{
+  "recordedDate": "2026-10-19",
+  "command": "python validate_spec.py --self-test",
+  "exitCode": 0,
+  "check": "specification_integrity_not_browser_qa",
+  "result": "passed",
+  "referenceCount": 16,
+  "screenshotCaseCount": 16,
+  "assetCount": 13,
+  "readyBinaryAssetCount": 0,
+  "mutationChecks": {
+    "wrong_viewport": true,
+    "unknown_fixture": true,
+    "unknown_asset": true,
+    "invalid_polygon": true,
+    "r3_polluted": true,
+    "wrong_entity": true,
+    "credential_saved": true,
+    "cyclic_group": true,
+    "false_pass": true
+  },
+  "implementation": "not_started",
+  "visualAcceptance": "not_executed",
+  "functionalAcceptance": "not_executed",
+  "errors": [],
+  "pending": [
+    "independent media/logo assets",
+    "font/icon binaries and licenses",
+    "reviewed corrected visual baselines",
+    "real browser captures and interactions"
+  ]
+}
+

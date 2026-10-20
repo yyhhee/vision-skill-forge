@@ -1,0 +1,31 @@
+{
+  "reference": "C:\\Users\\83915\\Vision Skill Forge Frontend\\reference-images\\04-linked-workbench.png",
+  "actual": "C:\\Users\\83915\\Vision Skill Forge Frontend\\qa\\04\\iteration-06\\implementation.png",
+  "pixelSize": [
+    1513,
+    1040
+  ],
+  "referenceSha256": "26098014f082510395e27890f70959573ff5cb1757bcf9053069afa5f916c6cf",
+  "actualSha256": "56e17b550753e48e896378a0a41ae7207a0eb5d66f0da67a8da7bb1636eb2fd1",
+  "resized": false,
+  "masked": false,
+  "purpose": "difference localization only; not an acceptance score",
+  "metrics": {
+    "whole": {
+      "mean_absolute_channel_difference": 15.958985586455844,
+      "changed_fraction_at_channel_tolerance_12": 0.24791677258630332
+    },
+    "topbar": {
+      "mean_absolute_channel_difference": 8.736346373755495,
+      "changed_fraction_at_channel_tolerance_12": 0.13007585056494508
+    },
+    "canvas": {
+      "mean_absolute_channel_difference": 8.381522179130593,
+      "changed_fraction_at_channel_tolerance_12": 0.11372664237865789
+    },
+    "scene": {
+      "mean_absolute_channel_difference": 36.89932356016474,
+      "changed_fraction_at_channel_tolerance_12": 0.606514734438683
+    }
+  }
+}

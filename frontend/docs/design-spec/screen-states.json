@@ -1,0 +1,725 @@
+{
+  "schemaVersion": 1,
+  "fixtureFile": "mock-fixtures.json",
+  "referenceFile": "baseline.lock.json",
+  "common": {
+    "deviceScaleFactor": 1,
+    "browserZoom": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "frozenClock": "2026-10-17T10:26:00+08:00",
+    "colorScheme": "light",
+    "reducedMotion": true,
+    "scroll": {
+      "x": 0,
+      "y": 0
+    },
+    "hover": null,
+    "focus": null,
+    "independentSeed": true,
+    "networkPolicy": "local_assets_only"
+  },
+  "cases": [
+    {
+      "id": "01",
+      "title": "技能库",
+      "route": "/skills",
+      "fixtureId": "library",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "library-cards",
+      "selection": null,
+      "drawer": null,
+      "expanded": [],
+      "approvedDeviationIds": [
+        "D-01",
+        "D-06",
+        "D-08",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-05",
+        "AS-06",
+        "AS-07",
+        "AS-08",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "search": "",
+        "category": "all",
+        "presentation": "grid"
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "02",
+      "title": "一句话创建与理解预览",
+      "route": "/skills/new",
+      "fixtureId": "creation",
+      "viewport": {
+        "width": 1513,
+        "height": 1039
+      },
+      "view": "understanding-preview",
+      "selection": null,
+      "drawer": null,
+      "expanded": [
+        "branches"
+      ],
+      "approvedDeviationIds": [
+        "D-01",
+        "D-08",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "instruction": "区域1有穿红色上衣、灰色裤子的人，且区域2至少2人时告警。",
+        "previewVisible": true
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "03",
+      "title": "场景标注",
+      "route": "/skills/regional-alert/editor?view=scene",
+      "fixtureId": "regional-draft",
+      "viewport": {
+        "width": 1513,
+        "height": 1039
+      },
+      "view": "scene",
+      "selection": "roi-2",
+      "drawer": null,
+      "expanded": [
+        "scene-resources"
+      ],
+      "approvedDeviationIds": [
+        "D-02",
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-02",
+        "AS-04",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "media": "construction-poster",
+        "mediaTime": 12,
+        "regionsSaved": true,
+        "tool": "select"
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "04",
+      "title": "画面与画布联动工作台",
+      "route": "/skills/regional-alert/editor?view=linked",
+      "fixtureId": "regional-draft",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "linked",
+      "selection": "roi-1",
+      "drawer": null,
+      "expanded": [
+        "branch-a",
+        "branch-b"
+      ],
+      "approvedDeviationIds": [
+        "D-02",
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-12",
+        "D-16",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-02",
+        "AS-04",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "media": "construction-poster",
+        "mediaTime": 12,
+        "canvasViewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "05",
+      "title": "条件与证据组合编辑",
+      "route": "/skills/regional-alert/editor?view=linked&drawer=condition",
+      "fixtureId": "regional-draft",
+      "viewport": {
+        "width": 1513,
+        "height": 1039
+      },
+      "view": "linked",
+      "selection": "a-red",
+      "drawer": "condition",
+      "expanded": [
+        "evidence-combination",
+        "fraction",
+        "semantic"
+      ],
+      "approvedDeviationIds": [
+        "D-02",
+        "D-03",
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-10",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-02",
+        "AS-04",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "media": "construction-poster",
+        "mediaTime": 12,
+        "formDirty": false,
+        "evidenceMode": "all",
+        "color": "red",
+        "minimumFraction": 0.1,
+        "part": "upper",
+        "canvasViewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "06",
+      "title": "条件／分支时间要求",
+      "route": "/skills/regional-alert/editor?view=linked&drawer=time",
+      "fixtureId": "regional-time-edit",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "linked",
+      "selection": "branch-b",
+      "drawer": "time",
+      "expanded": [
+        "time-requirement",
+        "identity",
+        "validity"
+      ],
+      "approvedDeviationIds": [
+        "D-02",
+        "D-03",
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-09",
+        "D-10",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-02",
+        "AS-04",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "media": "construction-poster",
+        "mediaTime": 12,
+        "formDirty": true,
+        "timeMode": "continuous",
+        "durationSeconds": 5,
+        "allowedGapSeconds": 0.5,
+        "scopeSource": "roi-2",
+        "validity": "current_frame",
+        "canvasViewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "07",
+      "title": "跨分支编排与复用组",
+      "route": "/skills/sequence-demo/editor?view=orchestration&drawer=group",
+      "fixtureId": "sequence-edit",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "orchestration",
+      "selection": "group-ab",
+      "drawer": "group",
+      "expanded": [
+        "steps",
+        "order",
+        "parallel"
+      ],
+      "approvedDeviationIds": [
+        "D-03",
+        "D-06",
+        "D-09",
+        "D-12",
+        "D-16",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "formDirty": false,
+        "canvasViewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "group": "group-ab"
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "08",
+      "title": "最终判定、业务输出与触发",
+      "route": "/skills/regional-alert/editor?view=outputs&drawer=output",
+      "fixtureId": "regional-draft",
+      "viewport": {
+        "width": 1512,
+        "height": 1040
+      },
+      "view": "outputs",
+      "selection": "output-alert",
+      "drawer": "output",
+      "expanded": [
+        "final-rule",
+        "output",
+        "trigger"
+      ],
+      "approvedDeviationIds": [
+        "D-03",
+        "D-06",
+        "D-10",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "formDirty": false,
+        "footerVisible": true,
+        "outputSource": "final-and",
+        "resultType": "event_list",
+        "delivery": "local_only"
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "09",
+      "title": "验证前配置",
+      "route": "/skills/regional-alert/validate",
+      "fixtureId": "regional-applied",
+      "viewport": {
+        "width": 1512,
+        "height": 1040
+      },
+      "view": "run-setup",
+      "selection": null,
+      "drawer": null,
+      "expanded": [
+        "media",
+        "sampling",
+        "tiles"
+      ],
+      "approvedDeviationIds": [
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-10",
+        "D-11",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-02",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "media": "construction-poster",
+        "revision": "R3",
+        "tilesEnabled": true,
+        "includeFullFrame": true,
+        "tileWidth": 640,
+        "tileHeight": 640,
+        "overlapX": 0.2,
+        "overlapY": 0.2,
+        "dedupMetric": "instance",
+        "dedupThreshold": 0.45
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "10",
+      "title": "正在运行",
+      "route": "/runs/run-regional-r3?state=running",
+      "fixtureId": "regional-run",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "run-monitor",
+      "selection": "branch-a",
+      "drawer": null,
+      "expanded": [
+        "progress",
+        "branches",
+        "log"
+      ],
+      "approvedDeviationIds": [
+        "D-02",
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-11",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-02",
+        "AS-04",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "media": "construction-poster",
+        "runId": "run-regional-r3",
+        "status": "running",
+        "currentTime": 18,
+        "completedFrames": 18,
+        "totalFrames": 30,
+        "autoAdvance": false
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "11",
+      "title": "结果、事件与证据",
+      "route": "/runs/run-regional-r3?state=completed",
+      "fixtureId": "regional-run",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "results",
+      "selection": "event-1",
+      "drawer": null,
+      "expanded": [
+        "events",
+        "evidence",
+        "snapshot"
+      ],
+      "approvedDeviationIds": [
+        "D-02",
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-12",
+        "D-15",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-02",
+        "AS-04",
+        "AS-09",
+        "AS-10",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "media": "construction-poster",
+        "runId": "run-regional-r3",
+        "status": "completed",
+        "mediaTime": 12,
+        "eventId": "event-1",
+        "evidenceIds": [
+          "evidence-upper",
+          "evidence-lower"
+        ],
+        "tab": "events"
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "12",
+      "title": "完整保存与版本管理",
+      "route": "/skills/regional-alert/versions",
+      "fixtureId": "regional-versions",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "versions",
+      "selection": "V3",
+      "drawer": null,
+      "expanded": [
+        "save-content",
+        "versions"
+      ],
+      "approvedDeviationIds": [
+        "D-01",
+        "D-06",
+        "D-10",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "selectedArchive": "V3",
+        "name": "区域联合告警",
+        "newArchiveProposed": "V4",
+        "autoApply": false
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "13",
+      "title": "统一模型接入",
+      "route": "/settings/models",
+      "fixtureId": "models",
+      "viewport": {
+        "width": 1513,
+        "height": 1039
+      },
+      "view": "model-connections",
+      "selection": "visual-demo",
+      "drawer": "model",
+      "expanded": [
+        "visual-model",
+        "connection"
+      ],
+      "approvedDeviationIds": [
+        "D-01",
+        "D-03",
+        "D-12",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "formDirty": false,
+        "connectionStatus": "not_connected",
+        "credentialValue": "",
+        "testMode": "simulated"
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "14",
+      "title": "能力与插件管理",
+      "route": "/settings/capabilities",
+      "fixtureId": "capabilities",
+      "viewport": {
+        "width": 1512,
+        "height": 1040
+      },
+      "view": "capability-management",
+      "selection": "custom-patrol",
+      "drawer": null,
+      "expanded": [
+        "details"
+      ],
+      "approvedDeviationIds": [
+        "D-01",
+        "D-12",
+        "D-14",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "search": "",
+        "tab": "all",
+        "selectedOrigin": "user",
+        "selectedEnabled": false
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "15",
+      "title": "校验失败与定位修正",
+      "route": "/skills/regional-alert/editor?view=linked&drawer=issues",
+      "fixtureId": "regional-invalid",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "linked",
+      "selection": "issue-roi",
+      "drawer": "issues",
+      "expanded": [
+        "errors",
+        "warnings"
+      ],
+      "approvedDeviationIds": [
+        "D-02",
+        "D-03",
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-12",
+        "D-13",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-02",
+        "AS-04",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "media": "construction-poster",
+        "mediaTime": 12,
+        "errorCount": 2,
+        "appliedRevision": "R3",
+        "applyBlocked": true
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    },
+    {
+      "id": "16",
+      "title": "运行记录列表",
+      "route": "/runs",
+      "fixtureId": "run-history",
+      "viewport": {
+        "width": 1513,
+        "height": 1040
+      },
+      "view": "run-history",
+      "selection": null,
+      "drawer": null,
+      "expanded": [],
+      "approvedDeviationIds": [
+        "D-01",
+        "D-04",
+        "D-05",
+        "D-06",
+        "D-12",
+        "D-15",
+        "D-07"
+      ],
+      "requiredAssetIds": [
+        "AS-01",
+        "AS-06",
+        "AS-11",
+        "AS-12"
+      ],
+      "state": {
+        "search": "",
+        "status": "all",
+        "range": "all",
+        "page": 1
+      },
+      "acceptance": {
+        "visual": "not_executed",
+        "functional": "not_executed"
+      }
+    }
+  ]
+}
+
